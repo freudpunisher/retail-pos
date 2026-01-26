@@ -22,11 +22,14 @@ import {
   Truck,
   RefreshCw,
   ClipboardList,
+  Receipt,
+  LogOut,
 } from "lucide-react"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "cashier"] },
   { href: "/sales", label: "Sales (POS)", icon: ShoppingCart, roles: ["admin", "manager", "cashier"] },
+  { href: "/sales-history", label: "Sales History", icon: Receipt, roles: ["admin", "manager", "cashier"] },
   { href: "/purchases", label: "Purchases", icon: Truck, roles: ["admin", "manager"] },
   { href: "/products", label: "Product Management", icon: Package, roles: ["admin", "manager", "cashier"] },
   { href: "/inventory", label: "Stock Status", icon: Warehouse, roles: ["admin", "manager", "cashier"] },
@@ -41,8 +44,13 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { hasRole } = useAuth()
+  const { hasRole, logout, user } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
+
+  const handleLogout = async () => {
+    await logout()
+    window.location.href = "/login"
+  }
 
   const filteredNavItems = navItems.filter((item) => hasRole(item.roles as ("admin" | "manager" | "cashier")[]))
 
@@ -91,6 +99,24 @@ export function Sidebar() {
           })}
         </nav>
       </ScrollArea>
+
+      {/* User Info & Logout */}
+      <div className="border-t border-border p-4">
+        {!collapsed && user && (
+          <div className="mb-2">
+            <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+        )}
+        <Button
+          variant="outline"
+          className={cn("w-full", collapsed && "px-2")}
+          onClick={handleLogout}
+        >
+          <LogOut className={cn("h-4 w-4", !collapsed && "mr-2")} />
+          {!collapsed && "Logout"}
+        </Button>
+      </div>
 
       <Button
         variant="ghost"

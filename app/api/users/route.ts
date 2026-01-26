@@ -2,10 +2,20 @@ import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { asc } from "drizzle-orm"
+import { hashPassword } from "@/lib/auth"
 
 export async function GET() {
     try {
-        const allUsers = await db.select().from(users).orderBy(asc(users.name))
+        const allUsers = await db
+            .select({
+                id: users.id,
+                name: users.name,
+                email: users.email,
+                role: users.role,
+                avatar: users.avatar,
+            })
+            .from(users)
+            .orderBy(asc(users.name))
         return NextResponse.json(allUsers)
     } catch (error) {
         console.error("Failed to fetch users:", error)
@@ -16,11 +26,17 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { name, email, role, avatar } = body
+        const { name, email, role, avatar, password } = body
 
-        if (!name || !email) {
-            return NextResponse.json({ error: "Name and email are required" }, { status: 400 })
+        if (!name || !email || !password) {
+            return NextResponse.json(
+                { error: "Name, email, and password are required" },
+                { status: 400 }
+            )
         }
+
+        // Hash password before storing
+        const hashedPassword = await hashPassword(password)
 
         const [newUser] = await db
             .insert(users)
@@ -28,9 +44,16 @@ export async function POST(request: Request) {
                 name,
                 email,
                 role: role || "cashier",
+                password: hashedPassword,
                 avatar,
             })
-            .returning()
+            .returning({
+                id: users.id,
+                name: users.name,
+                email: users.email,
+                role: users.role,
+                avatar: users.avatar,
+            })
 
         return NextResponse.json(newUser)
     } catch (error) {
