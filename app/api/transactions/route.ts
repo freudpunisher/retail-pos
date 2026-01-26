@@ -29,14 +29,25 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
         }
 
+        // Sanitize IDs for migration/stale sessions
+        const sanitizeUUID = (id: string) => {
+            if (id === "1") return "00000000-0000-0000-0000-000000000001"
+            if (id === "2") return "00000000-0000-0000-0000-000000000002"
+            if (id === "3") return "00000000-0000-0000-0000-000000000003"
+            return id
+        }
+
+        const sanitizedUserId = sanitizeUUID(userId)
+        const sanitizedClientId = clientId ? sanitizeUUID(clientId) : null
+
         // Use a transaction to ensure atomicity
         const result = await db.transaction(async (tx) => {
             // 0. Check Credit Limit if applicable
-            if (clientId && paymentMethod === "credit") {
+            if (sanitizedClientId && paymentMethod === "credit") {
                 const [client] = await tx
                     .select()
                     .from(clients)
-                    .where(eq(clients.id, clientId))
+                    .where(eq(clients.id, sanitizedClientId))
 
                 if (client) {
                     const currentBalance = Number.parseFloat(client.creditBalance)
@@ -57,8 +68,8 @@ export async function POST(request: Request) {
                     total: total.toString(),
                     status: status || "completed",
                     paymentMethod,
-                    clientId,
-                    userId,
+                    clientId: sanitizedClientId,
+                    userId: sanitizedUserId,
                 })
                 .returning()
 
@@ -88,7 +99,7 @@ export async function POST(request: Request) {
                     productName: item.productName,
                     type: type === "sale" ? "sale" : "purchase",
                     quantity: quantityChange,
-                    userId,
+                    userId: sanitizedUserId,
                     notes: `Transaction ${newTransaction.id}`,
                 })
             }
@@ -100,7 +111,7 @@ export async function POST(request: Request) {
                     .set({
                         creditBalance: sql`${clients.creditBalance} + ${total}`,
                     })
-                    .where(sql`${clients.id} = ${clientId}`)
+                    .where(eq(clients.id, sanitizedClientId))
             }
 
             return newTransaction
