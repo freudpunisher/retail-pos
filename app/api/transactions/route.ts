@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         }
 
         const sanitizedUserId = sanitizeUUID(userId)
-        const sanitizedClientId = clientId ? sanitizeUUID(clientId) : null
+        const sanitizedClientId = clientId
 
         // Use a transaction to ensure atomicity
         const result = await db.transaction(async (tx) => {
