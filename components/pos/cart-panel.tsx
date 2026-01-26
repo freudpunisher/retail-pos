@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,6 +48,7 @@ export function CartPanel() {
   const [showReceipt, setShowReceipt] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "card">("cash")
   const [lastTransactionId, setLastTransactionId] = useState<string | null>(null)
+  const receiptRef = useRef<HTMLDivElement>(null)
 
   const isCreditExceeded = !!(selectedClient && paymentMethod === "credit" &&
     (Number.parseFloat(String(selectedClient.creditBalance)) + total > Number.parseFloat(String(selectedClient.creditLimit))))
@@ -64,7 +65,7 @@ export function CartPanel() {
         total,
         paymentMethod,
         clientId: selectedClient?.id,
-        userId: user.id || "00000000-0000-0000-0000-000000000001", // Use current user ID or admin fallback
+        userId: user.id || "2f83e92d-b719-4c15-919f-e2ff7640f1c4", // Use current user ID or real admin fallback
         items: items.map(item => ({
           productId: item.id,
           productName: item.name,
@@ -90,8 +91,35 @@ export function CartPanel() {
     setLastTransactionId(null)
   }
 
+  const handlePrint = () => {
+    if (typeof window !== "undefined") {
+      window.print()
+    }
+  }
+
   return (
     <>
+      <style>
+        {`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            #printable-area, #printable-area * {
+              visibility: visible;
+            }
+            #printable-area {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            /* Hide print button itself if it was inside, but it's not here */
+          }
+        `}
+      </style>
       <Card className="flex h-full flex-col border-border bg-card">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -333,7 +361,7 @@ export function CartPanel() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="rounded-lg border border-border bg-card p-4 font-mono text-sm">
+          <div id="printable-area" ref={receiptRef} className="rounded-lg border border-border bg-card p-4 font-mono text-sm">
             <div className="text-center mb-4">
               <p className="text-lg font-bold">SmartPOS Store</p>
               <p className="text-xs text-muted-foreground">123 Main Street, Downtown</p>
@@ -394,7 +422,7 @@ export function CartPanel() {
             <Button variant="outline" onClick={handleComplete}>
               New Sale
             </Button>
-            <Button onClick={handleComplete}>
+            <Button onClick={handlePrint}>
               <Receipt className="mr-2 h-4 w-4" />
               Print Receipt
             </Button>

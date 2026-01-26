@@ -31,9 +31,7 @@ export async function POST(request: Request) {
 
         // Sanitize IDs for migration/stale sessions
         const sanitizeUUID = (id: string) => {
-            if (id === "1") return "00000000-0000-0000-0000-000000000001"
-            if (id === "2") return "00000000-0000-0000-0000-000000000002"
-            if (id === "3") return "00000000-0000-0000-0000-000000000003"
+            if (id === "1" || id === "00000000-0000-0000-0000-000000000001") return "2f83e92d-b719-4c15-919f-e2ff7640f1c4"
             return id
         }
 

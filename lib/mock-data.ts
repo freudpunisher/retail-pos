@@ -13,6 +13,13 @@ import type {
 
 export const mockUsers: User[] = [
   {
+    id: "2f83e92d-b719-4c15-919f-e2ff7640f1c4",
+    name: "MUGISHA Freud",
+    email: "punishergte@gmail.com",
+    role: "admin",
+    avatar: "/admin-avatar.png",
+  },
+  {
     id: "00000000-0000-0000-0000-000000000001",
     name: "John Admin",
     email: "admin@smartpos.com",
