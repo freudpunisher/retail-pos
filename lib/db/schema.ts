@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, numeric, uuid, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, text, integer, timestamp, numeric, uuid, pgEnum, boolean } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 
 // Enums
@@ -33,7 +33,7 @@ export const products = pgTable("products", {
     name: text("name").notNull(),
     categoryId: uuid("category_id").references(() => categories.id),
     price: numeric("price", { precision: 12, scale: 2 }).notNull(),
-    cost: numeric("cost", { precision: 12, scale: 2 }).notNull(),
+    cost: numeric("cost", { precision: 12, scale: 2 }),
     stock: integer("stock").notNull().default(0), // Kept for backward compatibility/simplicity
     minStock: integer("min_stock").notNull().default(0),
     image: text("image"),
@@ -79,6 +79,7 @@ export const suppliers = pgTable("suppliers", {
     email: text("email").notNull(),
     phone: text("phone").notNull(),
     address: text("address").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
 })
 
 export const transactions = pgTable("transactions", {

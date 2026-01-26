@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -9,15 +10,27 @@ import { usePurchases } from "@/hooks/use-purchases"
 import { useSuppliers } from "@/hooks/use-suppliers"
 import { formatCurrency } from "@/lib/mock-data"
 import { CreatePurchaseDialog } from "@/components/purchases/create-purchase-dialog"
+import { SupplierFormDialog } from "@/components/inventory/supplier-form-dialog"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Truck, Package, DollarSign, Clock, Building2, Phone, Mail, MapPin, Loader2, AlertCircle } from "lucide-react"
+import { Truck, Package, DollarSign, Clock, Building2, Phone, Mail, MapPin, Loader2, AlertCircle, Edit, Power, PowerOff, Plus } from "lucide-react"
 
 export default function PurchasesPage() {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
   const [showOrderDetails, setShowOrderDetails] = useState(false)
 
+  // Supplier Management State
+  const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false)
+  const [editingSupplier, setEditingSupplier] = useState<any | null>(null)
+
   const { orders, loading: ordersLoading, error: ordersError } = usePurchases()
-  const { suppliers, loading: suppliersLoading, error: suppliersError } = useSuppliers()
+  const {
+    suppliers,
+    loading: suppliersLoading,
+    error: suppliersError,
+    createSupplier,
+    updateSupplier,
+    toggleSupplierStatus
+  } = useSuppliers()
 
   const pendingCount = orders.filter((po) => po.status === "pending").length
   const receivedCount = orders.filter((po) => po.status === "received").length
@@ -39,6 +52,28 @@ export default function PurchasesPage() {
   const handleOrderClick = (order: any) => {
     setSelectedOrder(order)
     setShowOrderDetails(true)
+  }
+
+  const handleAddSupplier = () => {
+    setEditingSupplier(null)
+    setIsSupplierDialogOpen(true)
+  }
+
+  const handleEditSupplier = (supplier: any) => {
+    setEditingSupplier(supplier)
+    setIsSupplierDialogOpen(true)
+  }
+
+  const handleSupplierSubmit = async (data: any) => {
+    if (editingSupplier) {
+      await updateSupplier(editingSupplier.id, data)
+    } else {
+      await createSupplier(data)
+    }
+  }
+
+  const handleToggleStatus = async (supplier: any) => {
+    await toggleSupplierStatus(supplier.id, !supplier.isActive)
   }
 
   if (ordersLoading || suppliersLoading) {
@@ -177,15 +212,21 @@ export default function PurchasesPage() {
         </TabsContent>
 
         <TabsContent value="suppliers" className="mt-4">
+          <div className="flex justify-end mb-4">
+            <Button onClick={handleAddSupplier} variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Supplier
+            </Button>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             {suppliers.map((supplier) => (
-              <Card key={supplier.id} className="border-border bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all group">
+              <Card key={supplier.id} className={`border-border bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all group ${!supplier.isActive ? 'opacity-60 grayscale-[0.5]' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
-                          <Building2 className="h-6 w-6 text-primary" />
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${supplier.isActive ? 'bg-primary/10 border border-primary/20 group-hover:bg-primary/20' : 'bg-muted border border-border'}`}>
+                          <Building2 className={`h-6 w-6 ${supplier.isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                         </div>
                         <div>
                           <h3 className="font-bold text-lg text-foreground">{supplier.name}</h3>
@@ -208,9 +249,24 @@ export default function PurchasesPage() {
                         </div>
                       </div>
                     </div>
-                    <Badge variant="outline" className="bg-accent/10 text-accent font-bold ring-1 ring-accent/30 shadow-sm shadow-accent/10">
-                      Active
-                    </Badge>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant="outline" className={`font-bold ring-1 shadow-sm ${supplier.isActive ? 'bg-accent/10 text-accent ring-accent/30 shadow-accent/10' : 'bg-muted text-muted-foreground ring-border shadow-none'}`}>
+                        {supplier.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleEditSupplier(supplier)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 ${supplier.isActive ? 'text-destructive' : 'text-accent'}`}
+                          onClick={() => handleToggleStatus(supplier)}
+                        >
+                          {supplier.isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -279,6 +335,12 @@ export default function PurchasesPage() {
           )}
         </DialogContent>
       </Dialog>
+      <SupplierFormDialog
+        supplier={editingSupplier}
+        open={isSupplierDialogOpen}
+        onOpenChange={setIsSupplierDialogOpen}
+        onSubmit={handleSupplierSubmit}
+      />
     </div>
   )
 }

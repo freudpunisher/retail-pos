@@ -42,5 +42,39 @@ export function useSuppliers() {
         }
     }
 
-    return { suppliers, loading, error, refresh: fetchSuppliers, createSupplier }
+    const updateSupplier = async (id: string, supplierData: any) => {
+        try {
+            const response = await fetch(`/api/suppliers/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(supplierData),
+            })
+            if (!response.ok) throw new Error("Failed to update supplier")
+            const updated = await response.json()
+            setSuppliers((prev) => prev.map((s) => (s.id === id ? updated : s)))
+            return updated
+        } catch (err: any) {
+            setError(err.message)
+            throw err
+        }
+    }
+
+    const toggleSupplierStatus = async (id: string, isActive: boolean) => {
+        try {
+            const response = await fetch(`/api/suppliers/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isActive }),
+            })
+            if (!response.ok) throw new Error("Failed to update supplier status")
+            const updated = await response.json()
+            setSuppliers((prev) => prev.map((s) => (s.id === id ? updated : s)))
+            return updated
+        } catch (err: any) {
+            setError(err.message)
+            throw err
+        }
+    }
+
+    return { suppliers, loading, error, refresh: fetchSuppliers, createSupplier, updateSupplier, toggleSupplierStatus }
 }

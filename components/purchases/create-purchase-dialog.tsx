@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
 import { useSuppliers } from "@/hooks/use-suppliers"
 import { useProducts } from "@/hooks/use-products"
 import { usePurchases } from "@/hooks/use-purchases"
@@ -55,7 +56,7 @@ export function CreatePurchaseDialog() {
           productId: product.id,
           productName: product.name,
           quantity: 1,
-          cost: parseFloat(product.cost) || 0,
+          cost: 0, // Default to 0, user will input it
         },
       ])
     }
@@ -67,6 +68,13 @@ export function CreatePurchaseDialog() {
       prev
         .map((i) => (i.productId === productId ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i))
         .filter((i) => i.quantity > 0),
+    )
+  }
+
+  const updateCost = (productId: string, cost: string) => {
+    const numericCost = parseFloat(cost) || 0
+    setItems((prev) =>
+      prev.map((i) => (i.productId === productId ? { ...i, cost: numericCost } : i))
     )
   }
 
@@ -118,7 +126,7 @@ export function CreatePurchaseDialog() {
                 <SelectValue placeholder={suppliersLoading ? "Loading suppliers..." : "Select supplier"} />
               </SelectTrigger>
               <SelectContent>
-                {suppliers.map((supplier) => (
+                {suppliers.filter(s => s.isActive).map((supplier) => (
                   <SelectItem key={supplier.id} value={supplier.id}>
                     {supplier.name}
                   </SelectItem>
@@ -167,7 +175,15 @@ export function CreatePurchaseDialog() {
                   {items.map((item) => (
                     <TableRow key={item.productId} className="border-border">
                       <TableCell className="font-medium">{item.productName}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.cost)}</TableCell>
+                      <TableCell className="text-right">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.cost}
+                          onChange={(e) => updateCost(item.productId, e.target.value)}
+                          className="h-8 w-24 ml-auto text-right"
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
                           <Button
