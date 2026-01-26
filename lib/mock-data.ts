@@ -13,21 +13,21 @@ import type {
 
 export const mockUsers: User[] = [
   {
-    id: "1",
+    id: "00000000-0000-0000-0000-000000000001",
     name: "John Admin",
     email: "admin@smartpos.com",
     role: "admin",
     avatar: "/admin-avatar.png",
   },
   {
-    id: "2",
+    id: "00000000-0000-0000-0000-000000000002",
     name: "Sarah Manager",
     email: "manager@smartpos.com",
     role: "manager",
     avatar: "/manager-avatar.png",
   },
   {
-    id: "3",
+    id: "00000000-0000-0000-0000-000000000003",
     name: "Mike Cashier",
     email: "cashier@smartpos.com",
     role: "cashier",
@@ -270,7 +270,7 @@ export const mockTransactions: Transaction[] = [
     total: 156.97,
     status: "completed",
     paymentMethod: "cash",
-    userId: "3",
+    userId: "00000000-0000-0000-0000-000000000003",
     items: [
       { productId: "1", productName: "Wireless Headphones", quantity: 1, price: 79.99, discount: 0 },
       { productId: "4", productName: "Cotton T-Shirt", quantity: 2, price: 19.99, discount: 0 },
@@ -284,7 +284,7 @@ export const mockTransactions: Transaction[] = [
     total: 89.99,
     status: "completed",
     paymentMethod: "card",
-    userId: "3",
+    userId: "00000000-0000-0000-0000-000000000003",
     items: [{ productId: "6", productName: "Sneakers", quantity: 1, price: 89.99, discount: 0 }],
   },
   {
@@ -295,7 +295,7 @@ export const mockTransactions: Transaction[] = [
     status: "completed",
     paymentMethod: "credit",
     clientId: "1",
-    userId: "3",
+    userId: "00000000-0000-0000-0000-000000000003",
     items: [
       { productId: "5", productName: "Denim Jeans", quantity: 3, price: 49.99, discount: 0 },
       { productId: "2", productName: "USB-C Cable", quantity: 5, price: 12.99, discount: 10 },
@@ -308,7 +308,7 @@ export const mockTransactions: Transaction[] = [
     total: 64.97,
     status: "completed",
     paymentMethod: "cash",
-    userId: "2",
+    userId: "00000000-0000-0000-0000-000000000002",
     items: [
       { productId: "9", productName: "LED Desk Lamp", quantity: 1, price: 34.99, discount: 0 },
       { productId: "11", productName: "Yoga Mat", quantity: 1, price: 29.99, discount: 0 },
@@ -322,7 +322,7 @@ export const mockTransactions: Transaction[] = [
     status: "completed",
     paymentMethod: "credit",
     clientId: "3",
-    userId: "3",
+    userId: "00000000-0000-0000-0000-000000000003",
     items: [
       { productId: "12", productName: "Resistance Bands", quantity: 4, price: 15.99, discount: 0 },
       { productId: "8", productName: "Green Tea Pack", quantity: 4, price: 8.99, discount: 0 },
@@ -372,7 +372,7 @@ export const mockStockMovements: StockMovement[] = [
     type: "purchase",
     quantity: 50,
     date: "2024-12-10T08:00:00",
-    userId: "2",
+    userId: "00000000-0000-0000-0000-000000000002",
     notes: "PO-001 received",
   },
   {
@@ -382,7 +382,7 @@ export const mockStockMovements: StockMovement[] = [
     type: "sale",
     quantity: -1,
     date: "2024-12-15T10:30:00",
-    userId: "3",
+    userId: "00000000-0000-0000-0000-000000000003",
   },
   {
     id: "SM-003",
@@ -391,7 +391,7 @@ export const mockStockMovements: StockMovement[] = [
     type: "purchase",
     quantity: 100,
     date: "2024-12-12T09:00:00",
-    userId: "2",
+    userId: "00000000-0000-0000-0000-000000000002",
     notes: "PO-002 received",
   },
   {
@@ -401,7 +401,7 @@ export const mockStockMovements: StockMovement[] = [
     type: "sale",
     quantity: -2,
     date: "2024-12-15T10:30:00",
-    userId: "3",
+    userId: "00000000-0000-0000-0000-000000000003",
   },
   {
     id: "SM-005",
@@ -410,7 +410,7 @@ export const mockStockMovements: StockMovement[] = [
     type: "adjustment",
     quantity: -5,
     date: "2024-12-13T14:00:00",
-    userId: "1",
+    userId: "00000000-0000-0000-0000-000000000001",
     notes: "Damaged stock write-off",
   },
   {
@@ -420,7 +420,7 @@ export const mockStockMovements: StockMovement[] = [
     type: "sale",
     quantity: -1,
     date: "2024-12-15T11:45:00",
-    userId: "3",
+    userId: "00000000-0000-0000-0000-000000000003",
   },
 ]
 

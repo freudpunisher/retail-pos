@@ -91,6 +91,7 @@ export const clients = pgTable("clients", {
     address: text("address").notNull(),
     creditBalance: numeric("credit_balance", { precision: 12, scale: 2 }).notNull().default("0"),
     creditLimit: numeric("credit_limit", { precision: 12, scale: 2 }).notNull().default("0"),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
 })
 

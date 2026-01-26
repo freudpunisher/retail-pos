@@ -4,23 +4,63 @@ import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatCurrency } from "@/lib/mock-data"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import type { Client } from "@/lib/types"
-import { Users, DollarSign, CreditCard, Search, User, Mail, Phone, MapPin, Calendar, History, Loader2 } from "lucide-react"
+import {
+  Users,
+  DollarSign,
+  CreditCard,
+  Search,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  History,
+  Loader2,
+  Plus,
+  Edit2,
+  Ban,
+  CheckCircle,
+  MoreVertical,
+} from "lucide-react"
 import { useClients } from "@/hooks/use-clients"
 import { useTransactions } from "@/hooks/use-transactions"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("")
   const [selectedClient, setSelectedClient] = useState<any | null>(null)
   const [showClientDetails, setShowClientDetails] = useState(false)
+  const [showUpsertDialog, setShowUpsertDialog] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { clients, loading: clientsLoading } = useClients(search)
+  const { clients, loading: clientsLoading, createClient, updateClient, toggleClientStatus } = useClients(search)
   const { transactions, fetchTransactions, loading: txLoading } = useTransactions()
+
+  const [formData, setFormData] = useState({
+    id: "",
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    creditLimit: "0",
+  })
 
   useEffect(() => {
     if (showClientDetails) {
@@ -41,6 +81,52 @@ export default function ClientsPage() {
     setShowClientDetails(true)
   }
 
+  const handleOpenCreate = () => {
+    setIsEditing(false)
+    setFormData({ id: "", name: "", email: "", phone: "", address: "", creditLimit: "0" })
+    setShowUpsertDialog(true)
+  }
+
+  const handleOpenEdit = (client: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsEditing(true)
+    setFormData({
+      id: client.id,
+      name: client.name,
+      email: client.email,
+      phone: client.phone,
+      address: client.address,
+      creditLimit: client.creditLimit,
+    })
+    setShowUpsertDialog(true)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    try {
+      if (isEditing) {
+        await updateClient(formData.id, formData)
+      } else {
+        await createClient(formData)
+      }
+      setShowUpsertDialog(false)
+    } catch (error) {
+      console.error("Failed to save client:", error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleToggleStatus = async (client: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await toggleClientStatus(client.id, !client.isActive)
+    } catch (error) {
+      console.error("Failed to toggle status:", error)
+    }
+  }
+
   const getCreditUtilization = (client: any) => {
     const limit = Number.parseFloat(client.creditLimit)
     if (limit === 0) return 0
@@ -49,9 +135,14 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Clients</h2>
-        <p className="text-muted-foreground">Manage your customer database</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Clients</h2>
+          <p className="text-muted-foreground">Manage your customer database</p>
+        </div>
+        <Button onClick={handleOpenCreate} className="bg-primary hover:bg-primary/90">
+          <Plus className="mr-2 h-4 w-4" /> Add New Client
+        </Button>
       </div>
 
       {/* Stats */}
@@ -97,7 +188,7 @@ export default function ClientsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search clients by name or email..."
+              placeholder="Search clients by name, email or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -118,16 +209,17 @@ export default function ClientsPage() {
                 <TableRow className="hover:bg-transparent border-border">
                   <TableHead className="text-muted-foreground">Client</TableHead>
                   <TableHead className="text-muted-foreground">Contact</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
                   <TableHead className="text-muted-foreground">Credit Balance</TableHead>
                   <TableHead className="text-muted-foreground">Credit Limit</TableHead>
                   <TableHead className="text-muted-foreground">Utilization</TableHead>
-                  <TableHead className="text-muted-foreground">Since</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {clientsLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
                         <span>Loading clients...</span>
@@ -136,7 +228,7 @@ export default function ClientsPage() {
                   </TableRow>
                 ) : clients.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                       No clients found
                     </TableCell>
                   </TableRow>
@@ -146,13 +238,13 @@ export default function ClientsPage() {
                     return (
                       <TableRow
                         key={client.id}
-                        className="border-border cursor-pointer hover:bg-secondary/50"
+                        className={`border-border cursor-pointer hover:bg-secondary/50 ${!client.isActive ? 'opacity-60' : ''}`}
                         onClick={() => handleClientClick(client)}
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20">
-                              <User className="h-5 w-5 text-primary" />
+                            <div className={`flex h-9 w-9 items-center justify-center rounded-full ${client.isActive ? 'bg-primary/20' : 'bg-muted'}`}>
+                              <User className={`h-5 w-5 ${client.isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                             </div>
                             <div>
                               <p className="font-medium">{client.name}</p>
@@ -162,6 +254,11 @@ export default function ClientsPage() {
                         </TableCell>
                         <TableCell>
                           <span className="text-sm text-muted-foreground">{client.phone}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={client.isActive ? "default" : "secondary"} className={client.isActive ? "bg-accent/20 text-accent font-bold ring-1 ring-accent/30" : ""}>
+                            {client.isActive ? "Active" : "Inactive"}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           {Number.parseFloat(client.creditBalance) > 0 ? (
@@ -179,8 +276,31 @@ export default function ClientsPage() {
                             <Progress value={utilization} className="h-2" />
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {new Date(client.createdAt).toLocaleDateString()}
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={(e) => handleOpenEdit(client, e)}>
+                                <Edit2 className="mr-2 h-4 w-4" /> Edit Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => handleToggleStatus(client, e)}
+                                className={client.isActive ? "text-destructive" : "text-accent"}
+                              >
+                                {client.isActive ? (
+                                  <><Ban className="mr-2 h-4 w-4" /> Deactivate</>
+                                ) : (
+                                  <><CheckCircle className="mr-2 h-4 w-4" /> Activate</>
+                                )}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     )
@@ -192,13 +312,98 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
 
+      {/* Create/Edit Dialog */}
+      <Dialog open={showUpsertDialog} onOpenChange={setShowUpsertDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle>{isEditing ? "Edit Client" : "Add New Client"}</DialogTitle>
+              <DialogDescription>
+                Fill in the client details below. Click save when you're done.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Full Name"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="email@example.com"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+1 234 567 890"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="creditLimit">Credit Limit</Label>
+                <Input
+                  id="creditLimit"
+                  type="number"
+                  step="0.01"
+                  value={formData.creditLimit}
+                  onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="address">Address</Label>
+                <Textarea
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Physical Address"
+                  className="h-20"
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowUpsertDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditing ? "Save Changes" : "Create Client"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Client Details Dialog */}
       <Dialog open={showClientDetails} onOpenChange={setShowClientDetails}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Client Profile
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Client Profile
+              </div>
+              {selectedClient && (
+                <Badge variant={selectedClient.isActive ? "default" : "secondary"}>
+                  {selectedClient.isActive ? "Active" : "Inactive"}
+                </Badge>
+              )}
             </DialogTitle>
             <DialogDescription>Detailed client information and transaction history</DialogDescription>
           </DialogHeader>
@@ -206,11 +411,16 @@ export default function ClientsPage() {
           {selectedClient && (
             <div className="space-y-6">
               <div className="flex items-start gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
-                  <User className="h-8 w-8 text-primary" />
+                <div className={`flex h-16 w-16 items-center justify-center rounded-full ${selectedClient.isActive ? 'bg-primary/20' : 'bg-muted'}`}>
+                  <User className={`h-8 w-8 ${selectedClient.isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold">{selectedClient.name}</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold">{selectedClient.name}</h3>
+                    <Button variant="outline" size="sm" onClick={(e) => handleOpenEdit(selectedClient, e)}>
+                      <Edit2 className="mr-2 h-3 w-3" /> Edit Profile
+                    </Button>
+                  </div>
                   <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4" />
@@ -279,7 +489,7 @@ export default function ClientsPage() {
                           <p className="font-medium">{formatCurrency(Number.parseFloat(txn.total))}</p>
                           <Badge
                             className={
-                              txn.status === "completed" ? "bg-accent/20 text-accent" : "bg-warning/20 text-warning"
+                              txn.status === "completed" ? "bg-accent/20 text-accent font-bold ring-1 ring-accent/30" : "bg-warning/20 text-warning font-bold ring-1 ring-warning/30"
                             }
                           >
                             {txn.status}

@@ -31,6 +31,24 @@ export async function POST(request: Request) {
 
         // Use a transaction to ensure atomicity
         const result = await db.transaction(async (tx) => {
+            // 0. Check Credit Limit if applicable
+            if (clientId && paymentMethod === "credit") {
+                const [client] = await tx
+                    .select()
+                    .from(clients)
+                    .where(eq(clients.id, clientId))
+
+                if (client) {
+                    const currentBalance = Number.parseFloat(client.creditBalance)
+                    const limit = Number.parseFloat(client.creditLimit)
+                    const newBalance = currentBalance + Number.parseFloat(total.toString())
+
+                    if (newBalance > limit) {
+                        throw new Error(`Credit limit exceeded. Available: ${(limit - currentBalance).toFixed(2)}`)
+                    }
+                }
+            }
+
             // 1. Insert Transaction
             const [newTransaction] = await tx
                 .insert(transactions)
@@ -89,8 +107,9 @@ export async function POST(request: Request) {
         })
 
         return NextResponse.json(result)
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to create transaction:", error)
-        return NextResponse.json({ error: "Failed to create transaction" }, { status: 500 })
+        const errorMessage = error.message || "Failed to create transaction"
+        return NextResponse.json({ error: errorMessage }, { status: error.message ? 400 : 500 })
     }
 }

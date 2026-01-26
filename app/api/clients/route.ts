@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { name, email, phone, address, creditLimit } = body
+        const { name, email, phone, address, creditLimit, isActive } = body
 
         if (!name || !email || !phone || !address) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
                 address,
                 creditLimit: creditLimit?.toString() || "0",
                 creditBalance: "0",
+                isActive: isActive !== undefined ? isActive : true,
             })
             .returning()
 

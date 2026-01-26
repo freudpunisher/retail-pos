@@ -46,5 +46,47 @@ export function useClients(search?: string) {
         }
     }
 
-    return { clients, loading, error, refresh: fetchClients, createClient }
+    const updateClient = async (id: string, clientData: any) => {
+        try {
+            const response = await fetch(`/api/clients/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(clientData),
+            })
+            if (!response.ok) throw new Error("Failed to update client")
+            const updated = await response.json()
+            setClients((prev) => prev.map((c) => (c.id === id ? updated : c)))
+            return updated
+        } catch (err: any) {
+            setError(err.message)
+            throw err
+        }
+    }
+
+    const toggleClientStatus = async (id: string, isActive: boolean) => {
+        try {
+            const response = await fetch(`/api/clients/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isActive }),
+            })
+            if (!response.ok) throw new Error("Failed to update status")
+            const updated = await response.json()
+            setClients((prev) => prev.map((c) => (c.id === id ? updated : c)))
+            return updated
+        } catch (err: any) {
+            setError(err.message)
+            throw err
+        }
+    }
+
+    return {
+        clients,
+        loading,
+        error,
+        refresh: fetchClients,
+        createClient,
+        updateClient,
+        toggleClientStatus
+    }
 }

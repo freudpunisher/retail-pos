@@ -49,6 +49,9 @@ export function CartPanel() {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "card">("cash")
   const [lastTransactionId, setLastTransactionId] = useState<string | null>(null)
 
+  const isCreditExceeded = !!(selectedClient && paymentMethod === "credit" &&
+    (Number.parseFloat(String(selectedClient.creditBalance)) + total > Number.parseFloat(String(selectedClient.creditLimit))))
+
   const handleCheckout = async () => {
     if (!user) {
       toast.error("You must be logged in to complete a sale")
@@ -61,7 +64,7 @@ export function CartPanel() {
         total,
         paymentMethod,
         clientId: selectedClient?.id,
-        userId: user.id || "1", // Use current user ID
+        userId: user.id || "00000000-0000-0000-0000-000000000001", // Use current user ID or admin fallback
         items: items.map(item => ({
           productId: item.id,
           productName: item.name,
@@ -288,14 +291,22 @@ export function CartPanel() {
             </div>
 
             {selectedClient && paymentMethod === "credit" && (
-              <div className="rounded-lg border border-warning/50 bg-warning/10 p-3">
-                <p className="text-sm font-medium">Client: {selectedClient.name}</p>
+              <div className={`rounded-lg border p-3 ${isCreditExceeded ? 'border-destructive bg-destructive/10' : 'border-warning/50 bg-warning/10'}`}>
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-sm font-medium">Client: {selectedClient.name}</p>
+                  {isCreditExceeded && <Badge variant="destructive">Limit Exceeded</Badge>}
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Current Balance: {formatCurrency(Number.parseFloat(String(selectedClient.creditBalance)))}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Credit Limit: {formatCurrency(Number.parseFloat(String(selectedClient.creditLimit)))}
                 </p>
+                {isCreditExceeded && (
+                  <p className="text-xs font-bold text-destructive mt-2 flex items-center gap-1">
+                    <Trash2 className="h-3 w-3" /> Sale exceeds available credit!
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -304,9 +315,9 @@ export function CartPanel() {
             <Button variant="outline" onClick={() => setShowCheckout(false)} disabled={processing}>
               Cancel
             </Button>
-            <Button onClick={handleCheckout} disabled={processing}>
+            <Button onClick={handleCheckout} disabled={processing || (paymentMethod === "credit" && isCreditExceeded)}>
               {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Complete Sale
+              {isCreditExceeded ? "Credit Limit Exceeded" : "Complete Sale"}
             </Button>
           </DialogFooter>
         </DialogContent>
