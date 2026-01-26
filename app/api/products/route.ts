@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { products, categories, inventory } from "@/lib/db/schema"
+import { products, categories, stock } from "@/lib/db/schema"
 import { eq, desc, sql } from "drizzle-orm"
 
 export async function GET(request: Request) {
@@ -74,8 +74,8 @@ export async function POST(request: Request) {
                 })
                 .returning()
 
-            // Initialize inventory record
-            await tx.insert(inventory).values({
+            // Initialize stock record
+            await tx.insert(stock).values({
                 productId: newProduct.id,
                 quantityOnHand: 0,
                 quantityReserved: 0,

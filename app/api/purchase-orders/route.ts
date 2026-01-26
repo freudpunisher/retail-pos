@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { purchaseOrders, purchaseOrderItems, suppliers, inventory, stockMovements, products } from "@/lib/db/schema"
+import { purchaseOrders, purchaseOrderItems, suppliers, stock, stockMovements, products } from "@/lib/db/schema"
 import { eq, desc } from "drizzle-orm"
 
 export async function GET() {
@@ -79,16 +79,16 @@ export async function POST(request: Request) {
                             .where(eq(products.id, item.productId))
                     }
 
-                    // Update inventory table
-                    const [invRecord] = await tx.select().from(inventory).where(eq(inventory.productId, item.productId))
-                    if (invRecord) {
+                    // Update stock table
+                    const [stockRecord] = await tx.select().from(stock).where(eq(stock.productId, item.productId))
+                    if (stockRecord) {
                         await tx
-                            .update(inventory)
+                            .update(stock)
                             .set({
-                                quantityOnHand: invRecord.quantityOnHand + item.quantity,
+                                quantityOnHand: stockRecord.quantityOnHand + item.quantity,
                                 updatedAt: new Date()
                             })
-                            .where(eq(inventory.productId, item.productId))
+                            .where(eq(stock.productId, item.productId))
                     }
 
                     // Record stock movement

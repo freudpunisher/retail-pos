@@ -29,7 +29,7 @@ import {
     ArrowUpDown,
     Clock
 } from "lucide-react"
-import { useInventory } from "@/hooks/use-inventory"
+import { useStock } from "@/hooks/use-stock"
 import { useProducts } from "@/hooks/use-products"
 import { useUsers } from "@/hooks/use-users"
 
@@ -38,7 +38,7 @@ export default function StockAdjustmentsPage() {
     const [showAdjustmentDialog, setShowAdjustmentDialog] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const { adjustments, loading, createAdjustment } = useInventory()
+    const { adjustments, loading, createAdjustment } = useStock()
     const { products } = useProducts()
     const { users } = useUsers()
 
@@ -220,7 +220,7 @@ export default function StockAdjustmentsPage() {
                                 </Button>
                                 <Button type="submit" disabled={isSubmitting} className="min-w-[170px] bg-gradient-to-r from-primary to-primary/80 hover:shadow-primary/30 shadow-lg transition-all">
                                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                    Sync Inventory
+                                    Sync Stock
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -276,7 +276,7 @@ export default function StockAdjustmentsPage() {
                                                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
                                                 </div>
                                                 <p className="text-lg font-bold text-foreground/80">Synchronizing database items...</p>
-                                                <p className="text-sm text-muted-foreground max-w-xs">Retrieving full historical audit logs for inventory modifications.</p>
+                                                <p className="text-sm text-muted-foreground max-w-xs">Retrieving full historical audit logs for stock modifications.</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>

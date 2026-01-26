@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Truck,
   RefreshCw,
+  ClipboardList,
 } from "lucide-react"
 
 const navItems = [
@@ -28,8 +29,9 @@ const navItems = [
   { href: "/sales", label: "Sales (POS)", icon: ShoppingCart, roles: ["admin", "manager", "cashier"] },
   { href: "/purchases", label: "Purchases", icon: Truck, roles: ["admin", "manager"] },
   { href: "/products", label: "Product Management", icon: Package, roles: ["admin", "manager", "cashier"] },
-  { href: "/inventory", label: "Inventory Status", icon: Warehouse, roles: ["admin", "manager", "cashier"] },
+  { href: "/inventory", label: "Stock Status", icon: Warehouse, roles: ["admin", "manager", "cashier"] },
   { href: "/inventory/adjustments", label: "Stock Adjustments", icon: RefreshCw, roles: ["admin", "manager"] },
+  { href: "/inventory/count", label: "Inventory Count", icon: ClipboardList, roles: ["admin", "manager"] },
   { href: "/stock-movements", label: "Stock Movements", icon: ArrowLeftRight, roles: ["admin", "manager"] },
   { href: "/clients", label: "Clients", icon: Users, roles: ["admin", "manager", "cashier"] },
   { href: "/credit", label: "Credit Management", icon: CreditCard, roles: ["admin", "manager"] },

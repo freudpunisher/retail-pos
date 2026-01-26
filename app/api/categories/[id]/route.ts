@@ -3,8 +3,8 @@ import db from "@/lib/db"
 import { categories } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-    const { id } = params
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params
     try {
         const body = await request.json()
         const { name, description } = body
@@ -29,8 +29,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-    const { id } = params
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params
     try {
         const [deletedCategory] = await db.delete(categories).where(eq(categories.id, id)).returning()
 

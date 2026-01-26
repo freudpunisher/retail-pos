@@ -11,6 +11,7 @@ export const stockMovementTypeEnum = pgEnum("stock_movement_type", ["sale", "pur
 export const creditStatusEnum = pgEnum("credit_status", ["paid", "partial", "overdue", "pending"])
 export const creditPaymentMethodEnum = pgEnum("credit_payment_method", ["cash", "card"])
 export const inventoryAdjustmentTypeEnum = pgEnum("inventory_adjustment_type", ["stock_count", "damage", "loss", "return", "transfer", "correction", "opening_stock"])
+export const inventorySessionStatusEnum = pgEnum("inventory_session_status", ["in_progress", "completed", "reconciled"])
 
 // Tables
 export const users = pgTable("users", {
@@ -39,7 +40,7 @@ export const products = pgTable("products", {
     image: text("image"),
 })
 
-export const inventory = pgTable("inventory", {
+export const stock = pgTable("stock", {
     id: uuid("id").primaryKey().defaultRandom(),
     productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
     quantityOnHand: integer("quantity_on_hand").notNull().default(0),
@@ -50,7 +51,7 @@ export const inventory = pgTable("inventory", {
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
 
-export const inventoryAdjustments = pgTable("inventory_adjustments", {
+export const stockAdjustments = pgTable("stock_adjustments", {
     id: uuid("id").primaryKey().defaultRandom(),
     productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
     quantityChange: integer("quantity_change").notNull(),
@@ -61,6 +62,26 @@ export const inventoryAdjustments = pgTable("inventory_adjustments", {
     createdDate: timestamp("created_date").notNull().defaultNow(),
     notes: text("notes"),
 })
+
+export const inventory = pgTable("inventory", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    countDate: timestamp("count_date").notNull().defaultNow(),
+    countedBy: uuid("counted_by").notNull().references(() => users.id),
+    status: inventorySessionStatusEnum("status").notNull().default("in_progress"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const inventoryItems = pgTable("inventory_items", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    inventoryId: uuid("inventory_id").notNull().references(() => inventory.id, { onDelete: "cascade" }),
+    productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+    quantityInStock: integer("quantity_in_stock").notNull().default(0),
+    physicalQuantity: integer("physical_quantity").notNull(),
+    variance: integer("variance").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 export const clients = pgTable("clients", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -164,7 +185,8 @@ export const storeSettings = pgTable("store_settings", {
 export const usersRelations = relations(users, ({ many }) => ({
     transactions: many(transactions),
     stockMovements: many(stockMovements),
-    inventoryAdjustments: many(inventoryAdjustments),
+    stockAdjustments: many(stockAdjustments),
+    inventorySessions: many(inventory),
 }))
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
@@ -176,31 +198,51 @@ export const productsRelations = relations(products, ({ one, many }) => ({
         fields: [products.categoryId],
         references: [categories.id],
     }),
-    inventory: one(inventory, {
+    stock: one(stock, {
         fields: [products.id],
-        references: [inventory.productId],
+        references: [stock.productId],
     }),
-    inventoryAdjustments: many(inventoryAdjustments),
+    stockAdjustments: many(stockAdjustments),
     transactionItems: many(transactionItems),
     purchaseOrderItems: many(purchaseOrderItems),
     stockMovements: many(stockMovements),
+    inventoryItems: many(inventoryItems),
 }))
 
-export const inventoryRelations = relations(inventory, ({ one }) => ({
+export const stockRelations = relations(stock, ({ one }) => ({
     product: one(products, {
-        fields: [inventory.productId],
+        fields: [stock.productId],
         references: [products.id],
     }),
 }))
 
-export const inventoryAdjustmentsRelations = relations(inventoryAdjustments, ({ one }) => ({
+export const stockAdjustmentsRelations = relations(stockAdjustments, ({ one }) => ({
     product: one(products, {
-        fields: [inventoryAdjustments.productId],
+        fields: [stockAdjustments.productId],
         references: [products.id],
     }),
     user: one(users, {
-        fields: [inventoryAdjustments.createdBy],
+        fields: [stockAdjustments.createdBy],
         references: [users.id],
+    }),
+}))
+
+export const inventoryRelations = relations(inventory, ({ one, many }) => ({
+    user: one(users, {
+        fields: [inventory.countedBy],
+        references: [users.id],
+    }),
+    items: many(inventoryItems),
+}))
+
+export const inventoryItemsRelations = relations(inventoryItems, ({ one }) => ({
+    session: one(inventory, {
+        fields: [inventoryItems.inventoryId],
+        references: [inventory.id],
+    }),
+    product: one(products, {
+        fields: [inventoryItems.productId],
+        references: [products.id],
     }),
 }))
 

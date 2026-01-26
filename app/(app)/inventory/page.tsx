@@ -6,25 +6,25 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse } from "lucide-react"
-import { useInventory } from "@/hooks/use-inventory"
+import { useStock } from "@/hooks/use-stock"
 import { formatCurrency } from "@/lib/mock-data"
 
 export default function InventoryStatusPage() {
   const [search, setSearch] = useState("")
-  const { inventoryItems, loading } = useInventory()
+  const { stockItems, loading } = useStock()
 
   const filteredInventory = useMemo(() => {
-    return inventoryItems.filter(item =>
+    return stockItems.filter(item =>
       item.product.name.toLowerCase().includes(search.toLowerCase()) ||
       item.product.sku.toLowerCase().includes(search.toLowerCase())
     )
-  }, [inventoryItems, search])
+  }, [stockItems, search])
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Inventory Status</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Stock Status</h2>
           <p className="text-muted-foreground">Monitor real-time stock levels and valuation</p>
         </div>
       </div>
@@ -36,7 +36,7 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Units</p>
                 <p className="text-3xl font-black text-foreground mt-1">
-                  {inventoryItems.reduce((acc, item) => acc + item.quantityOnHand, 0)}
+                  {stockItems.reduce((acc, item) => acc + item.quantityOnHand, 0)}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -51,7 +51,7 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reserved Units</p>
                 <p className="text-3xl font-black text-warning mt-1">
-                  {inventoryItems.reduce((acc, item) => acc + item.quantityReserved, 0)}
+                  {stockItems.reduce((acc, item) => acc + item.quantityReserved, 0)}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-warning/10 flex items-center justify-center">
@@ -66,7 +66,7 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Low Stock Alerts</p>
                 <p className="text-3xl font-black text-destructive mt-1">
-                  {inventoryItems.filter(item => item.quantityOnHand <= item.reorderLevel).length}
+                  {stockItems.filter(item => item.quantityOnHand <= item.reorderLevel).length}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -81,7 +81,7 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live Valuation</p>
                 <p className="text-3xl font-black text-accent mt-1">
-                  {formatCurrency(inventoryItems.reduce((acc, item) => acc + (item.quantityOnHand * (parseFloat(item.product.cost) || 0)), 0))}
+                  {formatCurrency(stockItems.reduce((acc, item) => acc + (item.quantityOnHand * (parseFloat(item.product.cost) || 0)), 0))}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">

@@ -2,19 +2,19 @@
 
 import { useState, useEffect, useCallback } from "react"
 
-export function useInventory() {
-    const [inventoryItems, setInventoryItems] = useState<any[]>([])
+export function useStock() {
+    const [stockItems, setStockItems] = useState<any[]>([])
     const [adjustments, setAdjustments] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    const fetchInventory = useCallback(async () => {
+    const fetchStock = useCallback(async () => {
         setLoading(true)
         try {
-            const response = await fetch("/api/inventory")
-            if (!response.ok) throw new Error("Failed to fetch inventory")
+            const response = await fetch("/api/stock")
+            if (!response.ok) throw new Error("Failed to fetch stock status")
             const data = await response.json()
-            setInventoryItems(data)
+            setStockItems(data)
         } catch (err: any) {
             setError(err.message)
         } finally {
@@ -25,7 +25,7 @@ export function useInventory() {
     const fetchAdjustments = useCallback(async () => {
         setLoading(true)
         try {
-            const response = await fetch("/api/inventory/adjustments")
+            const response = await fetch("/api/stock/adjustments")
             if (!response.ok) throw new Error("Failed to fetch adjustments")
             const data = await response.json()
             setAdjustments(data)
@@ -38,7 +38,7 @@ export function useInventory() {
 
     const createAdjustment = async (adjustmentData: any) => {
         try {
-            const response = await fetch("/api/inventory/adjustments", {
+            const response = await fetch("/api/stock/adjustments", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(adjustmentData),
@@ -48,7 +48,7 @@ export function useInventory() {
                 throw new Error(errData.error || "Failed to create adjustment")
             }
             const newAdjustment = await response.json()
-            fetchInventory()
+            fetchStock()
             fetchAdjustments()
             return newAdjustment
         } catch (err: any) {
@@ -58,16 +58,16 @@ export function useInventory() {
     }
 
     useEffect(() => {
-        fetchInventory()
+        fetchStock()
         fetchAdjustments()
-    }, [fetchInventory, fetchAdjustments])
+    }, [fetchStock, fetchAdjustments])
 
     return {
-        inventoryItems,
+        stockItems,
         adjustments,
         loading,
         error,
-        refresh: () => { fetchInventory(); fetchAdjustments(); },
+        refresh: () => { fetchStock(); fetchAdjustments(); },
         createAdjustment
     }
 }
