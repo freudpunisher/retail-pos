@@ -33,7 +33,7 @@ export const products = pgTable("products", {
     name: text("name").notNull(),
     categoryId: uuid("category_id").references(() => categories.id),
     price: numeric("price", { precision: 12, scale: 2 }).notNull(),
-    cost: numeric("cost", { precision: 12, scale: 2 }),
+    cost: numeric("cost", { precision: 12, scale: 2 }).notNull(),
     stock: integer("stock").notNull().default(0), // Kept for backward compatibility/simplicity
     minStock: integer("min_stock").notNull().default(0),
     image: text("image"),

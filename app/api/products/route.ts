@@ -48,8 +48,8 @@ export async function POST(request: Request) {
         const { name, categoryId, price, cost, minStock, image } = body
         let { sku } = body
 
-        if (!name || price === undefined) {
-            return NextResponse.json({ error: "Missing required fields (name or price)" }, { status: 400 })
+        if (!name || price === undefined || cost === undefined) {
+            return NextResponse.json({ error: "Missing required fields (name, price, or cost)" }, { status: 400 })
         }
 
         // Auto-generate SKU if not provided
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
                     name,
                     categoryId,
                     price: price.toString(),
-                    cost: cost ? cost.toString() : null,
+                    cost: cost.toString(),
                     stock: 0, // Always 0 on creation
                     minStock: minStock || 10,
                     image,

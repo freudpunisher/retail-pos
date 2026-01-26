@@ -30,6 +30,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
         name: "",
         categoryId: "",
         price: "",
+        cost: "",
         minStock: "10",
     })
 
@@ -39,6 +40,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 name: product.name || "",
                 categoryId: product.categoryId || "",
                 price: product.price?.toString() || "",
+                cost: product.cost?.toString() || "",
                 minStock: product.minStock?.toString() || "10",
             })
         } else {
@@ -46,6 +48,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 name: "",
                 categoryId: "",
                 price: "",
+                cost: "",
                 minStock: "10",
             })
         }
@@ -58,6 +61,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
             await onSubmit({
                 ...formData,
                 price: parseFloat(formData.price),
+                cost: parseFloat(formData.cost),
                 minStock: parseInt(formData.minStock),
             })
             onOpenChange(false)
@@ -122,6 +126,20 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                 step="0.01"
                                 value={formData.price}
                                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                className="col-span-3"
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="cost" className="text-right">
+                                Cost
+                            </Label>
+                            <Input
+                                id="cost"
+                                type="number"
+                                step="0.01"
+                                value={formData.cost}
+                                onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
                                 className="col-span-3"
                                 required
                             />

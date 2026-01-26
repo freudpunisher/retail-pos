@@ -17,7 +17,7 @@ export async function PUT(
                 name,
                 categoryId,
                 price: price?.toString(),
-                cost: cost ? cost.toString() : null,
+                cost: cost?.toString(),
                 minStock,
                 image,
             })
