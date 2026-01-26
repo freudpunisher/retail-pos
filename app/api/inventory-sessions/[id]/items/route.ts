@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { inventory, inventoryItems, stock } from "@/lib/db/schema"
+import { inventory, inventoryItems, stock, products } from "@/lib/db/schema"
 import { eq, sql } from "drizzle-orm"
 
 export async function POST(
@@ -38,9 +38,9 @@ export async function POST(
             return NextResponse.json({ error: "Product already in count session" }, { status: 400 })
         }
 
-        // Get current stock
-        const [stockRecord] = await db.select().from(stock).where(eq(stock.productId, productId))
-        const quantityInStock = stockRecord ? stockRecord.quantityOnHand : 0
+        // Get current stock from product record
+        const [productRecord] = await db.select().from(products).where(eq(products.id, productId))
+        const quantityInStock = productRecord ? productRecord.stock : 0
 
         const [newItem] = await db
             .insert(inventoryItems)

@@ -78,7 +78,7 @@ export async function POST(
                     status: "reconciled",
                     updatedAt: new Date(),
                 })
-                .where(eq(inventory.id, params.id))
+                .where(eq(inventory.id, id))
                 .returning()
 
             return updatedSession

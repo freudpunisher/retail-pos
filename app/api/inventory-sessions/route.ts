@@ -39,16 +39,16 @@ export async function POST(request: Request) {
                 })
                 .returning()
 
-            // 2. Initialize items for all products from stock table
-            const currentStock = await tx.select().from(stock)
+            // 2. Initialize items for all products from products table
+            const allProducts = await tx.select().from(products)
 
-            for (const item of currentStock) {
+            for (const p of allProducts) {
                 await tx.insert(inventoryItems).values({
                     inventoryId: session.id,
-                    productId: item.productId,
-                    quantityInStock: item.quantityOnHand,
+                    productId: p.id,
+                    quantityInStock: p.stock,
                     physicalQuantity: 0, // Initial state
-                    variance: -item.quantityOnHand, // Default variance if physical is 0
+                    variance: -p.stock, // Default variance if physical is 0
                 })
             }
 
