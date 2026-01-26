@@ -1,0 +1,40 @@
+import { NextResponse } from "next/server"
+import db from "@/lib/db"
+import { suppliers } from "@/lib/db/schema"
+import { desc } from "drizzle-orm"
+
+export async function GET() {
+    try {
+        const allSuppliers = await db.select().from(suppliers).orderBy(desc(suppliers.name))
+        return NextResponse.json(allSuppliers)
+    } catch (error) {
+        console.error("Failed to fetch suppliers:", error)
+        return NextResponse.json({ error: "Failed to fetch suppliers" }, { status: 500 })
+    }
+}
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.json()
+        const { name, email, phone, address } = body
+
+        if (!name || !email || !phone || !address) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+        }
+
+        const [newSupplier] = await db
+            .insert(suppliers)
+            .values({
+                name,
+                email,
+                phone,
+                address,
+            })
+            .returning()
+
+        return NextResponse.json(newSupplier)
+    } catch (error) {
+        console.error("Failed to create supplier:", error)
+        return NextResponse.json({ error: "Failed to create supplier" }, { status: 500 })
+    }
+}
