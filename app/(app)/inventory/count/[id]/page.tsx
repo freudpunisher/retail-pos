@@ -16,10 +16,24 @@ import {
     ArrowLeft,
     User,
     Package,
-    Search
+    Search,
+    Plus,
+    PlusCircle
 } from "lucide-react"
 import { useInventorySessions } from "@/hooks/use-inventory-sessions"
+import { useProducts } from "@/hooks/use-products"
 import { formatCurrency } from "@/lib/mock-data"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function CountSessionPage() {
     const params = useParams()
@@ -30,9 +44,13 @@ export default function CountSessionPage() {
     const [localCounts, setLocalCounts] = useState<Record<string, number>>({})
     const [isSaving, setIsSaving] = useState(false)
     const [isReconciling, setIsReconciling] = useState(false)
+    const [isAddingItem, setIsAddingItem] = useState(false)
     const [search, setSearch] = useState("")
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+    const [selectedProductId, setSelectedProductId] = useState("")
 
-    const { getSession, updateSessionItems, reconcileSession } = useInventorySessions()
+    const { getSession, updateSessionItems, reconcileSession, addItemToSession } = useInventorySessions()
+    const { products } = useProducts()
 
     useEffect(() => {
         const load = async () => {
@@ -102,6 +120,28 @@ export default function CountSessionPage() {
         }
     }
 
+    const handleAddItem = async () => {
+        if (!selectedProductId) return
+        setIsAddingItem(true)
+        try {
+            await addItemToSession(id, selectedProductId)
+            // Refresh data
+            const data = await getSession(id)
+            setSession(data)
+            // Update local counts
+            setLocalCounts(prev => ({
+                ...prev,
+                [selectedProductId]: 0
+            }))
+            setIsAddDialogOpen(false)
+            setSelectedProductId("")
+        } catch (error: any) {
+            alert(error.message)
+        } finally {
+            setIsAddingItem(false)
+        }
+    }
+
     if (!session) {
         return (
             <div className="flex h-96 items-center justify-center">
@@ -141,6 +181,46 @@ export default function CountSessionPage() {
                 <div className="flex gap-2">
                     {!isReconciled && (
                         <>
+                            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/5">
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Add Item to List
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[425px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Add Product to Count</DialogTitle>
+                                        <DialogDescription>
+                                            Select a product to add to this session for verification.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label>Select Product</Label>
+                                            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Which product are you adding?" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {products
+                                                        .filter(p => !session.items.some((item: any) => item.productId === p.id))
+                                                        .map(p => (
+                                                            <SelectItem key={p.id} value={p.id}>{p.name} — <span className="opacity-50 text-xs">{p.sku}</span></SelectItem>
+                                                        ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+                                        <Button onClick={handleAddItem} disabled={!selectedProductId || isAddingItem}>
+                                            {isAddingItem && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Add to Count
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                             <Button variant="outline" onClick={handleSaveProgress} disabled={isSaving || isReconciling}>
                                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                 Save Progress

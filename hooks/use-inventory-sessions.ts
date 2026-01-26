@@ -79,6 +79,24 @@ export function useInventorySessions() {
         }
     }
 
+    const addItemToSession = async (id: string, productId: string) => {
+        try {
+            const response = await fetch(`/api/inventory-sessions/${id}/items`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ productId }),
+            })
+            if (!response.ok) {
+                const data = await response.json()
+                throw new Error(data.error || "Failed to add item")
+            }
+            return await response.json()
+        } catch (err: any) {
+            setError(err.message)
+            throw err
+        }
+    }
+
     useEffect(() => {
         fetchSessions()
     }, [fetchSessions])
@@ -91,6 +109,7 @@ export function useInventorySessions() {
         startSession,
         getSession,
         updateSessionItems,
-        reconcileSession
+        reconcileSession,
+        addItemToSession
     }
 }
