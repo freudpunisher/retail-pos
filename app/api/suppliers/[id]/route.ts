@@ -51,7 +51,7 @@ export async function PATCH(
         const [updatedSupplier] = await db
             .update(suppliers)
             .set({ isActive })
-            .where(eq(suppliers.id, params.id))
+            .where(eq(suppliers.id, id))
             .returning()
 
         if (!updatedSupplier) {

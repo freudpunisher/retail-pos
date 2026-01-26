@@ -5,9 +5,10 @@ import { eq } from "drizzle-orm"
 
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params
         const body = await request.json()
         const { name, categoryId, price, cost, minStock, image } = body
 
@@ -21,7 +22,7 @@ export async function PUT(
                 minStock,
                 image,
             })
-            .where(eq(products.id, params.id))
+            .where(eq(products.id, id))
             .returning()
 
         if (!updatedProduct) {
@@ -37,12 +38,13 @@ export async function PUT(
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params
         const [deletedProduct] = await db
             .delete(products)
-            .where(eq(products.id, params.id))
+            .where(eq(products.id, id))
             .returning()
 
         if (!deletedProduct) {
