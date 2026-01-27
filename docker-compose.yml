@@ -10,7 +10,11 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/smart_pos
     restart: always
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       - ./logs:/app/logs
     networks:
@@ -22,7 +26,7 @@ services:
       retries: 3
       start_period: 40s
 
-  # Optional: PostgreSQL database service
+  # PostgreSQL database service
   db:
     image: postgres:16-alpine
     environment:
@@ -30,7 +34,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always

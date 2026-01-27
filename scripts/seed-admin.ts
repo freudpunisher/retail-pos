@@ -6,9 +6,10 @@
 import db from "../lib/db"
 import { users } from "../lib/db/schema"
 import { hashPassword } from "../lib/password"
+import { eq } from "drizzle-orm"
 
 const ADMIN_ID = "2f83e92d-b719-4c15-919f-e2ff7640f1c4"
-const ADMIN_EMAIL = "admin"
+const ADMIN_EMAIL = "admin@admin.com"
 const ADMIN_PASSWORD = "password123" // Default password
 const ADMIN_NAME = "admin"
 
