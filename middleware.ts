@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { verifyToken } from "./lib/auth"
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // Public routes that don't require authentication
@@ -24,7 +24,7 @@ export function middleware(request: NextRequest) {
     }
 
     // Verify token
-    const payload = verifyToken(token)
+    const payload = await verifyToken(token)
     if (!payload) {
         // Redirect to login if token is invalid
         const loginUrl = new URL("/login", request.url)

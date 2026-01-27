@@ -18,7 +18,7 @@ export async function GET() {
         }
 
         // Verify token
-        const payload = verifyToken(token)
+        const payload = await verifyToken(token)
         if (!payload) {
             return NextResponse.json(
                 { error: "Invalid or expired token" },

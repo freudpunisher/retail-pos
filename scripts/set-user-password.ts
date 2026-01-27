@@ -6,7 +6,7 @@
 import db from "../lib/db"
 import { users } from "../lib/db/schema"
 import { eq } from "drizzle-orm"
-import { hashPassword } from "../lib/auth"
+import { hashPassword } from "../lib/password"
 
 const email = process.argv[2]
 const password = process.argv[3]

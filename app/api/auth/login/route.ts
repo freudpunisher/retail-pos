@@ -3,7 +3,8 @@ import { cookies } from "next/headers"
 import db from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { comparePassword, generateToken } from "@/lib/auth"
+import { comparePassword } from "@/lib/password"
+import { generateToken } from "@/lib/auth"
 
 export async function POST(request: Request) {
     try {
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
         }
 
         // Generate JWT token
-        const token = generateToken({
+        const token = await generateToken({
             userId: user.id,
             email: user.email,
             role: user.role,

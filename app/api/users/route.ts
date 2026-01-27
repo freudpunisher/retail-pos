@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { asc } from "drizzle-orm"
-import { hashPassword } from "@/lib/auth"
+import { hashPassword } from "@/lib/password"
 
 export async function GET() {
     try {
