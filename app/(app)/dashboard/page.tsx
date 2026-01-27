@@ -1,33 +1,46 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { StatsCard } from "@/components/stats-card"
 import { DataTable } from "@/components/data-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { SalesChart } from "@/components/dashboard/sales-chart"
+import { TimePeriodSelector, TimePeriod } from "@/components/dashboard/time-period-selector"
 import { formatCurrency } from "@/lib/mock-data"
-import { DollarSign, TrendingUp, CreditCard, AlertTriangle, Loader2 } from "lucide-react"
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { DollarSign, TrendingUp, CreditCard, AlertTriangle, Loader2, RefreshCw } from "lucide-react"
 import { useDashboardStats } from "@/hooks/use-dashboard-stats"
 import { useTransactions } from "@/hooks/use-transactions"
 
-const salesChartData = [
-  { name: "Mon", sales: 1200 },
-  { name: "Tue", sales: 1800 },
-  { name: "Wed", sales: 1400 },
-  { name: "Thu", sales: 2200 },
-  { name: "Fri", sales: 2800 },
-  { name: "Sat", sales: 3200 },
-  { name: "Sun", sales: 2400 },
-]
-
 export default function DashboardPage() {
-  const { stats, loading: statsLoading } = useDashboardStats()
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>("today")
+  const { stats, loading: statsLoading, refresh: refreshStats } = useDashboardStats(timePeriod)
   const { transactions, fetchTransactions, loading: txLoading } = useTransactions()
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+
+  // Auto-refresh dashboard every 30 seconds
+  useEffect(() => {
+    if (!autoRefreshEnabled) return
+
+    const interval = setInterval(() => {
+      refreshStats()
+      fetchTransactions()
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [autoRefreshEnabled, refreshStats, fetchTransactions])
 
   useEffect(() => {
     fetchTransactions()
   }, [fetchTransactions])
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true)
+    await Promise.all([refreshStats(), fetchTransactions()])
+    setIsManualRefreshing(false)
+  }
 
   const recentTransactions = transactions.slice(0, 5)
 
@@ -96,9 +109,32 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-        <p className="text-muted-foreground">Overview of your store performance</p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
+          <p className="text-muted-foreground">Overview of your store performance</p>
+        </div>
+        <TimePeriodSelector selected={timePeriod} onSelect={setTimePeriod} />
+      </div>
+
+      <div className="flex items-center justify-end gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+          className={autoRefreshEnabled ? "border-primary" : ""}
+        >
+          {autoRefreshEnabled ? "Auto-refresh: ON" : "Auto-refresh: OFF"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleManualRefresh}
+          disabled={isManualRefreshing || statsLoading}
+        >
+          <RefreshCw className={`h-4 w-4 ${isManualRefreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -134,43 +170,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle>Sales Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={salesChartData}>
-                  <defs>
-                    <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                    labelStyle={{ color: "hsl(var(--foreground))" }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="sales"
-                    stroke="hsl(var(--primary))"
-                    fillOpacity={1}
-                    fill="url(#salesGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <SalesChart loading={statsLoading} timePeriod={timePeriod} />
 
         <Card className="border-border bg-card">
           <CardHeader>
@@ -180,37 +180,63 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Products Sold Today</span>
-                <span className="font-medium">47 items</span>
+                <span className="font-medium">{statsLoading ? "..." : stats?.productsCount || 0} items</span>
               </div>
               <div className="h-2 rounded-full bg-secondary">
-                <div className="h-2 w-3/4 rounded-full bg-primary" />
+                <div
+                  className="h-2 rounded-full bg-primary transition-all duration-300"
+                  style={{
+                    width: statsLoading ? "0%" : `${Math.min((stats?.productsCount || 0) / 100 * 100, 100)}%`,
+                  }}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Transactions Today</span>
-                <span className="font-medium">23 orders</span>
+                <span className="font-medium">{statsLoading ? "..." : stats?.todayTransactionCount || 0} orders</span>
               </div>
               <div className="h-2 rounded-full bg-secondary">
-                <div className="h-2 w-1/2 rounded-full bg-accent" />
+                <div
+                  className="h-2 rounded-full bg-accent transition-all duration-300"
+                  style={{
+                    width: statsLoading ? "0%" : `${Math.min((stats?.todayTransactionCount || 0) / 50 * 100, 100)}%`,
+                  }}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Average Order Value</span>
-                <span className="font-medium">$29.34</span>
+                <span className="font-medium">
+                  {statsLoading
+                    ? "..."
+                    : formatCurrency(
+                        (stats?.todaySales || 0) / Math.max(stats?.todayTransactionCount || 1, 1)
+                      )}
+                </span>
               </div>
               <div className="h-2 rounded-full bg-secondary">
-                <div className="h-2 w-2/3 rounded-full bg-warning" />
+                <div
+                  className="h-2 rounded-full bg-warning transition-all duration-300"
+                  style={{
+                    width: statsLoading ? "0%" : `${Math.min(((stats?.todaySales || 0) / Math.max(stats?.todayTransactionCount || 1, 1)) / 100 * 100, 100)}%`,
+                  }}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Credit Sales Ratio</span>
-                <span className="font-medium">18%</span>
+                <span className="font-medium">{statsLoading ? "..." : stats?.creditSalesRatio || 0}%</span>
               </div>
               <div className="h-2 rounded-full bg-secondary">
-                <div className="h-2 w-[18%] rounded-full bg-destructive" />
+                <div
+                  className="h-2 rounded-full bg-destructive transition-all duration-300"
+                  style={{
+                    width: statsLoading ? "0%" : `${Math.min(stats?.creditSalesRatio || 0, 100)}%`,
+                  }}
+                />
               </div>
             </div>
           </CardContent>

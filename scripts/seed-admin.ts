@@ -8,9 +8,9 @@ import { users } from "../lib/db/schema"
 import { hashPassword } from "../lib/password"
 
 const ADMIN_ID = "2f83e92d-b719-4c15-919f-e2ff7640f1c4"
-const ADMIN_EMAIL = "punishergte@gmail.com"
+const ADMIN_EMAIL = "admin"
 const ADMIN_PASSWORD = "password123" // Default password
-const ADMIN_NAME = "MUGISHA Freud"
+const ADMIN_NAME = "admin"
 
 async function seedAdmin() {
     try {

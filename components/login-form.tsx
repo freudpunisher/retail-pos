@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Warehouse, Loader2 } from "lucide-react"
-import { mockUsers } from "@/lib/mock-data"
 
 export function LoginForm() {
   const [email, setEmail] = useState("")
@@ -31,15 +30,6 @@ export function LoginForm() {
       router.push("/dashboard")
     } else {
       setError("Invalid email or password")
-    }
-    setLoading(false)
-  }
-
-  const handleQuickLogin = async (userEmail: string) => {
-    setLoading(true)
-    const success = await login(userEmail, "demo")
-    if (success) {
-      router.push("/dashboard")
     }
     setLoading(false)
   }
@@ -88,29 +78,6 @@ export function LoginForm() {
               Sign In
             </Button>
           </form>
-
-          <div className="mt-6">
-            <p className="mb-3 text-center text-sm text-muted-foreground">Quick login (Demo)</p>
-            <div className="grid gap-2">
-              {mockUsers.map((user) => (
-                <Button
-                  key={user.id}
-                  variant="outline"
-                  className="justify-start gap-3 bg-transparent"
-                  onClick={() => handleQuickLogin(user.email)}
-                  disabled={loading}
-                >
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      user.role === "admin" ? "bg-destructive" : user.role === "manager" ? "bg-primary" : "bg-accent"
-                    }`}
-                  />
-                  <span className="flex-1 text-left">{user.name}</span>
-                  <span className="text-muted-foreground capitalize">{user.role}</span>
-                </Button>
-              ))}
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

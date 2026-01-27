@@ -32,7 +32,7 @@ export default function SettingsPage() {
 
   const [storeInfo, setStoreInfo] = useState<any>(null)
   const [newCategory, setNewCategory] = useState({ name: "", description: "" })
-  const [newUser, setNewUser] = useState({ name: "", email: "", role: "cashier" })
+  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "cashier" })
   const [showAddCategory, setShowAddCategory] = useState(false)
   const [showAddUser, setShowAddUser] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -67,9 +67,9 @@ export default function SettingsPage() {
   }
 
   const handleAddUser = async () => {
-    if (newUser.name.trim() && newUser.email.trim()) {
+    if (newUser.name.trim() && newUser.email.trim() && newUser.password.trim()) {
       await createUser(newUser)
-      setNewUser({ name: "", email: "", role: "cashier" })
+      setNewUser({ name: "", email: "", password: "", role: "cashier" })
       setShowAddUser(false)
     }
   }
@@ -380,6 +380,15 @@ export default function SettingsPage() {
                         placeholder="Enter email"
                         value={newUser.email}
                         onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Password</Label>
+                      <Input
+                        type="password"
+                        placeholder="Enter password"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">

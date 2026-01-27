@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose"
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-change-this-in-production"
 const secretKey = new TextEncoder().encode(JWT_SECRET)
 
 export interface JWTPayload {
