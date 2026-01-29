@@ -505,7 +505,7 @@ export function getUserById(id: string): User | undefined {
 }
 
 export function formatCurrency(amount: number): string {
-  return `${amount.toFixed(2)} ${mockStoreSettings.currencySymbol}`
+  return `${amount.toFixed(0)} ${mockStoreSettings.currencySymbol}`
 }
 
 export function getStockStatus(product: Product): "in-stock" | "low" | "out" {

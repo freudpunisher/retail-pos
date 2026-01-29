@@ -281,7 +281,7 @@ export default function PurchasesPage() {
 
       {/* Order Details Dialog */}
       <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" style={{maxWidth:"80vh",}}>
           <DialogHeader>
             <DialogTitle>Purchase Order Details</DialogTitle>
             <DialogDescription>Order {selectedOrder?.id}</DialogDescription>

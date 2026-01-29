@@ -61,12 +61,15 @@ export default function CreatePurchaseOrderPage() {
     setSelectedProductId("")
   }
 
-  const updateQuantity = (productId: string, delta: number) => {
-    setItems((prev) =>
-      prev
-        .map((i) => (i.productId === productId ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i))
-        .filter((i) => i.quantity > 0),
-    )
+  const updateQuantity = (productId: string, newQuantity: number) => {
+    const quantity = Math.max(0, newQuantity)
+    if (quantity === 0) {
+      removeItem(productId)
+    } else {
+      setItems((prev) =>
+        prev.map((i) => (i.productId === productId ? { ...i, quantity } : i))
+      )
+    }
   }
 
   const updateCost = (productId: string, cost: string) => {
@@ -79,6 +82,7 @@ export default function CreatePurchaseOrderPage() {
   }
 
   const total = items.reduce((sum, i) => sum + i.quantity * i.cost, 0)
+  const totalUnits = items.reduce((sum, i) => sum + i.quantity, 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -117,6 +121,28 @@ export default function CreatePurchaseOrderPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Order Summary - Moved to Top */}
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 shadow-lg shadow-primary/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Total Order Value</p>
+                <p className="text-4xl font-black text-primary leading-none mt-2">
+                  {formatCurrency(total)}
+                </p>w
+              </div>
+              <div className="text-right space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-bold text-lg text-foreground">{items.length}</span> Products
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-bold text-lg text-foreground">{totalUnits}</span> Total Units
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Supplier Selection */}
         <Card className="border-border/50 shadow-xl">
           <CardHeader className="bg-secondary/10 border-b border-border/50">
@@ -169,7 +195,7 @@ export default function CreatePurchaseOrderPage() {
                           <div className="flex items-center justify-between gap-4">
                             <span>{product.name}</span>
                             <span className="text-muted-foreground">
-                              {formatCurrency(parseFloat(product.cost) || 0)}
+                              {formatCurrency(parseFloat(product.cost) || 0)} FBU
                             </span>
                           </div>
                         </SelectItem>
@@ -194,58 +220,49 @@ export default function CreatePurchaseOrderPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-secondary/5 border-border hover:bg-secondary/5">
-                        <TableHead className="text-muted-foreground font-semibold">Product</TableHead>
-                        <TableHead className="text-muted-foreground font-semibold text-right">Unit Cost</TableHead>
-                        <TableHead className="text-muted-foreground font-semibold text-center">Quantity</TableHead>
-                        <TableHead className="text-muted-foreground font-semibold text-right">Subtotal</TableHead>
+                        <TableHead className="text-muted-foreground font-bold">Product</TableHead>
+                        <TableHead className="text-muted-foreground font-bold text-right">Unit Cost</TableHead>
+                        <TableHead className="text-muted-foreground font-bold text-center">Quantity</TableHead>
+                        <TableHead className="text-muted-foreground font-bold text-right">Subtotal</TableHead>
                         <TableHead className="text-muted-foreground w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {items.map((item) => (
                         <TableRow key={item.productId} className="border-border hover:bg-secondary/5">
-                          <TableCell className="font-medium">{item.productName}</TableCell>
+                          <TableCell className="font-bold text-base">{item.productName}</TableCell>
                           <TableCell className="text-right">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={item.cost}
-                              onChange={(e) => updateCost(item.productId, e.target.value)}
-                              className="h-8 w-24 ml-auto text-right"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-center gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="h-7 w-7 bg-transparent"
-                                onClick={() => updateQuantity(item.productId, -1)}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="w-8 text-center font-semibold">{item.quantity}</span>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="h-7 w-7 bg-transparent"
-                                onClick={() => updateQuantity(item.productId, 1)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={item.cost}
+                                onChange={(e) => updateCost(item.productId, e.target.value)}
+                                className="h-9 w-28 text-right font-bold text-base border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20"
+                              />
+                              <span className="text-sm text-muted-foreground font-bold min-w-fit">FBU</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {formatCurrency(item.quantity * item.cost)}
+                          <TableCell>
+                            <div className="flex items-center justify-center">
+                              <Input
+                                type="number"
+                                min="0"
+                                value={item.quantity}
+                                onChange={(e) => updateQuantity(item.productId, parseInt(e.target.value) || 0)}
+                                className="h-9 w-20 text-center font-bold text-base border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20"
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-bold text-base">
+                            {formatCurrency(item.quantity * item.cost)} FBU
                           </TableCell>
                           <TableCell>
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
                               onClick={() => removeItem(item.productId)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -262,27 +279,11 @@ export default function CreatePurchaseOrderPage() {
                 <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border">
                   <div className="text-center text-muted-foreground">
                     <Package className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                    <p className="font-medium">No items added yet</p>
+                    <p className="font-bold text-base">No items added yet</p>
                     <p className="text-sm">Select a product and click Add to get started</p>
                   </div>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Order Summary */}
-        <Card className="border-primary/20 bg-primary/5 shadow-lg shadow-primary/10">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Total Order Value</p>
-                <p className="text-3xl font-black text-primary leading-none mt-2">{formatCurrency(total)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Items: {items.length}</p>
-                <p className="text-sm text-muted-foreground">Units: {items.reduce((sum, i) => sum + i.quantity, 0)}</p>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -293,14 +294,14 @@ export default function CreatePurchaseOrderPage() {
             type="button"
             variant="outline"
             onClick={() => router.push("/purchases")}
-            className="flex-1"
+            className="flex-1 font-bold"
           >
             Cancel
           </Button>
           <Button
             type="submit"
             disabled={!supplierId || items.length === 0 || isSubmitting}
-            className="flex-1 gap-2"
+            className="flex-1 gap-2 font-bold"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isSubmitting ? "Creating Order..." : "Create Purchase Order"}
