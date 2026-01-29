@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,12 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePurchases } from "@/hooks/use-purchases"
 import { useSuppliers } from "@/hooks/use-suppliers"
 import { formatCurrency } from "@/lib/mock-data"
-import { CreatePurchaseDialog } from "@/components/purchases/create-purchase-dialog"
 import { SupplierFormDialog } from "@/components/inventory/supplier-form-dialog"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Truck, Package, DollarSign, Clock, Building2, Phone, Mail, MapPin, Loader2, AlertCircle, Edit, Power, PowerOff, Plus } from "lucide-react"
 
 export default function PurchasesPage() {
+  const router = useRouter()
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
   const [showOrderDetails, setShowOrderDetails] = useState(false)
 
@@ -110,7 +111,10 @@ export default function PurchasesPage() {
           <h2 className="text-2xl font-bold text-foreground">Purchases</h2>
           <p className="text-muted-foreground">Manage suppliers and purchase orders</p>
         </div>
-        <CreatePurchaseDialog />
+        <Button onClick={() => router.push("/purchases/create")} className="bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20">
+          <Plus className="mr-2 h-4 w-4" />
+          Create Purchase Order
+        </Button>
       </div>
 
       {/* Stats */}

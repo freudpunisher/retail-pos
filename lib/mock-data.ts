@@ -483,8 +483,8 @@ export const mockStoreSettings: StoreSettings = {
   phone: "+1 555-0000",
   email: "info@smartpos.com",
   taxRate: 8.5,
-  currency: "USD",
-  currencySymbol: "$",
+  currency: "FBU",
+  currencySymbol: "FBU ",
 }
 
 // Helper functions
@@ -505,7 +505,7 @@ export function getUserById(id: string): User | undefined {
 }
 
 export function formatCurrency(amount: number): string {
-  return `${mockStoreSettings.currencySymbol}${amount.toFixed(2)}`
+  return `${amount.toFixed(2)} ${mockStoreSettings.currencySymbol}`
 }
 
 export function getStockStatus(product: Product): "in-stock" | "low" | "out" {

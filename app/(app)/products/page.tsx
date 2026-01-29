@@ -123,7 +123,7 @@ export default function ProductManagementPage() {
                                                     {product.categoryName || "Uncategorized"}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right font-semibold">${parseFloat(product.price).toFixed(2)}</TableCell>
+                                            <TableCell className="text-right font-semibold">{parseFloat(product.price).toFixed(0)}FBU</TableCell>
                                             <TableCell className="text-right">
                                                 <span className={`px-2 py-1 rounded-md text-xs font-bold ${product.stock <= product.minStock ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent"}`}>
                                                     {product.stock}
@@ -157,7 +157,7 @@ export default function ProductManagementPage() {
 
             <ProductFormDialog
                 open={isFormOpen}
-                setOpen={setIsFormOpen}
+                onOpenChange={setIsFormOpen}
                 product={selectedProduct}
                 onSubmit={handleFormSubmit}
             />
