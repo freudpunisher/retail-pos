@@ -42,5 +42,29 @@ export function usePurchases() {
         }
     }
 
-    return { orders, loading, error, refresh: fetchOrders, createOrder }
+    const updateOrder = async (id: string, data: any) => {
+    const res = await fetch("/api/purchases", {
+      method: "PATCH",
+      body: JSON.stringify({ id, ...data }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  };
+
+  const markAsReceived = async (id: string, userId: string) => {
+    const res = await fetch("/api/purchases", {
+      method: "POST", // or use /receive if separate
+      body: JSON.stringify({ id, userId }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  };
+
+  const cancelOrder = async (id: string) => {
+    const res = await fetch("/api/purchases", {
+      method: "POST",
+      body: JSON.stringify({ id }), // adjust route if needed
+    });
+    if (!res.ok) throw new Error(await res.text());
+  };
+
+    return { orders, loading, error, refresh: fetchOrders, createOrder, updateOrder, markAsReceived, cancelOrder }
 }
