@@ -46,7 +46,7 @@ export function CartPanel() {
 
   const [showCheckout, setShowCheckout] = useState(false)
   const [showReceipt, setShowReceipt] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "card">("cash")
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash")
   const [lastTransactionId, setLastTransactionId] = useState<string | null>(null)
   const receiptRef = useRef<HTMLDivElement>(null)
 
@@ -309,8 +309,8 @@ export function CartPanel() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Payment Method</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(["cash", "card", "credit"] as const).map((method) => (
+              <div className="grid grid-cols-2 gap-2">
+                {(["cash", "credit"] as const).map((method) => (
                   <Button
                     key={method}
                     variant={paymentMethod === method ? "default" : "outline"}
@@ -319,7 +319,6 @@ export function CartPanel() {
                     disabled={method === "credit" && !selectedClient}
                   >
                     {method === "cash" && <Banknote className="mr-2 h-4 w-4" />}
-                    {method === "card" && <CreditCard className="mr-2 h-4 w-4" />}
                     {method === "credit" && <User className="mr-2 h-4 w-4" />}
                     {method}
                   </Button>

@@ -125,15 +125,15 @@ export default function ProductManagementPage() {
                                             </TableCell>
                                             <TableCell className="text-right font-semibold">{parseFloat(product.price).toFixed(0)}FBU</TableCell>
                                             <TableCell className="text-right">
-                                                <span className={`px-2 py-1 rounded-md text-xs font-bold ${product.stock <= product.minStock ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent"}`}>
+                                                <span className={`px-2 py-1 rounded-md text-xs font-bold ${Number(product.stock) <= Number(product.minStock) ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
                                                     {product.stock}
                                                 </span>
                                             </TableCell>
                                             <TableCell>
-                                                {product.stock <= product.minStock ? (
+                                                {Number(product.stock) <= Number(product.minStock) ? (
                                                     <Badge className="bg-destructive/20 text-destructive border-destructive/30 animate-pulse">Low Stock</Badge>
                                                 ) : (
-                                                    <Badge className="bg-accent/20 text-accent border-accent/20">Available</Badge>
+                                                    <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20">Available</Badge>
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right">
