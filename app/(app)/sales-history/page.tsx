@@ -29,6 +29,7 @@ export default function SalesHistoryPage() {
     const [search, setSearch] = useState("")
     const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null)
     const [showDetails, setShowDetails] = useState(false)
+    const [showReport, setShowReport] = useState(false)
 
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
@@ -108,16 +109,27 @@ export default function SalesHistoryPage() {
                     body * {
                       visibility: hidden;
                     }
-                    #printable-receipt, #printable-receipt * {
+                    #printable-receipt, #printable-receipt *,
+                    #printable-report, #printable-report * {
                       visibility: visible;
                     }
-                    #printable-receipt {
+                    #printable-receipt, #printable-report {
                       position: absolute;
                       left: 0;
                       top: 0;
                       width: 100% !important;
                       margin: 0 !important;
                       padding: 20px !important;
+                    }
+                    /* Ensure table borders differ for print */
+                    #printable-report table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+                    #printable-report th, #printable-report td {
+                        border: 1px solid #ddd;
+                        padding: 8px;
+                        text-align: left;
                     }
                   }
                 `}
@@ -222,6 +234,15 @@ export default function SalesHistoryPage() {
                                     Clear
                                 </Button>
                             ) : null}
+                            <div className="h-10 border-l border-border mx-2 mt-5"></div>
+                            <Button
+                                onClick={() => setShowReport(true)}
+                                disabled={filteredTransactions.length === 0}
+                                className="mt-5"
+                            >
+                                <Receipt className="mr-2 h-4 w-4" />
+                                Print Report
+                            </Button>
                         </div>
                     </div>
                 </CardContent>
@@ -470,6 +491,101 @@ export default function SalesHistoryPage() {
                             </div>
                         </>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Report Preview Dialog */}
+            <Dialog open={showReport} onOpenChange={setShowReport}>
+                <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Sales Report Preview</DialogTitle>
+                        <DialogDescription>
+                            Review the report before printing.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div id="printable-report" className="space-y-6 p-4 border rounded-md">
+                        <div className="text-center">
+                            <h2 className="text-2xl font-bold">Sales Activity Report</h2>
+                            <p className="text-sm text-muted-foreground">Generated on {new Date().toLocaleString()}</p>
+                            {(startDate || endDate) && (
+                                <p className="text-sm font-medium mt-1">
+                                    Period: {startDate || "Start"} to {endDate || "End"}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-4 text-center border-y py-4">
+                            <div>
+                                <p className="text-xs text-muted-foreground uppercase">Total Sales</p>
+                                <p className="font-bold text-lg">{filteredTransactions.length}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground uppercase">Revenue</p>
+                                <p className="font-bold text-lg text-primary">
+                                    {formatCurrency(filteredTransactions.reduce((acc: number, t: any) => acc + Number.parseFloat(t.total), 0))}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground uppercase">Cash</p>
+                                <p className="font-bold text-lg">{filteredTransactions.filter((t: any) => t.paymentMethod === "cash").length}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground uppercase">Credit</p>
+                                <p className="font-bold text-lg">{filteredTransactions.filter((t: any) => t.paymentMethod === "credit").length}</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            {filteredTransactions.map((txn: any) => (
+                                <div key={txn.id} className="border-b pb-4 last:border-0">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <p className="font-bold text-sm">#{txn.id.slice(0, 8)}</p>
+                                            <p className="text-xs text-muted-foreground">{new Date(txn.date).toLocaleString()}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold">{formatCurrency(Number.parseFloat(txn.total))}</p>
+                                            <Badge variant="outline" className="text-xs">{txn.status}</Badge>
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mb-2">
+                                        {txn.client?.name || "Walk-in"} • {txn.user?.name || "Staff"} • <span className="capitalize">{txn.paymentMethod}</span>
+                                    </div>
+                                    <div className="pl-4 border-l-2 border-muted">
+                                        <table className="w-full text-xs">
+                                            <thead>
+                                                <tr className="text-left text-muted-foreground">
+                                                    <th className="font-normal w-12">Qty</th>
+                                                    <th className="font-normal">Item</th>
+                                                    <th className="font-normal text-right">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {txn.items?.map((item: any, i: number) => (
+                                                    <tr key={i}>
+                                                        <td>{item.quantity}</td>
+                                                        <td>{item.productName}</td>
+                                                        <td className="text-right">{formatCurrency(Number.parseFloat(item.price) * item.quantity)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setShowReport(false)}>
+                            Close
+                        </Button>
+                        <Button onClick={handlePrint}>
+                            <Receipt className="mr-2 h-4 w-4" />
+                            Print Report
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
