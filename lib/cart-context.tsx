@@ -25,7 +25,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [taxRate, setTaxRate] = useState(8.5) // Default tax rate
+  const [taxRate, setTaxRate] = useState(0) // Default tax rate 0%
 
   const addItem = useCallback((product: Product) => {
     setItems((prev) => {
@@ -51,17 +51,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const updateDiscount = useCallback((productId: string, discount: number) => {
     setItems((prev) =>
-      prev.map((item) => (item.id === productId ? { ...item, discount: Math.max(0, discount) } : item)),
+      prev.map((item) => (item.id === productId ? { ...item, discount: Math.min(100, Math.max(0, discount)) } : item)),
     )
   }, [])
 
   const clearCart = useCallback(() => {
     setItems([])
     setSelectedClient(null)
+    setTaxRate(0)
   }, [])
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const discount = items.reduce((sum, item) => sum + item.discount * item.quantity, 0)
+  const discount = items.reduce((sum, item) => sum + (item.price * item.quantity * (item.discount / 100)), 0)
   const tax = (subtotal - discount) * (taxRate / 100)
   const total = subtotal - discount + tax
 

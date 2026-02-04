@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import {
   Dialog,
@@ -38,6 +37,7 @@ export function CartPanel() {
     tax,
     total,
     taxRate,
+    setTaxRate,
   } = useCart()
 
   const { user } = useAuth()
@@ -170,7 +170,7 @@ export function CartPanel() {
         </CardHeader>
 
         <CardContent className="flex-1 overflow-hidden p-0">
-          <ScrollArea className="h-full px-4">
+          <div className="h-full overflow-y-auto px-4 py-2">
             {items.length === 0 ? (
               <div className="flex h-40 flex-col items-center justify-center text-muted-foreground">
                 <ShoppingCart className="mb-2 h-12 w-12 opacity-50" />
@@ -220,14 +220,15 @@ export function CartPanel() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Disc:</span>
+                        <span className="text-xs text-muted-foreground">Disc %:</span>
                         <Input
                           type="number"
                           min="0"
-                          step="0.01"
+                          max="100"
+                          step="1"
                           value={item.discount}
                           onChange={(e) => updateDiscount(item.id, Number.parseFloat(e.target.value) || 0)}
-                          className="h-7 w-16 text-right text-xs"
+                          className="h-7 w-14 text-right text-xs"
                         />
                       </div>
                     </div>
@@ -235,14 +236,14 @@ export function CartPanel() {
                     <div className="mt-2 flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Line total:</span>
                       <span className="font-medium">
-                        {formatCurrency(item.price * item.quantity - item.discount * item.quantity)}
+                        {formatCurrency(item.price * item.quantity * (1 - item.discount / 100))}
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </CardContent>
 
         <CardFooter className="flex-col gap-3 border-t border-border pt-4">
@@ -255,8 +256,19 @@ export function CartPanel() {
               <span>Discount</span>
               <span>-{formatCurrency(discount)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tax ({taxRate}%)</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Tax (%)</span>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={taxRate}
+                  onChange={(e) => setTaxRate(Number.parseFloat(e.target.value) || 0)}
+                  className="h-6 w-16 text-right text-xs"
+                />
+              </div>
               <span>{formatCurrency(tax)}</span>
             </div>
             <Separator />

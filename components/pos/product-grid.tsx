@@ -86,7 +86,7 @@ export function ProductGrid() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex flex-col">
       <div className="space-y-4 pb-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -123,7 +123,7 @@ export function ProductGrid() {
         </ScrollArea>
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="pb-6">
         {productsLoading ? (
           <div className="flex h-40 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -182,7 +182,7 @@ export function ProductGrid() {
             <p>No products found</p>
           </div>
         ) as any}
-      </ScrollArea>
+      </div>
     </div>
   )
 }
