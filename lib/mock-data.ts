@@ -504,8 +504,26 @@ export function getUserById(id: string): User | undefined {
   return mockUsers.find((u) => u.id === id)
 }
 
-export function formatCurrency(amount: number): string {
-  return `${amount.toFixed(0)} ${mockStoreSettings.currencySymbol}`
+export function formatCurrency(
+  value: number | string | null | undefined,
+  options: {
+    decimals?: number;
+    fallback?: string;
+  } = {}
+): string {
+  const { decimals = 0, fallback = '0' } = options;
+
+  if (value == null || value === '') {
+    return `${fallback} ${mockStoreSettings.currencySymbol}`;
+  }
+
+  const num = typeof value === 'string' ? Number(value) : value;
+
+  if (isNaN(num) || !isFinite(num)) {
+    return `${fallback} ${mockStoreSettings.currencySymbol}`;
+  }
+
+  return `${num.toFixed(decimals)} ${mockStoreSettings.currencySymbol}`;
 }
 
 export function getStockStatus(product: Product): "in-stock" | "low" | "out" {
