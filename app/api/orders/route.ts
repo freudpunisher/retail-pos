@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { transactions, products, stockMovements } from "@/lib/db/schema"
-import { eq, desc, sql, like, max } from "drizzle-orm"
+import { transactions, products, stock, stockMovements } from "@/lib/db/schema"
+import { eq, and, desc, sql, max } from "drizzle-orm"
+import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function GET() {
     try {
@@ -77,6 +78,14 @@ export async function POST(request: Request) {
                 .update(products)
                 .set({ stock: sql`${products.stock} - ${item.quantity}` })
                 .where(eq(products.id, item.productId))
+
+            // Deduct per-location stock
+            const [prod] = await db.select({ productType: products.productType }).from(products).where(eq(products.id, item.productId)).limit(1)
+            const location = await resolveWarehouse(db, prod?.productType || "drink")
+            await db
+                .update(stock)
+                .set({ quantityOnHand: sql`${stock.quantityOnHand} - ${item.quantity}`, updatedAt: new Date() })
+                .where(and(eq(stock.productId, item.productId), eq(stock.locationId, location.id)))
 
             // Record stock movement
             await db.insert(stockMovements).values({

@@ -13,21 +13,22 @@ import { useLocations } from "@/hooks/use-locations"
 export default function InventoryStatusPage() {
   const [search, setSearch] = useState("")
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
+  const [productType, setProductType] = useState<string>("all")
   const { stockItems, loading } = useStock()
   const { locations } = useLocations()
 
   const filteredByLocation = useMemo(() => {
     let items = stockItems
-    // Only show trackable products (ingredients + countable drinks)
-    items = items.filter(item =>
-      item.product.productType === "ingredient" ||
-      (item.product.productType === "drink" && item.product.trackStock)
-    )
+    if (productType === "drink") {
+      items = items.filter(item => item.product.productType === "drink")
+    } else if (productType === "ingredient") {
+      items = items.filter(item => item.product.productType === "ingredient")
+    }
     if (selectedLocationId) {
       items = items.filter(item => item.locationId === selectedLocationId)
     }
     return items
-  }, [stockItems, selectedLocationId])
+  }, [stockItems, selectedLocationId, productType])
 
   const filteredInventory = useMemo(() => {
     return filteredByLocation.filter(item =>
@@ -75,6 +76,33 @@ export default function InventoryStatusPage() {
             {loc.name}
           </Button>
         ))}
+      </div>
+
+      {/* Product type filter */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={productType === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("all")}
+        >
+          All
+        </Button>
+        <Button
+          variant={productType === "drink" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("drink")}
+        >
+          <Package className="h-4 w-4 mr-1" />
+          Drinks
+        </Button>
+        <Button
+          variant={productType === "ingredient" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("ingredient")}
+        >
+          <AlertTriangle className="h-4 w-4 mr-1" />
+          Ingredients
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

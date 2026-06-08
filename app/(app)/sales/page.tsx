@@ -44,7 +44,7 @@ export default function SalesPage() {
   const handleCreateOrder = async () => {
     if (!user || items.length === 0) return
 
-    if (orderMode === "dinein" && !selectedTableId) {
+    if ((orderMode === "dinein" && !selectedTableId) || (orderMode !== "dinein" && !selectedWaiterId)) {
       setShowValidation(true)
       return
     }
@@ -191,7 +191,7 @@ export default function SalesPage() {
               <AlertCircle className="h-5 w-5 text-amber-500" />
               Complete Order Details
             </DialogTitle>
-            <DialogDescription>Select a waiter to continue</DialogDescription>
+            <DialogDescription>Select the required fields to continue</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {orderMode === "dinein" && (
@@ -233,7 +233,7 @@ export default function SalesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowValidation(false)}>Cancel</Button>
-            <Button onClick={() => { setShowValidation(false); proceedOrder() }} disabled={orderMode === "dinein" && !selectedTableId}>
+            <Button onClick={() => { setShowValidation(false); proceedOrder() }} disabled={(orderMode === "dinein" && !selectedTableId) || !selectedWaiterId}>
               Confirm & Create Order
             </Button>
           </DialogFooter>

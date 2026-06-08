@@ -25,7 +25,7 @@ import { useSettings } from "@/hooks/use-settings"
 import { toast } from "sonner"
 
 interface CartPanelProps {
-  orderMode: "dinein" | "takeaway"
+  orderMode: "dinein" | "takeaway" | "counter"
   onCreateOrder?: () => void
   creatingOrder?: boolean
 }
