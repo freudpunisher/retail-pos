@@ -40,7 +40,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id)
       const currentQty = existing ? existing.quantity : 0
-      const maxQty = productStocksRef.current[product.id] ?? product.stock
+      const isTracked = product.productType === "food" || product.trackStock
+      const maxQty = isTracked ? (productStocksRef.current[product.id] ?? product.stock) : Infinity
       if (product.productType !== "food" && currentQty >= maxQty) return prev
       if (existing) {
         return prev.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item))
@@ -64,7 +65,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 ...item,
                 quantity:
                   item.productType !== "food"
-                    ? Math.min(quantity, productStocksRef.current[item.id] ?? item.stock)
+                    ? Math.min(quantity, item.trackStock ? (productStocksRef.current[item.id] ?? item.stock) : Infinity)
                     : quantity,
               }
             : item,

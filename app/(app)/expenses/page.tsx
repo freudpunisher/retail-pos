@@ -1,0 +1,419 @@
+"use client"
+
+import { useState, useMemo } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+    Plus,
+    Search,
+    Loader2,
+    Trash2,
+    Wallet,
+    TrendingDown,
+    Calendar,
+    Tag,
+    FileText,
+    AlertCircle,
+    PiggyBank,
+} from "lucide-react"
+import { useExpenses } from "@/hooks/use-expenses"
+import { useUsers } from "@/hooks/use-users"
+import { useAuth } from "@/lib/auth-context"
+import { formatCurrency } from "@/lib/mock-data"
+import type { ExpenseCategory } from "@/lib/types"
+
+const categoryConfig: Record<ExpenseCategory, { label: string; color: string; icon: string }> = {
+    rent: { label: "Rent", color: "bg-blue-500/20 text-blue-600 border-blue-500/30", icon: "🏠" },
+    utilities: { label: "Utilities", color: "bg-yellow-500/20 text-yellow-600 border-yellow-500/30", icon: "⚡" },
+    salaries: { label: "Salaries", color: "bg-green-500/20 text-green-600 border-green-500/30", icon: "👤" },
+    supplies: { label: "Supplies", color: "bg-purple-500/20 text-purple-600 border-purple-500/30", icon: "📦" },
+    maintenance: { label: "Maintenance", color: "bg-orange-500/20 text-orange-600 border-orange-500/30", icon: "🔧" },
+    marketing: { label: "Marketing", color: "bg-pink-500/20 text-pink-600 border-pink-500/30", icon: "📢" },
+    transport: { label: "Transport", color: "bg-cyan-500/20 text-cyan-600 border-cyan-500/30", icon: "🚚" },
+    insurance: { label: "Insurance", color: "bg-indigo-500/20 text-indigo-600 border-indigo-500/30", icon: "🛡️" },
+    taxes: { label: "Taxes", color: "bg-red-500/20 text-red-600 border-red-500/30", icon: "🏛️" },
+    other: { label: "Other", color: "bg-gray-500/20 text-gray-600 border-gray-500/30", icon: "📋" },
+}
+
+export default function ExpensesPage() {
+    const [search, setSearch] = useState("")
+    const [categoryFilter, setCategoryFilter] = useState<string>("all")
+    const [showDialog, setShowDialog] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
+    const { expenses, loading, createExpense, deleteExpense } = useExpenses()
+    const { users } = useUsers()
+    const { user } = useAuth()
+
+    const [formData, setFormData] = useState({
+        name: "",
+        amount: "",
+        category: "other" as ExpenseCategory,
+        description: "",
+        date: new Date().toISOString().split("T")[0],
+    })
+
+    const filtered = useMemo(() => {
+        let items = expenses
+        if (categoryFilter !== "all") {
+            items = items.filter(e => e.category === categoryFilter)
+        }
+        if (search) {
+            const q = search.toLowerCase()
+            items = items.filter(e =>
+                e.name.toLowerCase().includes(q) ||
+                (e.description || "").toLowerCase().includes(q)
+            )
+        }
+        return items
+    }, [expenses, search, categoryFilter])
+
+    const totalAmount = useMemo(() =>
+        filtered.reduce((sum, e) => sum + Number(e.amount), 0),
+        [filtered]
+    )
+
+    const categoryTotals = useMemo(() => {
+        const map: Record<string, number> = {}
+        for (const e of expenses) {
+            map[e.category] = (map[e.category] || 0) + Number(e.amount)
+        }
+        return map
+    }, [expenses])
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!user) return
+        setIsSubmitting(true)
+        try {
+            await createExpense({
+                ...formData,
+                amount: parseFloat(formData.amount),
+                userId: user.id,
+                date: new Date(formData.date).toISOString(),
+            })
+            setShowDialog(false)
+            setFormData({
+                name: "",
+                amount: "",
+                category: "other",
+                description: "",
+                date: new Date().toISOString().split("T")[0],
+            })
+        } catch {
+            // handled by hook
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Expenses</h2>
+                    <p className="text-muted-foreground">Track and manage all business expenses</p>
+                </div>
+                <Dialog open={showDialog} onOpenChange={setShowDialog}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                            <Plus className="mr-2 h-4 w-4" />
+                            New Expense
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px] border-border/50 shadow-2xl backdrop-blur-xl bg-card/90">
+                        <form onSubmit={handleSubmit}>
+                            <DialogHeader>
+                                <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                                    <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                                        <TrendingDown className="h-6 w-6 text-destructive" />
+                                    </div>
+                                    Record Expense
+                                </DialogTitle>
+                                <DialogDescription className="text-base italic">
+                                    Enter the details of the expense to keep accurate financial records.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-6 py-6">
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-primary/80">Expense Name</Label>
+                                    <Input
+                                        placeholder="e.g. Electricity Bill"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="bg-background/50 border-border/50 hover:border-primary/50"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-bold text-primary/80">Amount</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={formData.amount}
+                                            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                            className="bg-background/50 border-border/50 focus:border-primary font-bold text-lg"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-bold text-primary/80">Category</Label>
+                                        <Select
+                                            value={formData.category}
+                                            onValueChange={(val) => setFormData({ ...formData, category: val as ExpenseCategory })}
+                                        >
+                                            <SelectTrigger className="bg-background/50 border-border/50">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {Object.entries(categoryConfig).map(([key, cfg]) => (
+                                                    <SelectItem key={key} value={key}>{cfg.icon} {cfg.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-primary/80">Date</Label>
+                                    <Input
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                        className="bg-background/50 border-border/50"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-primary/80">Description (Optional)</Label>
+                                    <Input
+                                        placeholder="Additional details about this expense"
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        className="bg-background/50 border-border/50"
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter className="bg-secondary/5 -mx-6 -mb-6 p-6 rounded-b-lg border-t border-border/50">
+                                <Button type="button" variant="outline" onClick={() => setShowDialog(false)} className="border-border/50">
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={isSubmitting} className="min-w-[170px] bg-gradient-to-r from-destructive to-destructive/80 hover:shadow-destructive/30 shadow-lg transition-all">
+                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wallet className="mr-2 h-4 w-4" />}
+                                    Save Expense
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-4">
+                <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-lg transition-transform hover:scale-[1.02]">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Expenses</p>
+                                <p className="text-3xl font-black text-foreground mt-1">{expenses.length}</p>
+                            </div>
+                            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                                <TrendingDown className="h-6 w-6 text-destructive" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-lg transition-transform hover:scale-[1.02]">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Amount</p>
+                                <p className="text-3xl font-black text-destructive mt-1">{formatCurrency(totalAmount)}</p>
+                            </div>
+                            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                                <Wallet className="h-6 w-6 text-destructive" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-lg transition-transform hover:scale-[1.02]">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">This Filter</p>
+                                <p className="text-3xl font-black text-accent mt-1">{formatCurrency(totalAmount)}</p>
+                            </div>
+                            <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
+                                <PiggyBank className="h-6 w-6 text-accent" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-lg transition-transform hover:scale-[1.02]">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categories</p>
+                                <p className="text-3xl font-black text-foreground mt-1">{Object.keys(categoryTotals).length}</p>
+                            </div>
+                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Tag className="h-6 w-6 text-primary" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Category breakdown */}
+            <div className="flex flex-wrap gap-2">
+                <Button
+                    variant={categoryFilter === "all" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCategoryFilter("all")}
+                >
+                    All
+                </Button>
+                {Object.entries(categoryConfig).map(([key, cfg]) => (
+                    <Button
+                        key={key}
+                        variant={categoryFilter === key ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCategoryFilter(key)}
+                        className="relative"
+                    >
+                        {cfg.label}
+                        {categoryTotals[key] > 0 && (
+                            <span className="ml-1.5 text-xs opacity-60">
+                                ({formatCurrency(categoryTotals[key])})
+                            </span>
+                        )}
+                    </Button>
+                ))}
+            </div>
+
+            {/* Table */}
+            <Card className="border-border/50 shadow-2xl overflow-hidden backdrop-blur-md bg-card/70 border-t-4 border-t-destructive/20">
+                <CardHeader className="border-b border-border/50 bg-secondary/10 py-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                            <Wallet className="h-5 w-5 text-destructive" />
+                            Expense Records
+                            <Badge variant="secondary" className="ml-2">{filtered.length}</Badge>
+                        </CardTitle>
+                        <div className="relative w-full md:w-72">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search expenses..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-10 bg-background/50 border-border/50"
+                            />
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-secondary/10 hover:bg-secondary/10 border-border/50">
+                                <TableHead className="font-bold">Date</TableHead>
+                                <TableHead className="font-bold">Name</TableHead>
+                                <TableHead className="font-bold">Category</TableHead>
+                                <TableHead className="text-right font-bold">Amount</TableHead>
+                                <TableHead className="font-bold">Description</TableHead>
+                                <TableHead className="font-bold">Recorded By</TableHead>
+                                <TableHead className="text-right font-bold">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading && (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="h-32 text-center">
+                                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                                        <p className="mt-2 text-sm text-muted-foreground">Loading expenses...</p>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            {!loading && filtered.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground italic">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Wallet className="h-12 w-12 opacity-10" />
+                                            <p className="text-lg font-medium">No expenses found</p>
+                                            <p className="text-sm">Record your first expense to start tracking.</p>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            {filtered.map((exp) => {
+                                const cfg = categoryConfig[exp.category as ExpenseCategory] || categoryConfig.other
+                                return (
+                                    <TableRow key={exp.id} className="border-border/50 hover:bg-secondary/5 transition-colors group">
+                                        <TableCell>
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                                {new Date(exp.date).toLocaleDateString(undefined, {
+                                                    day: "numeric", month: "short", year: "numeric"
+                                                })}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="font-bold text-foreground">{exp.name}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className={`font-bold text-xs ${cfg.color}`}>
+                                                {cfg.label}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <span className="font-black text-destructive text-lg">
+                                                -{formatCurrency(Number(exp.amount))}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="max-w-[200px]">
+                                            <p className="text-xs text-muted-foreground truncate">
+                                                {exp.description || <span className="italic opacity-40">No description</span>}
+                                            </p>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-xs font-medium text-muted-foreground">
+                                                {exp.user?.name || "—"}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
+                                                onClick={() => {
+                                                    if (confirm("Delete this expense?")) {
+                                                        deleteExpense(exp.id)
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}

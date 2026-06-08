@@ -439,3 +439,21 @@ export const creditPaymentsRelations = relations(creditPayments, ({ one }) => ({
         references: [creditRecords.id],
     }),
 }))
+
+// Expense category enum
+export const expenseCategoryEnum = pgEnum("expense_category", [
+    "rent", "utilities", "salaries", "supplies", "maintenance",
+    "marketing", "transport", "insurance", "taxes", "other"
+])
+
+// Expenses table
+export const expenses = pgTable("expenses", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    category: expenseCategoryEnum("category").notNull(),
+    description: text("description"),
+    date: timestamp("date").notNull().defaultNow(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+})

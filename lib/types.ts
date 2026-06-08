@@ -162,3 +162,17 @@ export interface StockTransfer {
   fromLocation?: { name: string }
   toLocation?: { name: string }
 }
+
+export type ExpenseCategory = "rent" | "utilities" | "salaries" | "supplies" | "maintenance" | "marketing" | "transport" | "insurance" | "taxes" | "other"
+
+export interface Expense {
+  id: string
+  name: string
+  amount: number
+  category: ExpenseCategory
+  description?: string
+  date: string
+  userId: string
+  user?: { name: string }
+  createdAt: string
+}

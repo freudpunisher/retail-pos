@@ -26,6 +26,7 @@ import {
   Receipt,
   LogOut,
   ArrowRightLeft,
+  Wallet,
 } from "lucide-react"
 
 const navItems = [
@@ -42,6 +43,7 @@ const navItems = [
   { href: "/staff-tables", label: "Staff & Tables", icon: UserCog, roles: ["admin", "manager"] },
   { href: "/clients", label: "Clients", icon: Users, roles: ["admin", "manager", "cashier"] },
   { href: "/credit", label: "Credit Management", icon: CreditCard, roles: ["admin", "manager"] },
+  { href: "/expenses", label: "Expenses", icon: Wallet, roles: ["admin", "manager"] },
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager"] },
   { href: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
 ]

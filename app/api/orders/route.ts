@@ -114,11 +114,7 @@ export async function POST(request: Request) {
             })
         }
 
-        // Mark table as occupied
-        if (tableId) {
-            const { tables } = await import("@/lib/db/schema")
-            await db.update(tables).set({ status: "occupied" }).where(eq(tables.id, tableId))
-        }
+        // No longer marking table as occupied — a table can have multiple bills simultaneously
 
         const order = await db.query.transactions.findFirst({
             where: eq(transactions.id, newOrder.id),

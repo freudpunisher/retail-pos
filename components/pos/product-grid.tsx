@@ -168,7 +168,8 @@ export function ProductGrid() {
         ) : (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
             {posProducts.map((product: any) => {
-              const effectiveStock = productStockMap[product.id] ?? product.stock
+              const isTracked = product.productType === "food" || product.trackStock
+              const effectiveStock = isTracked ? (productStockMap[product.id] ?? product.stock) : Infinity
               const stockStatus = getStockStatus(product, effectiveStock)
               const isOutOfStock = stockStatus === "out"
               const isMadeToOrder = stockStatus === "mto"
@@ -216,7 +217,7 @@ export function ProductGrid() {
                       <div className="flex items-center justify-between">
                         <p className="font-semibold text-primary">{formatCurrency(Number.parseFloat(product.price))}</p>
                         <span className="text-xs text-muted-foreground">
-                          {isMadeToOrder ? "Made to Order" : `${effectiveStock} in stock`}
+                          {isMadeToOrder ? "Made to Order" : !isTracked ? "In Stock" : `${effectiveStock} in stock`}
                         </span>
                       </div>
                     </div>

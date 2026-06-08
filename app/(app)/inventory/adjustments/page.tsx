@@ -27,11 +27,14 @@ import {
     FileText,
     Calendar,
     ArrowUpDown,
-    Clock
+    Clock,
+    Warehouse,
+    Store
 } from "lucide-react"
 import { useStock } from "@/hooks/use-stock"
 import { useProducts } from "@/hooks/use-products"
 import { useUsers } from "@/hooks/use-users"
+import { useLocations } from "@/hooks/use-locations"
 
 export default function StockAdjustmentsPage() {
     const [search, setSearch] = useState("")
@@ -41,9 +44,11 @@ export default function StockAdjustmentsPage() {
     const { adjustments, loading, createAdjustment } = useStock()
     const { products } = useProducts()
     const { users } = useUsers()
+    const { locations } = useLocations()
 
     const [formData, setFormData] = useState({
         productId: "",
+        locationId: "",
         adjustmentType: "stock_count",
         quantityChange: "",
         reason: "",
@@ -72,6 +77,7 @@ export default function StockAdjustmentsPage() {
             setShowAdjustmentDialog(false)
             setFormData({
                 productId: "",
+                locationId: "",
                 adjustmentType: "stock_count",
                 quantityChange: "",
                 reason: "",
@@ -138,6 +144,28 @@ export default function StockAdjustmentsPage() {
                                         <SelectContent>
                                             {products.map(p => (
                                                 <SelectItem key={p.id} value={p.id}>{p.name} — <span className="opacity-50 text-xs">{p.sku}</span></SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-primary/80">Location</Label>
+                                    <Select
+                                        value={formData.locationId}
+                                        onValueChange={(val) => setFormData({ ...formData, locationId: val })}
+                                        required
+                                    >
+                                        <SelectTrigger className="bg-background/50 border-border/50 hover:border-primary/50 transition-colors">
+                                            <SelectValue placeholder="Select location" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {locations.map(l => (
+                                                <SelectItem key={l.id} value={l.id}>
+                                                    <span className="flex items-center gap-2">
+                                                        {l.type === "principal" ? <Warehouse className="h-3 w-3" /> : <Store className="h-3 w-3" />}
+                                                        {l.name}
+                                                    </span>
+                                                </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
