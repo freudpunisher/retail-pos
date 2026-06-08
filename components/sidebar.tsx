@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -27,38 +27,53 @@ import {
   LogOut,
   ArrowRightLeft,
   Wallet,
+  Loader2,
 } from "lucide-react"
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "cashier"] },
-  { href: "/sales", label: "Sales (POS)", icon: ShoppingCart, roles: ["admin", "manager", "cashier"] },
-  { href: "/sales-history", label: "Sales History", icon: Receipt, roles: ["admin", "manager", "cashier"] },
-  { href: "/purchases", label: "Purchases", icon: Truck, roles: ["admin", "manager"] },
-  { href: "/products", label: "Product Management", icon: Package, roles: ["admin", "manager", "cashier"] },
-  { href: "/inventory", label: "Stock Status", icon: Warehouse, roles: ["admin", "manager", "cashier"] },
-  { href: "/inventory/adjustments", label: "Stock Adjustments", icon: RefreshCw, roles: ["admin", "manager"] },
-  { href: "/inventory/count", label: "Inventory Count", icon: ClipboardList, roles: ["admin", "manager"] },
-  { href: "/stock-movements", label: "Stock Movements", icon: ArrowLeftRight, roles: ["admin", "manager"] },
-  { href: "/stock/transfers", label: "Stock Transfers", icon: ArrowRightLeft, roles: ["admin", "manager"] },
-  { href: "/staff-tables", label: "Staff & Tables", icon: UserCog, roles: ["admin", "manager"] },
-  { href: "/clients", label: "Clients", icon: Users, roles: ["admin", "manager", "cashier"] },
-  { href: "/credit", label: "Credit Management", icon: CreditCard, roles: ["admin", "manager"] },
-  { href: "/expenses", label: "Expenses", icon: Wallet, roles: ["admin", "manager"] },
-  { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager"] },
-  { href: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
-]
+const iconMap: Record<string, any> = {
+  LayoutDashboard, ShoppingCart, Package, Warehouse,
+  ArrowLeftRight, Users, UserCog, CreditCard,
+  BarChart3, Settings, Truck, RefreshCw,
+  ClipboardList, Receipt, ArrowRightLeft, Wallet,
+}
+
+interface MenuItem {
+  id: string
+  href: string
+  label: string
+  icon: string
+  roles: string[]
+  sortOrder: number
+}
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { hasRole, logout, user } = useAuth()
+  const { user, logout } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMenus = async () => {
+      try {
+        const res = await fetch("/api/menus")
+        if (res.ok) {
+          const data = await res.json()
+          setMenuItems(data)
+        }
+      } catch {
+        // fallback to empty
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchMenus()
+  }, [])
 
   const handleLogout = async () => {
     await logout()
     window.location.href = "/login"
   }
-
-  const filteredNavItems = navItems.filter((item) => hasRole(item.roles as ("admin" | "manager" | "cashier")[]))
 
   return (
     <aside
@@ -85,28 +100,34 @@ export function Sidebar() {
 
       <ScrollArea className="flex-1 py-4">
         <nav className="space-y-1 px-2">
-          {filteredNavItems.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link key={item.href} href={item.href}>
-                <Button
-                  variant={isActive ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full justify-start gap-3",
-                    isActive && "bg-secondary text-foreground",
-                    collapsed && "justify-center px-2",
-                  )}
-                >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
-                </Button>
-              </Link>
-            )
-          })}
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            menuItems.map((item) => {
+              const Icon = iconMap[item.icon]
+              const isActive = pathname === item.href
+              return (
+                <Link key={item.href} href={item.href}>
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start gap-3",
+                      isActive && "bg-secondary text-foreground",
+                      collapsed && "justify-center px-2",
+                    )}
+                  >
+                    {Icon && <Icon className="h-5 w-5 shrink-0" />}
+                    {!collapsed && <span>{item.label}</span>}
+                  </Button>
+                </Link>
+              )
+            })
+          )}
         </nav>
       </ScrollArea>
 
-      {/* User Info & Logout */}
       <div className="border-t border-border p-4">
         {!collapsed && user && (
           <div className="mb-2">
