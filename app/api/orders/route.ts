@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { transactions } from "@/lib/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { transactions, products, stockMovements } from "@/lib/db/schema"
+import { eq, desc, sql } from "drizzle-orm"
 
 export async function GET() {
     try {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
             })
             .returning()
 
-        // Insert transaction items
+        // Insert transaction items and deduct stock
         const { transactionItems } = await import("@/lib/db/schema")
         for (const item of items) {
             await db.insert(transactionItems).values({
@@ -61,6 +61,22 @@ export async function POST(request: Request) {
                 quantity: item.quantity,
                 price: item.price.toString(),
                 discount: (item.discount || 0).toString(),
+            })
+
+            // Deduct stock
+            await db
+                .update(products)
+                .set({ stock: sql`${products.stock} - ${item.quantity}` })
+                .where(eq(products.id, item.productId))
+
+            // Record stock movement
+            await db.insert(stockMovements).values({
+                productId: item.productId,
+                productName: item.productName,
+                type: "sale",
+                quantity: -item.quantity,
+                userId,
+                notes: `Order ${newOrder.id}`,
             })
         }
 

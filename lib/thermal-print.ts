@@ -12,6 +12,7 @@ export interface ReceiptData {
   total: number
   paymentMethod?: string
   currencySymbol?: string
+  billReference?: string
 }
 
 export function printThermal(data: ReceiptData): void {
@@ -87,7 +88,7 @@ export function printThermal(data: ReceiptData): void {
   <div class="divider-thick"></div>
 
   <!-- Transaction Info -->
-  <div class="info-line"><span class="info-label">Order</span> #${data.orderId.slice(0, 8).toUpperCase()}</div>
+  <div class="info-line" style="font-size:14px;font-weight:bold;letter-spacing:2px;margin-bottom:1mm;">${data.billReference || `#${data.orderId.slice(0, 8).toUpperCase()}`}</div>
   <div class="info-line"><span class="info-label">Date</span> ${data.date.toLocaleDateString()} ${data.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
   ${data.client ? `<div class="info-line"><span class="info-label">Client</span> ${data.client}</div>` : ""}
   ${data.cashier ? `<div class="info-line"><span class="info-label">Cashier</span> ${data.cashier}</div>` : ""}

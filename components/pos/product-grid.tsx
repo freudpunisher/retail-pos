@@ -65,7 +65,7 @@ export function ProductGrid() {
   const [search, setSearch] = useState("")
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [posFilter, setPosFilter] = useState<string>("all")
-  const { addItem } = useCart()
+  const { addItem, items } = useCart()
 
   const { products, loading: productsLoading } = useProducts(selectedCategoryId || "all", search)
   const { categories, loading: categoriesLoading } = useCategories()
@@ -173,14 +173,17 @@ export function ProductGrid() {
               const isMadeToOrder = stockStatus === "mto"
               const IconComponent = getCategoryIcon(product.categoryName || "", product.name)
 
+              const cartQty = items.filter((i) => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0)
+              const isCartFull = !isMadeToOrder && cartQty >= product.stock
+
               return (
                 <Card
                   key={product.id}
                   className={cn(
                     "group cursor-pointer border-border bg-card transition-all hover:border-primary/50",
-                    isOutOfStock && "opacity-60",
+                    (isOutOfStock || isCartFull) && "opacity-60",
                   )}
-                  onClick={() => !isOutOfStock && handleAddItem(product)}
+                  onClick={() => !isOutOfStock && !isCartFull && handleAddItem(product)}
                 >
                   <CardContent className="p-3">
                     <div className="relative mb-3 aspect-square overflow-hidden rounded-lg bg-secondary">
@@ -191,17 +194,19 @@ export function ProductGrid() {
                         <Badge className="absolute right-1 top-1 bg-purple-500/80 text-white border-0 text-xs">
                           MTO
                         </Badge>
+                      ) : isCartFull ? (
+                        <Badge className="absolute right-1 top-1 bg-destructive text-xs">Max</Badge>
                       ) : stockStatus === "out" ? (
-                        <Badge className="absolute right-1 top-1 bg-destructive text-xs">
-                          Out
-                        </Badge>
+                        <Badge className="absolute right-1 top-1 bg-destructive text-xs">Out</Badge>
                       ) : stockStatus === "low" ? (
-                        <Badge className="absolute right-1 top-1 bg-warning text-xs">
-                          Low
-                        </Badge>
+                        <Badge className="absolute right-1 top-1 bg-warning text-xs">Low</Badge>
                       ) : null}
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                        <Plus className="h-8 w-8 text-white" />
+                        {isCartFull || isOutOfStock ? (
+                          <span className="text-xs font-bold text-white uppercase tracking-wider">Max</span>
+                        ) : (
+                          <Plus className="h-8 w-8 text-white" />
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1">

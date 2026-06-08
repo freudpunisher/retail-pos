@@ -30,6 +30,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = useCallback((product: Product) => {
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id)
+      const currentQty = existing ? existing.quantity : 0
+      if (product.productType !== "food" && currentQty >= product.stock) return prev
       if (existing) {
         return prev.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
@@ -45,7 +47,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (quantity <= 0) {
       setItems((prev) => prev.filter((item) => item.id !== productId))
     } else {
-      setItems((prev) => prev.map((item) => (item.id === productId ? { ...item, quantity } : item)))
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === productId
+            ? { ...item, quantity: item.productType !== "food" ? Math.min(quantity, item.stock) : quantity }
+            : item,
+        ),
+      )
     }
   }, [])
 

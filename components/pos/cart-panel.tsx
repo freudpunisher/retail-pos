@@ -398,7 +398,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
               <p className="text-xs">
                 Date: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
               </p>
-              <p className="text-xs">Transaction: {lastTransactionId || "N/A"}</p>
+              <p className="text-xs font-bold tracking-wider">BL-{(lastTransactionId || "N/A").slice(0, 8).toUpperCase()}</p>
               {selectedClient && <p className="text-xs">Client: {selectedClient.name}</p>}
               <p className="text-xs">Payment: {paymentMethod.toUpperCase()}</p>
             </div>

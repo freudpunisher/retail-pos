@@ -21,7 +21,7 @@ import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/hooks/use-settings"
 import { toast } from "sonner"
-import { Table2, User, Utensils, ShoppingBag, AlertCircle } from "lucide-react"
+import { Table2, User, Utensils, ShoppingBag, Wine, AlertCircle } from "lucide-react"
 import { printThermal } from "@/lib/thermal-print"
 
 export default function SalesPage() {
@@ -32,7 +32,7 @@ export default function SalesPage() {
   const { createOrder } = useOrders()
   const { items, selectedClient, total, clearCart } = useCart()
 
-  const [orderMode, setOrderMode] = useState<"dinein" | "takeaway">("dinein")
+  const [orderMode, setOrderMode] = useState<"dinein" | "counter" | "takeaway">("dinein")
   const [selectedTableId, setSelectedTableId] = useState<string>("")
   const [selectedWaiterId, setSelectedWaiterId] = useState<string>("")
   const [creating, setCreating] = useState(false)
@@ -50,6 +50,11 @@ export default function SalesPage() {
     }
 
     await proceedOrder()
+  }
+
+  const resetSelections = () => {
+    setSelectedTableId("")
+    setSelectedWaiterId("")
   }
 
   const proceedOrder = async () => {
@@ -70,8 +75,7 @@ export default function SalesPage() {
         clientId: selectedClient?.id,
       })
       clearCart()
-      setSelectedTableId("")
-      setSelectedWaiterId("")
+      resetSelections()
 
       // Print bill
       const billItems = items.map((item) => ({
@@ -91,10 +95,13 @@ export default function SalesPage() {
         waiter: selectedWaiterId ? users.find((u) => u.id === selectedWaiterId)?.name : user.name,
         table: orderMode === "dinein" && selectedTableId
           ? `T${tables.find((t) => t.id === selectedTableId)?.number || ""}`
-          : undefined,
+          : orderMode === "counter"
+            ? "Counter"
+            : undefined,
         items: billItems,
         total: total,
         currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", FBU: "FBU " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "FBU",
+        billReference: "BL-" + order.id.slice(0, 8).toUpperCase(),
       })
 
       toast.success("Order created! Bill printed.")
@@ -109,7 +116,7 @@ export default function SalesPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex rounded-lg border border-border overflow-hidden">
-          {(["dinein", "takeaway"] as const).map((mode) => (
+          {(["dinein", "counter", "takeaway"] as const).map((mode) => (
             <Button
               key={mode}
               variant={orderMode === mode ? "default" : "ghost"}
@@ -118,8 +125,9 @@ export default function SalesPage() {
               className="rounded-none"
             >
               {mode === "dinein" && <Utensils className="h-4 w-4 mr-1" />}
+              {mode === "counter" && <Wine className="h-4 w-4 mr-1" />}
               {mode === "takeaway" && <ShoppingBag className="h-4 w-4 mr-1" />}
-              {mode === "dinein" ? "Dine-in" : "Takeaway"}
+              {mode === "dinein" ? "Dine-in" : mode === "counter" ? "Counter" : "Takeaway"}
             </Button>
           ))}
         </div>
@@ -141,6 +149,8 @@ export default function SalesPage() {
                 )}
               </SelectContent>
             </Select>
+          ) : orderMode === "counter" ? (
+            <span className="text-sm font-medium text-muted-foreground">Counter</span>
           ) : (
             <span className="text-sm text-muted-foreground">Takeaway</span>
           )}
@@ -181,7 +191,7 @@ export default function SalesPage() {
               <AlertCircle className="h-5 w-5 text-amber-500" />
               Complete Order Details
             </DialogTitle>
-            <DialogDescription>Select a table and waiter to continue</DialogDescription>
+            <DialogDescription>Select a waiter to continue</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {orderMode === "dinein" && (
