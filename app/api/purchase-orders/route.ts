@@ -1,14 +1,27 @@
 // app/api/purchases/route.ts
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import db from "@/lib/db";
 import { purchaseOrders, purchaseOrderItems, suppliers, products, stock, stockMovements } from "@/lib/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, gte, lte } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { resolveWarehouse } from "@/lib/db/location-utils";
 
-// GET - list all orders (same as before, but maybe add status filter later)
-export async function GET() {
+// GET - list orders with optional date range filter
+export async function GET(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams
+    const dateFrom = searchParams.get("dateFrom")
+    const dateTo = searchParams.get("dateTo")
+
+    const conditions = []
+    if (dateFrom) conditions.push(gte(purchaseOrders.date, new Date(dateFrom)))
+    if (dateTo) {
+      const end = new Date(dateTo)
+      end.setHours(23, 59, 59, 999)
+      conditions.push(lte(purchaseOrders.date, end))
+    }
+
     const orders = await db
       .select({
         id: purchaseOrders.id,
@@ -20,6 +33,7 @@ export async function GET() {
       })
       .from(purchaseOrders)
       .leftJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id))
+      .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(purchaseOrders.date));
 
     const ordersWithItems = await Promise.all(

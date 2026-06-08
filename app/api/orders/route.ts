@@ -46,8 +46,8 @@ export async function POST(request: Request) {
                 total: total.toString(),
                 userId,
                 waiterId: waiterId || userId,
-                tableId,
-                clientId,
+                tableId: tableId || null,
+                clientId: clientId || null,
             })
             .returning()
 

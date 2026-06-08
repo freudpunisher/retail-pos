@@ -5,23 +5,25 @@ import { ProductGrid } from "@/components/pos/product-grid"
 import { CartPanel } from "@/components/pos/cart-panel"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { useUsers } from "@/hooks/use-users"
 import { useTables } from "@/hooks/use-tables"
 import { useOrders } from "@/hooks/use-orders"
 import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
+import { useSettings } from "@/hooks/use-settings"
 import { toast } from "sonner"
-import { Table2, User, Utensils, ShoppingBag, Loader2 } from "lucide-react"
+import { Table2, User, Utensils, ShoppingBag } from "lucide-react"
+import { printThermal } from "@/lib/thermal-print"
 
 export default function SalesPage() {
   const { user } = useAuth()
+  const { settings } = useSettings()
   const { users } = useUsers()
   const { tables } = useTables()
   const { createOrder } = useOrders()
-  const { items, selectedClient, setSelectedClient, subtotal, discount, tax, total, clearCart } = useCart()
+  const { items, selectedClient, total, clearCart } = useCart()
 
-  const [orderMode, setOrderMode] = useState<"quick" | "dinein" | "takeaway">("quick")
+  const [orderMode, setOrderMode] = useState<"dinein" | "takeaway">("dinein")
   const [selectedTableId, setSelectedTableId] = useState<string>("")
   const [selectedWaiterId, setSelectedWaiterId] = useState<string>("")
   const [creating, setCreating] = useState(false)
@@ -33,7 +35,7 @@ export default function SalesPage() {
     if (!user || items.length === 0) return
     setCreating(true)
     try {
-      await createOrder({
+      const order = await createOrder({
         items: items.map((item) => ({
           productId: item.id,
           productName: item.name,
@@ -43,13 +45,38 @@ export default function SalesPage() {
         })),
         userId: user.id,
         waiterId: selectedWaiterId || user.id,
-        tableId: orderMode === "dinein" ? selectedTableId : undefined,
+        tableId: orderMode === "dinein" ? (selectedTableId || undefined) : undefined,
         clientId: selectedClient?.id,
       })
-      toast.success("Order created!")
       clearCart()
       setSelectedTableId("")
       setSelectedWaiterId("")
+
+      // Print bill
+      const billItems = items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: Number(item.price),
+        total: Number(item.price) * item.quantity,
+      }))
+      printThermal({
+        header: {
+          name: settings?.name || "SmartPOS",
+          address: settings?.address || "",
+          phone: settings?.phone || "",
+        },
+        orderId: order.id,
+        date: new Date(),
+        waiter: selectedWaiterId ? users.find((u) => u.id === selectedWaiterId)?.name : user.name,
+        table: orderMode === "dinein" && selectedTableId
+          ? `T${tables.find((t) => t.id === selectedTableId)?.number || ""}`
+          : undefined,
+        items: billItems,
+        total: total,
+        currencySymbol: settings?.currencySymbol || "FBU",
+      })
+
+      toast.success("Order created! Bill printed.")
     } catch (err: any) {
       toast.error(err.message || "Failed to create order")
     } finally {
@@ -59,10 +86,9 @@ export default function SalesPage() {
 
   return (
     <div className="space-y-4">
-      {/* Order Mode Selector */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex rounded-lg border border-border overflow-hidden">
-          {(["quick", "dinein", "takeaway"] as const).map((mode) => (
+          {(["dinein", "takeaway"] as const).map((mode) => (
             <Button
               key={mode}
               variant={orderMode === mode ? "default" : "ghost"}
@@ -70,52 +96,48 @@ export default function SalesPage() {
               onClick={() => setOrderMode(mode)}
               className="rounded-none"
             >
-              {mode === "quick" && <ShoppingBag className="h-4 w-4 mr-1" />}
               {mode === "dinein" && <Utensils className="h-4 w-4 mr-1" />}
               {mode === "takeaway" && <ShoppingBag className="h-4 w-4 mr-1" />}
-              {mode === "quick" ? "Quick Sale" : mode === "dinein" ? "Dine-in" : "Takeaway"}
+              {mode === "dinein" ? "Dine-in" : "Takeaway"}
             </Button>
           ))}
         </div>
 
-        {orderMode !== "quick" && (
-          <>
-            <div className="flex items-center gap-2">
-              <Table2 className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedTableId} onValueChange={setSelectedTableId}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder={orderMode === "dinein" ? "Table" : "No table"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {orderMode === "dinein" ? (
-                    freeTables.length === 0 ? (
-                      <SelectItem value="" disabled>No free tables</SelectItem>
-                    ) : (
-                      freeTables.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>T{t.number} ({t.capacity}p)</SelectItem>
-                      ))
-                    )
-                  ) : (
-                    <SelectItem value="">No table</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedWaiterId} onValueChange={setSelectedWaiterId}>
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="Waiter" />
-                </SelectTrigger>
-                <SelectContent>
-                  {waiters.map((w) => (
-                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </>
-        )}
+        <div className="flex items-center gap-2">
+          <Table2 className="h-4 w-4 text-muted-foreground" />
+          {orderMode === "dinein" ? (
+            <Select value={selectedTableId} onValueChange={setSelectedTableId}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Table" />
+              </SelectTrigger>
+              <SelectContent>
+                {freeTables.length === 0 ? (
+                  <SelectItem value="none" disabled>No free tables</SelectItem>
+                ) : (
+                  freeTables.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>T{t.number} ({t.capacity}p)</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          ) : (
+            <span className="text-sm text-muted-foreground">Takeaway</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedWaiterId} onValueChange={setSelectedWaiterId}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Waiter" />
+            </SelectTrigger>
+            <SelectContent>
+              {waiters.map((w) => (
+                <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-10 gap-6 items-start">

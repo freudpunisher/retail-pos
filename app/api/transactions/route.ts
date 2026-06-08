@@ -1,15 +1,30 @@
 import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import db from "@/lib/db"
 import { transactions, transactionItems, products, stockMovements, clients } from "@/lib/db/schema"
-import { eq, sql } from "drizzle-orm"
+import { eq, sql, gte, lte, and } from "drizzle-orm"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        const searchParams = request.nextUrl.searchParams
+        const dateFrom = searchParams.get("dateFrom")
+        const dateTo = searchParams.get("dateTo")
+
+        const conditions = []
+        if (dateFrom) conditions.push(gte(transactions.date, new Date(dateFrom)))
+        if (dateTo) {
+            const end = new Date(dateTo)
+            end.setHours(23, 59, 59, 999)
+            conditions.push(lte(transactions.date, end))
+        }
+
         const allTransactions = await db.query.transactions.findMany({
+            where: conditions.length ? and(...conditions) : undefined,
             with: {
                 items: true,
                 client: true,
                 user: true,
+                table: true,
             },
             orderBy: (transactions, { desc }) => [desc(transactions.date)],
         })

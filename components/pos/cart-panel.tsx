@@ -17,19 +17,20 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/mock-data"
-import { Minus, Plus, Trash2, ShoppingCart, User, Receipt, CreditCard, Banknote, X, Loader2, ClipboardList } from "lucide-react"
+import { Minus, Plus, Trash2, ShoppingCart, User, Receipt, Banknote, X, Loader2, ClipboardList } from "lucide-react"
 import { useClients } from "@/hooks/use-clients"
 import { useTransactions } from "@/hooks/use-transactions"
 import { useAuth } from "@/lib/auth-context"
+import { useSettings } from "@/hooks/use-settings"
 import { toast } from "sonner"
 
 interface CartPanelProps {
-  orderMode?: "quick" | "dinein" | "takeaway"
+  orderMode: "dinein" | "takeaway"
   onCreateOrder?: () => void
   creatingOrder?: boolean
 }
 
-export function CartPanel({ orderMode = "quick", onCreateOrder, creatingOrder = false }: CartPanelProps) {
+export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: CartPanelProps) {
   const {
     items,
     selectedClient,
@@ -47,6 +48,7 @@ export function CartPanel({ orderMode = "quick", onCreateOrder, creatingOrder = 
   } = useCart()
 
   const { user } = useAuth()
+  const { settings } = useSettings()
   const { clients, loading: clientsLoading } = useClients()
   const { processTransaction, loading: processing } = useTransactions()
 
@@ -284,35 +286,20 @@ export function CartPanel({ orderMode = "quick", onCreateOrder, creatingOrder = 
             </div>
           </div>
 
-          <div className="grid w-full grid-cols-2 gap-2">
-            {orderMode === "quick" ? (
-              <>
-                <Button variant="outline" disabled={items.length === 0} onClick={() => { setPaymentMethod("credit"); setShowCheckout(true); }}>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Credit
-                </Button>
-                <Button disabled={items.length === 0} onClick={() => { setPaymentMethod("cash"); setShowCheckout(true); }}>
-                  <Banknote className="mr-2 h-4 w-4" />
-                  Cash
-                </Button>
-              </>
-            ) : (
-              <div className="col-span-2">
-                <Button
-                  className="w-full"
-                  size="lg"
-                  disabled={items.length === 0 || creatingOrder}
-                  onClick={onCreateOrder}
-                >
-                  {creatingOrder ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <ClipboardList className="mr-2 h-4 w-4" />
-                  )}
-                  {creatingOrder ? "Creating..." : "Create Order"}
-                </Button>
-              </div>
-            )}
+          <div className="grid w-full gap-2">
+            <Button
+              className="w-full"
+              size="lg"
+              disabled={items.length === 0 || creatingOrder}
+              onClick={onCreateOrder}
+            >
+              {creatingOrder ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <ClipboardList className="mr-2 h-4 w-4" />
+              )}
+              {creatingOrder ? "Creating..." : "Create Order"}
+            </Button>
           </div>
         </CardFooter>
       </Card>
@@ -400,9 +387,9 @@ export function CartPanel({ orderMode = "quick", onCreateOrder, creatingOrder = 
 
           <div id="printable-area" ref={receiptRef} className="rounded-lg border border-border bg-card p-4 font-mono text-sm">
             <div className="text-center mb-4">
-              <p className="text-lg font-bold">SmartPOS Store</p>
-              <p className="text-xs text-muted-foreground">123 Main Street, Downtown</p>
-              <p className="text-xs text-muted-foreground">Tel: +1 555-0000</p>
+              <p className="text-lg font-bold">{settings?.name || "SmartPOS Store"}</p>
+              {settings?.address && <p className="text-xs text-muted-foreground">{settings.address}</p>}
+              {settings?.phone && <p className="text-xs text-muted-foreground">Tel: {settings.phone}</p>}
             </div>
 
             <Separator className="my-3" />

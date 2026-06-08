@@ -1,404 +1,240 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import Link from "next/link"
+import { useMemo } from "react"
 import { useStockTransfers } from "@/hooks/use-stock-transfers"
-import { useProducts } from "@/hooks/use-products"
-import { useLocations } from "@/hooks/use-locations"
 import { useUsers } from "@/hooks/use-users"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { ArrowRightLeft, Loader2, Plus, CheckCircle, Trash2, Package, Warehouse, Store } from "lucide-react"
-
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-    pending: { label: "Pending", variant: "secondary" },
-    approved: { label: "Approved", variant: "default" },
-    completed: { label: "Completed", variant: "outline" },
-    cancelled: { label: "Cancelled", variant: "destructive" },
-}
-
-interface LineItem {
-    key: string
-    productId: string
-    quantity: string
-}
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+    ArrowRightLeft, Loader2, Plus, CheckCircle, Package,
+    Warehouse, Store, Clock, User, FileText, XCircle,
+    ChevronRight, Hash, CalendarDays
+} from "lucide-react"
 
 export default function StockTransfersPage() {
-    const { transfers, loading, createTransfer, approveTransfer, receiveTransfer, refresh } = useStockTransfers()
-    const { products } = useProducts()
-    const { locations } = useLocations()
+    const { transfers, loading, approveTransfer, receiveTransfer } = useStockTransfers()
     const { users } = useUsers()
-    const [showTransfer, setShowTransfer] = useState(false)
-    const [submitting, setSubmitting] = useState(false)
-
-    const [form, setForm] = useState({
-        fromLocationId: "",
-        toLocationId: "",
-        notes: "",
-        userId: "",
-    })
-
-    const [lineItems, setLineItems] = useState<LineItem[]>([
-        { key: crypto.randomUUID(), productId: "", quantity: "" },
-    ])
-
-    const [stockByLocation, setStockByLocation] = useState<any[]>([])
-    const [loadingStock, setLoadingStock] = useState(false)
-
     const currentUserId = users[0]?.id || ""
 
-    // Fetch stock when source location changes
-    useEffect(() => {
-        if (!form.fromLocationId) {
-            setStockByLocation([])
-            return
-        }
-        setLoadingStock(true)
-        fetch(`/api/stock?locationId=${form.fromLocationId}`)
-            .then((r) => r.json())
-            .then((data) => setStockByLocation(data))
-            .catch(() => setStockByLocation([]))
-            .finally(() => setLoadingStock(false))
-    }, [form.fromLocationId])
-
-    // Available products at the source location (trackable only)
-    const availableProducts = useMemo(() => {
-        return stockByLocation
-            .filter((s: any) =>
-                s.product?.productType === "ingredient" ||
-                (s.product?.productType === "drink" && s.product?.trackStock)
-            )
-            .map((s: any) => ({
-                ...s.product,
-                availableQty: s.quantityOnHand,
-            }))
-    }, [stockByLocation])
-
-    const getProductQty = (productId: string) => {
-        const s = stockByLocation.find((s: any) => s.productId === productId)
-        return s?.quantityOnHand ?? 0
-    }
-
-    const principalLocations = locations.filter((l: any) => l.type === "principal")
-    const secondaryLocations = locations.filter((l: any) => l.type === "secondary")
-
-    const addLineItem = () => {
-        setLineItems([...lineItems, { key: crypto.randomUUID(), productId: "", quantity: "" }])
-    }
-
-    const removeLineItem = (key: string) => {
-        if (lineItems.length <= 1) return
-        setLineItems(lineItems.filter((i) => i.key !== key))
-    }
-
-    const updateLineItem = (key: string, field: keyof LineItem, value: string) => {
-        setLineItems(lineItems.map((i) => (i.key === key ? { ...i, [field]: value } : i)))
-    }
-
-    const resetForm = () => {
-        setForm({ fromLocationId: "", toLocationId: "", notes: "", userId: currentUserId })
-        setLineItems([{ key: crypto.randomUUID(), productId: "", quantity: "" }])
-    }
-
-    const handleSubmit = async () => {
-        const items = lineItems
-            .filter((i) => i.productId && i.quantity)
-            .map((i) => ({ productId: i.productId, quantity: parseInt(i.quantity) }))
-
-        if (!items.length) {
-            alert("Add at least one product")
-            return
-        }
-
-        setSubmitting(true)
-        try {
-            await createTransfer({ ...form, items })
-            setShowTransfer(false)
-            resetForm()
-            refresh()
-        } catch (err: any) {
-            alert(err.message)
-        } finally {
-            setSubmitting(false)
-        }
-    }
+    const counts = useMemo(() => ({
+        pending: transfers.filter((t: any) => t.status === "pending").length,
+        approved: transfers.filter((t: any) => t.status === "approved").length,
+        completed: transfers.filter((t: any) => t.status === "completed").length,
+        cancelled: transfers.filter((t: any) => t.status === "cancelled").length,
+    }), [transfers])
 
     const handleApprove = async (id: string) => {
-        try {
-            await approveTransfer(id, currentUserId)
-        } catch (err: any) {
-            alert(err.message)
-        }
+        try { await approveTransfer(id, currentUserId) } catch (err: any) { alert(err.message) }
     }
 
     const handleReceive = async (id: string) => {
-        try {
-            await receiveTransfer(id, currentUserId)
-        } catch (err: any) {
-            alert(err.message)
+        try { await receiveTransfer(id, currentUserId) } catch (err: any) { alert(err.message) }
+    }
+
+    const StatusDot = ({ status }: { status: string }) => {
+        const colors: Record<string, string> = {
+            pending: "bg-amber-400",
+            approved: "bg-blue-500",
+            completed: "bg-emerald-500",
+            cancelled: "bg-red-500",
         }
+        return <span className={`inline-block w-2 h-2 rounded-full ${colors[status] || "bg-gray-300"} shrink-0`} />
     }
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-foreground">Stock Transfers</h2>
-                    <p className="text-muted-foreground">Request → Approve → Receive workflow</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Stock Transfers</h1>
+                    <p className="text-muted-foreground mt-1 flex items-center gap-1.5">
+                        <ArrowRightLeft className="h-4 w-4" />
+                        Request &rarr; Approve &rarr; Receive workflow
+                    </p>
                 </div>
-                <Button onClick={() => { setForm((prev) => ({ ...prev, userId: currentUserId })); setShowTransfer(true) }}>
-                    <Plus className="h-4 w-4 mr-2" /> New Request
+                <Button size="lg" asChild>
+                    <Link href="/stock/transfers/new">
+                        <Plus className="h-5 w-5 mr-2" /> New Request
+                    </Link>
                 </Button>
             </div>
 
-            <Card>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Items</TableHead>
-                                <TableHead>Route</TableHead>
-                                <TableHead>Requested By</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow><TableCell colSpan={6} className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
-                            ) : transfers.length === 0 ? (
-                                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No transfers yet</TableCell></TableRow>
-                            ) : (
-                                transfers.map((t: any) => {
-                                    const sc = statusConfig[t.status] || statusConfig.pending
-                                    const itemCount = t.items?.length || (t.productId ? 1 : 0)
-                                    return (
-                                        <TableRow key={t.id}>
-                                            <TableCell className="text-sm whitespace-nowrap">{new Date(t.date).toLocaleString()}</TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col gap-0.5">
-                                                    {t.items?.length > 0 ? (
-                                                        t.items.map((it: any) => (
-                                                            <span key={it.id} className="text-sm">
-                                                                {it.product?.name || "—"} <span className="font-bold">×{it.quantity}</span>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                    { label: "Pending", count: counts.pending, icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
+                    { label: "Approved", count: counts.approved, icon: CheckCircle, color: "text-blue-500", bg: "bg-blue-500/10" },
+                    { label: "Completed", count: counts.completed, icon: Package, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                    { label: "Total", count: transfers.length, icon: ArrowRightLeft, color: "text-primary", bg: "bg-primary/10" },
+                ].map((s) => (
+                    <Card key={s.label} className="border-border/50">
+                        <CardContent className="p-4 md:p-5">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{s.label}</p>
+                                    <p className="text-2xl md:text-3xl font-bold mt-1">{s.count}</p>
+                                </div>
+                                <div className={`h-10 w-10 rounded-full ${s.bg} flex items-center justify-center`}>
+                                    <s.icon className={`h-5 w-5 ${s.color}`} />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Transfer List */}
+            <div className="space-y-3">
+                {loading ? (
+                    <Card>
+                        <CardContent className="flex items-center justify-center py-16">
+                            <div className="text-center">
+                                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                                <p className="mt-3 text-sm text-muted-foreground">Loading transfers...</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : transfers.length === 0 ? (
+                    <Card>
+                        <CardContent className="flex flex-col items-center justify-center py-16">
+                            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                                <ArrowRightLeft className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                            <p className="text-lg font-medium text-muted-foreground">No transfers yet</p>
+                            <p className="text-sm text-muted-foreground mt-1">Create your first transfer request to get started.</p>
+                            <Button className="mt-6" asChild>
+                                <Link href="/stock/transfers/new">
+                                    <Plus className="h-4 w-4 mr-2" /> New Request
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <ScrollArea className="h-[calc(100vh-22rem)]">
+                        <div className="space-y-3 pr-4">
+                            {transfers.map((t: any) => {
+                                const items = t.items || []
+                                const totalQty = items.reduce((sum: number, i: any) => sum + i.quantity, 0) || t.quantity || 0
+                                const itemCount = items.length || (t.productId ? 1 : 0)
+
+                                return (
+                                    <Card key={t.id} className="border-border/50 hover:border-border transition-colors">
+                                        <CardContent className="p-0">
+                                            <div className="flex flex-col md:flex-row md:items-center gap-4 p-5">
+                                                {/* Left: Status indicator + info */}
+                                                <div className="flex items-start gap-4 flex-1 min-w-0">
+                                                    <div className={`hidden md:flex h-10 w-10 rounded-full items-center justify-center shrink-0 ${t.status === "completed" ? "bg-emerald-500/10" :
+                                                        t.status === "approved" ? "bg-blue-500/10" :
+                                                            t.status === "cancelled" ? "bg-red-500/10" :
+                                                                "bg-amber-500/10"
+                                                        }`}>
+                                                        {t.status === "completed" ? <CheckCircle className="h-5 w-5 text-emerald-500" /> :
+                                                            t.status === "approved" ? <CheckCircle className="h-5 w-5 text-blue-500" /> :
+                                                                t.status === "cancelled" ? <XCircle className="h-5 w-5 text-red-500" /> :
+                                                                    <Clock className="h-5 w-5 text-amber-500" />}
+                                                    </div>
+
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <Badge variant="outline" className="text-xs flex items-center gap-1.5 py-1">
+                                                                <CalendarDays className="h-3 w-3" />
+                                                                {new Date(t.date).toLocaleDateString()}
+                                                            </Badge>
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {new Date(t.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                                             </span>
-                                                        ))
-                                                    ) : t.productId ? (
-                                                        <span className="text-sm">
-                                                            {t.product?.name || "—"} <span className="font-bold">×{t.quantity}</span>
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-sm text-muted-foreground">—</span>
+                                                            <span className="text-xs text-muted-foreground">•</span>
+                                                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                                <Hash className="h-3 w-3" />
+                                                                {itemCount} item{itemCount !== 1 ? "s" : ""}
+                                                            </span>
+                                                            <span className="text-xs text-muted-foreground">•</span>
+                                                            <span className="text-xs font-medium">{totalQty} units</span>
+                                                        </div>
+
+                                                        {/* Items */}
+                                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                                            {(items.length > 0 ? items : (t.productId ? [{ product: t.product, quantity: t.quantity }] : [])).map((it: any, idx: number) => (
+                                                                <Badge key={idx} variant="secondary" className="text-xs font-normal gap-1">
+                                                                    <Package className="h-3 w-3" />
+                                                                    {it.product?.name || "—"}
+                                                                    <span className="font-semibold">×{it.quantity}</span>
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* Route */}
+                                                        <div className="mt-2 flex items-center gap-1.5 text-sm">
+                                                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                                                <Warehouse className="h-3 w-3" /> {t.fromLocation?.name}
+                                                            </Badge>
+                                                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                                                <Store className="h-3 w-3" /> {t.toLocation?.name}
+                                                            </Badge>
+                                                        </div>
+
+                                                        {t.notes && (
+                                                            <p className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
+                                                                <FileText className="h-3 w-3 shrink-0" /> {t.notes}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Right: Status + Actions */}
+                                                <div className="flex md:flex-col items-center md:items-end gap-3 md:gap-2 shrink-0 md:pl-4 md:border-l border-border/50">
+                                                    <div className="flex items-center gap-2">
+                                                        <StatusDot status={t.status} />
+                                                        <span className={`text-sm font-semibold capitalize ${t.status === "completed" ? "text-emerald-600" :
+                                                            t.status === "approved" ? "text-blue-600" :
+                                                                t.status === "cancelled" ? "text-red-600" :
+                                                                    "text-amber-600"
+                                                            }`}>{t.status}</span>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                        <User className="h-3 w-3" />
+                                                        {t.user?.name || "—"}
+                                                    </div>
+
+                                                    {t.approver?.name && t.status === "approved" && (
+                                                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                                            <CheckCircle className="h-3 w-3 text-blue-500" />
+                                                            Approved by {t.approver.name}
+                                                        </div>
                                                     )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-sm">
-                                                <div className="flex items-center gap-1">
-                                                    <Badge variant="outline" className="text-xs">{t.fromLocation?.name}</Badge>
-                                                    <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
-                                                    <Badge variant="outline" className="text-xs">{t.toLocation?.name}</Badge>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-sm">{t.user?.name || "—"}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={sc.variant}>{sc.label}</Badge>
-                                                {t.approver?.name && t.status === "approved" && (
-                                                    <div className="text-xs text-muted-foreground mt-0.5">by {t.approver.name}</div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex gap-1">
+
                                                     {t.status === "pending" && (
-                                                        <Button size="sm" variant="outline" onClick={() => handleApprove(t.id)}>
-                                                            <CheckCircle className="h-3 w-3 mr-1" /> Approve
+                                                        <Button size="sm" variant="default" onClick={() => handleApprove(t.id)} className="w-full md:w-auto">
+                                                            <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Approve
                                                         </Button>
                                                     )}
                                                     {t.status === "approved" && (
-                                                        <Button size="sm" onClick={() => handleReceive(t.id)}>
-                                                            <Package className="h-3 w-3 mr-1" /> Receive
+                                                        <Button size="sm" onClick={() => handleReceive(t.id)} className="w-full md:w-auto">
+                                                            <Package className="h-3.5 w-3.5 mr-1.5" /> Receive
                                                         </Button>
                                                     )}
                                                     {t.status === "completed" && (
-                                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                                            <CheckCircle className="h-3 w-3 text-green-500" /> Done
-                                                        </span>
+                                                        <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 gap-1">
+                                                            <CheckCircle className="h-3.5 w-3.5" /> Completed
+                                                        </Badge>
                                                     )}
                                                 </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-            {/* New Transfer Dialog */}
-            <Dialog open={showTransfer} onOpenChange={setShowTransfer}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <ArrowRightLeft className="h-5 w-5" />
-                            New Transfer Request
-                        </DialogTitle>
-                    </DialogHeader>
-
-                    <div className="space-y-6">
-                        {/* Location Selectors */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-1">
-                                    <Warehouse className="h-3.5 w-3.5" /> From (Warehouse)
-                                </Label>
-                                <Select
-                                    value={form.fromLocationId}
-                                    onValueChange={(v) => {
-                                        setForm({ ...form, fromLocationId: v })
-                                        setLineItems(lineItems.map((i) => ({ ...i, productId: "" })))
-                                    }}
-                                >
-                                    <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
-                                    <SelectContent>
-                                        {principalLocations.map((l: any) => (
-                                            <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-1">
-                                    <Store className="h-3.5 w-3.5" /> To (Destination)
-                                </Label>
-                                <Select
-                                    value={form.toLocationId}
-                                    onValueChange={(v) => setForm({ ...form, toLocationId: v })}
-                                >
-                                    <SelectTrigger><SelectValue placeholder="Select destination" /></SelectTrigger>
-                                    <SelectContent>
-                                        {secondaryLocations.map((l: any) => (
-                                            <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        {/* Line Items */}
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <Label className="text-base font-semibold">Products</Label>
-                                <Button type="button" variant="outline" size="sm" onClick={addLineItem}>
-                                    <Plus className="h-3.5 w-3.5 mr-1" /> Add Product
-                                </Button>
-                            </div>
-
-                            {loadingStock ? (
-                                <div className="flex items-center justify-center py-8 text-muted-foreground">
-                                    <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading products...
-                                </div>
-                            ) : form.fromLocationId && availableProducts.length === 0 ? (
-                                <p className="text-sm text-muted-foreground text-center py-4">
-                                    No trackable products in stock at this location.
-                                </p>
-                            ) : !form.fromLocationId ? (
-                                <p className="text-sm text-muted-foreground text-center py-4">
-                                    Select a source warehouse first.
-                                </p>
-                            ) : (
-                                <div className="border rounded-lg divide-y">
-                                    {lineItems.map((item, idx) => (
-                                        <div key={item.key} className="flex items-end gap-3 p-3">
-                                            <div className="flex-1 space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Product</Label>
-                                                <Select
-                                                    value={item.productId}
-                                                    onValueChange={(v) => updateLineItem(item.key, "productId", v)}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select product..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {availableProducts.map((p: any) => (
-                                                            <SelectItem key={p.id} value={p.id}>
-                                                                {p.name} (Stock: {p.availableQty})
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
                                             </div>
-                                            <div className="w-28 space-y-1">
-                                                <Label className="text-xs text-muted-foreground">Quantity</Label>
-                                                <Input
-                                                    type="number"
-                                                    min={1}
-                                                    max={item.productId ? getProductQty(item.productId) : undefined}
-                                                    value={item.quantity}
-                                                    onChange={(e) => updateLineItem(item.key, "quantity", e.target.value)}
-                                                    placeholder="Qty"
-                                                />
-                                            </div>
-                                            <div className="text-xs text-muted-foreground pb-2 w-16 text-right">
-                                                {item.productId ? `avail: ${getProductQty(item.productId)}` : ""}
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="shrink-0 mb-0.5"
-                                                disabled={lineItems.length <= 1}
-                                                onClick={() => removeLineItem(item.key)}
-                                            >
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                        </CardContent>
+                                    </Card>
+                                )
+                            })}
                         </div>
+                    </ScrollArea>
+                )}
+            </div>
 
-                        {/* Notes */}
-                        <div className="space-y-2">
-                            <Label>Notes (optional)</Label>
-                            <Textarea
-                                value={form.notes}
-                                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                                placeholder="e.g. Restock the bar for weekend service"
-                                rows={2}
-                            />
-                        </div>
-                    </div>
 
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => { setShowTransfer(false); resetForm() }}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleSubmit}
-                            disabled={
-                                submitting ||
-                                !form.fromLocationId ||
-                                !form.toLocationId ||
-                                !lineItems.some((i) => i.productId && i.quantity)
-                            }
-                        >
-                            {submitting ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                            )}
-                            Submit Request
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     )
 }

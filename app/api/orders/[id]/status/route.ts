@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { transactions, tables as tablesSchema } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { transactions, tables as tablesSchema, clients } from "@/lib/db/schema"
+import { eq, sql } from "drizzle-orm"
 
 const validTransitions: Record<string, string[]> = {
-    pending: ["preparing", "cancelled"],
-    preparing: ["ready", "cancelled"],
-    ready: ["served", "cancelled"],
+    pending: ["preparing", "paid", "cancelled"],
+    preparing: ["ready", "paid", "cancelled"],
+    ready: ["served", "paid", "cancelled"],
     served: ["paid", "cancelled"],
     paid: [],
     cancelled: [],
@@ -16,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     try {
         const { id } = await params
         const body = await request.json()
-        const { orderStatus, paymentMethod } = body
+        const { orderStatus, paymentMethod, clientId } = body
 
         const [order] = await db
             .select()
@@ -42,6 +42,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         if (orderStatus === "paid") {
             updateData.status = "completed"
             if (paymentMethod) updateData.paymentMethod = paymentMethod
+            if (clientId) updateData.clientId = clientId
         }
 
         if (orderStatus === "cancelled") {
@@ -60,6 +61,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
                 .update(tablesSchema)
                 .set({ status: "free" })
                 .where(eq(tablesSchema.id, order.tableId))
+        }
+
+        // Update client credit balance for credit payments
+        if (orderStatus === "paid" && paymentMethod === "credit" && clientId) {
+            await db
+                .update(clients)
+                .set({
+                    creditBalance: sql`${clients.creditBalance} + ${order.total}`,
+                })
+                .where(eq(clients.id, clientId))
         }
 
         return NextResponse.json(updated)
