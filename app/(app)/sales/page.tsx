@@ -73,7 +73,7 @@ export default function SalesPage() {
           : undefined,
         items: billItems,
         total: total,
-        currencySymbol: settings?.currencySymbol || "FBU",
+        currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", FBU: "FBU " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "FBU",
       })
 
       toast.success("Order created! Bill printed.")

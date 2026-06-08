@@ -117,7 +117,7 @@ export default function OrdersPage() {
       items,
       total: Number(order.total),
       paymentMethod: order.paymentMethod,
-      currencySymbol: settings?.currencySymbol || "FBU",
+      currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", FBU: "FBU " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "FBU",
     })
   }
 

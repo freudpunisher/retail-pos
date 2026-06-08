@@ -167,7 +167,7 @@ export default function SalesHistoryPage() {
       items,
       total: Number(data.total),
       paymentMethod: data.paymentMethod,
-      currencySymbol: settings?.currencySymbol || "FBU",
+      currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", FBU: "FBU " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "FBU",
     })
   }
 
