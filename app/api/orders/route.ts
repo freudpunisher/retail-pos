@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { transactions, products, stockMovements } from "@/lib/db/schema"
-import { eq, desc, sql } from "drizzle-orm"
+import { eq, desc, sql, like, max } from "drizzle-orm"
 
 export async function GET() {
     try {
@@ -37,6 +37,14 @@ export async function POST(request: Request) {
             0,
         )
 
+        // Generate sequential reference: FACT0001, FACT0002, ...
+        const [lastRef] = await db
+            .select({ maxRef: max(transactions.reference) })
+            .from(transactions)
+            .where(sql`${transactions.reference} ~ '^FACT[0-9]+$'`)
+        const lastNum = lastRef?.maxRef ? parseInt(lastRef.maxRef.replace("FACT", ""), 10) : 0
+        const reference = `FACT${String(lastNum + 1).padStart(4, "0")}`
+
         const [newOrder] = await db
             .insert(transactions)
             .values({
@@ -48,6 +56,7 @@ export async function POST(request: Request) {
                 waiterId: waiterId || userId,
                 tableId: tableId || null,
                 clientId: clientId || null,
+                reference,
             })
             .returning()
 

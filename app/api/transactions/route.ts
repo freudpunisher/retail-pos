@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 import db from "@/lib/db"
 import { transactions, transactionItems, products, stockMovements, clients } from "@/lib/db/schema"
-import { eq, sql, gte, lte, and } from "drizzle-orm"
+import { eq, sql, gte, lte, and, max } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
     try {
@@ -73,7 +73,15 @@ export async function POST(request: Request) {
                 }
             }
 
-            // 1. Insert Transaction
+            // 1. Generate sequential reference
+            const [lastRef] = await tx
+                .select({ maxRef: max(transactions.reference) })
+                .from(transactions)
+                .where(sql`${transactions.reference} ~ '^FACT[0-9]+$'`)
+            const lastNum = lastRef?.maxRef ? parseInt(lastRef.maxRef.replace("FACT", ""), 10) : 0
+            const reference = `FACT${String(lastNum + 1).padStart(4, "0")}`
+
+            // 2. Insert Transaction
             const [newTransaction] = await tx
                 .insert(transactions)
                 .values({
@@ -83,6 +91,7 @@ export async function POST(request: Request) {
                     paymentMethod,
                     clientId: sanitizedClientId,
                     userId: sanitizedUserId,
+                    reference,
                 })
                 .returning()
 

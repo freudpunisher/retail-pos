@@ -60,6 +60,7 @@ export interface Transaction {
   userId: string
   waiterId?: string
   tableId?: string
+  reference?: string
   waiter?: { id: string; name: string }
   table?: { id: string; number: number; section?: string }
 }

@@ -160,6 +160,7 @@ export const transactions = pgTable("transactions", {
     userId: uuid("user_id").notNull().references(() => users.id),
     waiterId: uuid("waiter_id").references(() => users.id),
     tableId: uuid("table_id").references(() => tables.id),
+    reference: text("reference"),
 })
 
 export const transactionItems = pgTable("transaction_items", {

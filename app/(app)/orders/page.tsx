@@ -118,7 +118,7 @@ export default function OrdersPage() {
       total: Number(order.total),
       paymentMethod: order.paymentMethod,
       currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", FBU: "FBU " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "FBU",
-      billReference: "BL-" + order.id.slice(0, 8).toUpperCase(),
+      billReference: order.reference || "BL-" + order.id.slice(0, 8).toUpperCase(),
     })
   }
 

@@ -56,6 +56,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
   const [showReceipt, setShowReceipt] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash")
   const [lastTransactionId, setLastTransactionId] = useState<string | null>(null)
+  const [lastReference, setLastReference] = useState<string | null>(null)
   const receiptRef = useRef<HTMLDivElement>(null)
 
   const isCreditExceeded = !!(selectedClient && paymentMethod === "credit" &&
@@ -85,6 +86,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
 
       const result = await processTransaction(transactionData)
       setLastTransactionId(result.id)
+      setLastReference(result.reference || null)
       setShowReceipt(true)
       setShowCheckout(false)
       toast.success("Transaction completed successfully")
@@ -97,6 +99,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
     setShowReceipt(false)
     clearCart()
     setLastTransactionId(null)
+    setLastReference(null)
   }
 
   const handlePrint = () => {
@@ -408,7 +411,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
               <p className="text-xs">
                 Date: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
               </p>
-              <p className="text-xs font-bold tracking-wider">BL-{(lastTransactionId || "N/A").slice(0, 8).toUpperCase()}</p>
+              <p className="text-xs font-bold tracking-wider">{lastReference || "BL-" + (lastTransactionId || "N/A").slice(0, 8).toUpperCase()}</p>
               {selectedClient && <p className="text-xs">Client: {selectedClient.name}</p>}
               <p className="text-xs">Payment: {paymentMethod.toUpperCase()}</p>
             </div>
