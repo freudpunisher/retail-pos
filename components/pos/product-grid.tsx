@@ -65,7 +65,7 @@ export function ProductGrid() {
   const [search, setSearch] = useState("")
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [posFilter, setPosFilter] = useState<string>("all")
-  const { addItem, items } = useCart()
+  const { addItem, items, productStockMap } = useCart()
 
   const { products, loading: productsLoading } = useProducts(selectedCategoryId || "all", search)
   const { categories, loading: categoriesLoading } = useCategories()
@@ -79,10 +79,10 @@ export function ProductGrid() {
     })
   }, [products, posFilter])
 
-  const getStockStatus = (product: any) => {
+  const getStockStatus = (product: any, effectiveStock: number) => {
     if (product.productType === "food") return "mto" // made to order
-    if (product.stock === 0 && product.productType !== "food") return "out"
-    if (product.stock <= product.minStock) return "low"
+    if (effectiveStock === 0 && product.productType !== "food") return "out"
+    if (effectiveStock <= product.minStock) return "low"
     return "in-stock"
   }
 
@@ -168,13 +168,14 @@ export function ProductGrid() {
         ) : (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
             {posProducts.map((product: any) => {
-              const stockStatus = getStockStatus(product)
+              const effectiveStock = productStockMap[product.id] ?? product.stock
+              const stockStatus = getStockStatus(product, effectiveStock)
               const isOutOfStock = stockStatus === "out"
               const isMadeToOrder = stockStatus === "mto"
               const IconComponent = getCategoryIcon(product.categoryName || "", product.name)
 
               const cartQty = items.filter((i) => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0)
-              const isCartFull = !isMadeToOrder && cartQty >= product.stock
+              const isCartFull = !isMadeToOrder && cartQty >= effectiveStock
 
               return (
                 <Card
@@ -215,7 +216,7 @@ export function ProductGrid() {
                       <div className="flex items-center justify-between">
                         <p className="font-semibold text-primary">{formatCurrency(Number.parseFloat(product.price))}</p>
                         <span className="text-xs text-muted-foreground">
-                          {isMadeToOrder ? "Made to Order" : `${product.stock} in stock`}
+                          {isMadeToOrder ? "Made to Order" : `${effectiveStock} in stock`}
                         </span>
                       </div>
                     </div>

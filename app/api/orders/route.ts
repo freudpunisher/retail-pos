@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { transactions, products, stock, stockMovements } from "@/lib/db/schema"
+import { transactions, products, stock, stockMovements, locations } from "@/lib/db/schema"
 import { eq, and, desc, sql, max } from "drizzle-orm"
-import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function GET() {
     try {
@@ -79,13 +78,30 @@ export async function POST(request: Request) {
                 .set({ stock: sql`${products.stock} - ${item.quantity}` })
                 .where(eq(products.id, item.productId))
 
-            // Deduct per-location stock
-            const [prod] = await db.select({ productType: products.productType }).from(products).where(eq(products.id, item.productId)).limit(1)
-            const location = await resolveWarehouse(db, prod?.productType || "drink")
-            await db
-                .update(stock)
-                .set({ quantityOnHand: sql`${stock.quantityOnHand} - ${item.quantity}`, updatedAt: new Date() })
-                .where(and(eq(stock.productId, item.productId), eq(stock.locationId, location.id)))
+            // Deduct per-location stock from secondary location only
+            let [saleLocation] = await db
+                .select()
+                .from(locations)
+                .where(eq(locations.type, "secondary"))
+                .limit(1)
+            if (!saleLocation) continue
+            const [existingStock] = await db
+                .select()
+                .from(stock)
+                .where(and(eq(stock.productId, item.productId), eq(stock.locationId, saleLocation.id)))
+                .limit(1)
+            if (existingStock) {
+                await db
+                    .update(stock)
+                    .set({ quantityOnHand: sql`${stock.quantityOnHand} - ${item.quantity}`, updatedAt: new Date() })
+                    .where(eq(stock.id, existingStock.id))
+            } else {
+                await db.insert(stock).values({
+                    productId: item.productId,
+                    locationId: saleLocation.id,
+                    quantityOnHand: -item.quantity,
+                })
+            }
 
             // Record stock movement
             await db.insert(stockMovements).values({

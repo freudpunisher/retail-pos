@@ -84,7 +84,7 @@ export function Sidebar() {
       <ScrollArea className="flex-1 py-4">
         <nav className="space-y-1 px-2">
           {filteredNavItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+            const isActive = pathname === item.href
             return (
               <Link key={item.href} href={item.href}>
                 <Button

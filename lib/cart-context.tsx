@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react"
 import type { Product, CartItem, Client } from "./types"
 
 interface CartContextType {
@@ -18,6 +18,8 @@ interface CartContextType {
   total: number
   taxRate: number
   setTaxRate: (rate: number) => void
+  setProductStocks: (stocks: Record<string, number>) => void
+  productStockMap: Record<string, number>
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -25,13 +27,21 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [taxRate, setTaxRate] = useState(0) // Default tax rate 0%
+  const [taxRate, setTaxRate] = useState(0)
+  const [productStockMap, setProductStockMap] = useState<Record<string, number>>({})
+  const productStocksRef = useRef<Record<string, number>>({})
+
+  const setProductStocks = useCallback((stocks: Record<string, number>) => {
+    productStocksRef.current = stocks
+    setProductStockMap(stocks)
+  }, [])
 
   const addItem = useCallback((product: Product) => {
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id)
       const currentQty = existing ? existing.quantity : 0
-      if (product.productType !== "food" && currentQty >= product.stock) return prev
+      const maxQty = productStocksRef.current[product.id] ?? product.stock
+      if (product.productType !== "food" && currentQty >= maxQty) return prev
       if (existing) {
         return prev.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
@@ -50,7 +60,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems((prev) =>
         prev.map((item) =>
           item.id === productId
-            ? { ...item, quantity: item.productType !== "food" ? Math.min(quantity, item.stock) : quantity }
+            ? {
+                ...item,
+                quantity:
+                  item.productType !== "food"
+                    ? Math.min(quantity, productStocksRef.current[item.id] ?? item.stock)
+                    : quantity,
+              }
             : item,
         ),
       )
@@ -91,6 +107,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         total,
         taxRate,
         setTaxRate,
+        setProductStocks,
+        productStockMap,
       }}
     >
       {children}

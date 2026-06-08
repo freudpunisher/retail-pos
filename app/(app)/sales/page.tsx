@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { ProductGrid } from "@/components/pos/product-grid"
 import { CartPanel } from "@/components/pos/cart-panel"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -20,6 +20,8 @@ import { useOrders } from "@/hooks/use-orders"
 import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/hooks/use-settings"
+import { useLocations } from "@/hooks/use-locations"
+import { useStock } from "@/hooks/use-stock"
 import { toast } from "sonner"
 import { Table2, User, Utensils, ShoppingBag, Wine, AlertCircle } from "lucide-react"
 import { printThermal } from "@/lib/thermal-print"
@@ -30,7 +32,21 @@ export default function SalesPage() {
   const { users } = useUsers()
   const { tables } = useTables()
   const { createOrder } = useOrders()
-  const { items, selectedClient, total, clearCart } = useCart()
+  const { items, selectedClient, total, clearCart, setProductStocks } = useCart()
+
+  const { locations } = useLocations()
+  const secondaryLocation = useMemo(() => locations.find(l => l.type === "secondary"), [locations])
+  const { stockItems } = useStock(secondaryLocation?.id)
+
+  useEffect(() => {
+    if (stockItems.length > 0) {
+      const map: Record<string, number> = {}
+      for (const si of stockItems) {
+        map[si.productId] = si.quantityOnHand
+      }
+      setProductStocks(map)
+    }
+  }, [stockItems, setProductStocks])
 
   const [orderMode, setOrderMode] = useState<"dinein" | "counter" | "takeaway">("dinein")
   const [selectedTableId, setSelectedTableId] = useState<string>("")
