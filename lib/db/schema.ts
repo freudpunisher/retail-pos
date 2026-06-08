@@ -467,3 +467,13 @@ export const menuPermissions = pgTable("menu_permissions", {
     roles: text("roles").array().notNull().default(["admin"]),
     sortOrder: integer("sort_order").notNull().default(0),
 })
+
+// Notifications
+export const notifications = pgTable("notifications", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: text("type").notNull(),
+    message: text("message").notNull(),
+    relatedId: text("related_id"),
+    read: boolean("read").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+})
