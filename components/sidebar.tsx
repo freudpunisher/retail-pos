@@ -61,9 +61,7 @@ export function Sidebar() {
           const data = await res.json()
           setMenuItems(data)
         }
-      } catch {
-        // fallback to empty
-      } finally {
+      } catch {} finally {
         setLoading(false)
       }
     }
