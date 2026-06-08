@@ -122,7 +122,15 @@ export default function SettingsPage() {
                   <Label htmlFor="currency">Currency</Label>
                   <Select
                     value={storeInfo.currency}
-                    onValueChange={(value) => setStoreInfo({ ...storeInfo, currency: value })}
+                    onValueChange={(value) => {
+                      const symbolMap: Record<string, string> = {
+                        USD: "$",
+                        EUR: "€",
+                        GBP: "£",
+                        FBU: "FBU ",
+                      }
+                      setStoreInfo({ ...storeInfo, currency: value, currencySymbol: symbolMap[value] || value })
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
