@@ -457,3 +457,13 @@ export const expenses = pgTable("expenses", {
     userId: uuid("user_id").notNull().references(() => users.id),
     createdAt: timestamp("created_at").notNull().defaultNow(),
 })
+
+// Menu permissions (which roles can see which menu items)
+export const menuPermissions = pgTable("menu_permissions", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    href: text("href").notNull().unique(),
+    label: text("label").notNull(),
+    icon: text("icon").notNull(),
+    roles: text("roles").array().notNull().default(["admin"]),
+    sortOrder: integer("sort_order").notNull().default(0),
+})
