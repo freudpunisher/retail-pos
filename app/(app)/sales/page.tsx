@@ -49,6 +49,11 @@ export default function SalesPage() {
       return
     }
 
+    await proceedOrder()
+  }
+
+  const proceedOrder = async () => {
+    if (!user || items.length === 0) return
     setCreating(true)
     try {
       const order = await createOrder({
@@ -168,6 +173,62 @@ export default function SalesPage() {
           />
         </div>
       </div>
+
+      <Dialog open={showValidation} onOpenChange={setShowValidation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Complete Order Details
+            </DialogTitle>
+            <DialogDescription>Select a table and waiter to continue</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {orderMode === "dinein" && (
+              <div className="space-y-2">
+                <Label>Table</Label>
+                <Select value={selectedTableId} onValueChange={setSelectedTableId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a table" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {freeTables.length === 0 ? (
+                      <SelectItem value="none" disabled>No free tables</SelectItem>
+                    ) : (
+                      freeTables.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>T{t.number} ({t.capacity}p)</SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Waiter</Label>
+              <Select value={selectedWaiterId} onValueChange={setSelectedWaiterId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a waiter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {waiters.length === 0 ? (
+                    <SelectItem value="none" disabled>No waiters available</SelectItem>
+                  ) : (
+                    waiters.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowValidation(false)}>Cancel</Button>
+            <Button onClick={() => { setShowValidation(false); proceedOrder() }} disabled={orderMode === "dinein" && !selectedTableId}>
+              Confirm & Create Order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
