@@ -6,21 +6,31 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, Plus, Edit2, Trash2, Filter, Loader2, Package } from "lucide-react"
+import { Search, Plus, Edit2, Trash2, Loader2, Package, Beer, Utensils, Wheat } from "lucide-react"
 import { useProducts } from "@/hooks/use-products"
 import { ProductFormDialog } from "@/components/inventory/product-form-dialog"
+import { formatCurrency } from "@/lib/mock-data"
+
+const typeConfig: Record<string, { label: string; icon: any; color: string }> = {
+    drink: { label: "Drink", icon: Beer, color: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
+    food: { label: "Food", icon: Utensils, color: "bg-amber-500/20 text-amber-700 dark:text-amber-400" },
+    ingredient: { label: "Ingredient", icon: Wheat, color: "bg-green-500/20 text-green-700 dark:text-green-400" },
+}
 
 export default function ProductManagementPage() {
     const [search, setSearch] = useState("")
+    const [typeFilter, setTypeFilter] = useState<string>("all")
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
 
     const { products, loading, deleteProduct, createProduct, updateProduct } = useProducts()
 
-    const filteredProducts = products.filter((product) =>
-        product.name.toLowerCase().includes(search.toLowerCase()) ||
-        product.sku.toLowerCase().includes(search.toLowerCase()),
-    )
+    const filteredProducts = products.filter((product) => {
+        const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
+            product.sku.toLowerCase().includes(search.toLowerCase())
+        const matchesType = typeFilter === "all" || product.productType === typeFilter
+        return matchesSearch && matchesType
+    })
 
     const handleEdit = (product: any) => {
         setSelectedProduct(product)
@@ -47,111 +57,159 @@ export default function ProductManagementPage() {
         setIsFormOpen(false)
     }
 
+    const typeFilters = [
+        { key: "all", label: "All", icon: Package },
+        { key: "drink", label: "Drinks", icon: Beer },
+        { key: "food", label: "Food", icon: Utensils },
+        { key: "ingredient", label: "Ingredients", icon: Wheat },
+    ]
+
+    const counts = {
+        all: products.length,
+        drink: products.filter((p) => p.productType === "drink").length,
+        food: products.filter((p) => p.productType === "food").length,
+        ingredient: products.filter((p) => p.productType === "ingredient").length,
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Product Management</h2>
-                    <p className="text-muted-foreground">Catalog and stock overview for your store</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Products</h2>
+                    <p className="text-muted-foreground">Manage drinks, food plates, and ingredients</p>
                 </div>
-                <Button onClick={handleAddNew} className="bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20">
+                <Button onClick={handleAddNew}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Add Product
+                    New Product
                 </Button>
             </div>
 
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl">
-                <CardHeader className="pb-3 border-b border-border/50">
+            {/* Type Filter Tabs */}
+            <div className="flex gap-2 flex-wrap">
+                {typeFilters.map(({ key, label, icon: Icon }) => (
+                    <Button
+                        key={key}
+                        variant={typeFilter === key ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setTypeFilter(key)}
+                    >
+                        <Icon className="h-4 w-4 mr-1" />
+                        {label} ({counts[key as keyof typeof counts]})
+                    </Button>
+                ))}
+            </div>
+
+            <Card>
+                <CardHeader className="pb-3 border-b">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-lg font-medium flex items-center gap-2">
                             <Package className="h-5 w-5 text-primary" />
                             Product Catalog
                         </CardTitle>
-                        <div className="flex items-center gap-2">
-                            <div className="relative w-72">
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search by name or SKU..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-10 bg-background/50 border-border/50 focus:ring-primary/20"
-                                />
-                            </div>
-                            <Button variant="outline" size="icon" className="border-border/50">
-                                <Filter className="h-4 w-4" />
-                            </Button>
+                        <div className="relative w-72">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search by name or SKU..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-10"
+                            />
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="hover:bg-transparent border-border/50 bg-secondary/10">
-                                    <TableHead className="w-24">SKU</TableHead>
-                                    <TableHead>Product Name</TableHead>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead className="text-right">Price</TableHead>
-                                    <TableHead className="text-right">Stock</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-secondary/10">
+                                <TableHead>SKU</TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Category</TableHead>
+                                <TableHead className="text-right">Price</TableHead>
+                                <TableHead className="text-right">Stock</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="h-32 text-center">
+                                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={7} className="h-32 text-center">
-                                            <div className="flex flex-col items-center justify-center gap-2">
-                                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                                <span className="text-sm text-muted-foreground">Loading products...</span>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ) : filteredProducts.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={7} className="h-32 text-center text-muted-foreground italic">
-                                            No products found matching your search.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    filteredProducts.map((product) => (
-                                        <TableRow key={product.id} className="border-border/50 hover:bg-secondary/5 transition-colors">
+                            ) : filteredProducts.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground italic">
+                                        No products found
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredProducts.map((product) => {
+                                    const type = typeConfig[product.productType] || typeConfig.drink
+                                    const TypeIcon = type.icon
+                                    const isIngredient = product.productType === "ingredient"
+                                    const isFood = product.productType === "food"
+                                    const isMadeToOrder = isFood || (product.productType === "drink" && Number(product.stock) <= 0)
+
+                                    return (
+                                        <TableRow key={product.id}>
                                             <TableCell className="font-mono text-xs text-muted-foreground">{product.sku}</TableCell>
-                                            <TableCell className="font-medium text-foreground">{product.name}</TableCell>
+                                            <TableCell className="font-medium">{product.name}</TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className="font-normal border-border/50 bg-background/50">
-                                                    {product.categoryName || "Uncategorized"}
+                                                <Badge className={type.color}>
+                                                    <TypeIcon className="h-3 w-3 mr-1" />
+                                                    {type.label}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right font-semibold">{parseFloat(product.price).toFixed(0)}FBU</TableCell>
+                                            <TableCell>
+                                                <span className="text-xs text-muted-foreground">{product.categoryName || "—"}</span>
+                                            </TableCell>
+                                            <TableCell className="text-right font-semibold">
+                                                {isIngredient ? (
+                                                    <span className="text-muted-foreground text-xs">—</span>
+                                                ) : (
+                                                    formatCurrency(Number(product.price))
+                                                )}
+                                            </TableCell>
                                             <TableCell className="text-right">
-                                                <span className={`px-2 py-1 rounded-md text-xs font-bold ${Number(product.stock) <= Number(product.minStock) ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
-                                                    {product.stock}
-                                                </span>
+                                                {isMadeToOrder ? (
+                                                    <Badge variant="outline" className="text-xs border-dashed">MTO</Badge>
+                                                ) : (
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${
+                                                        Number(product.stock) <= Number(product.minStock)
+                                                            ? "bg-destructive/10 text-destructive"
+                                                            : "bg-primary/10 text-primary"
+                                                    }`}>
+                                                        {product.stock}
+                                                    </span>
+                                                )}
                                             </TableCell>
                                             <TableCell>
-                                                {Number(product.stock) <= Number(product.minStock) ? (
-                                                    <Badge className="bg-destructive/20 text-destructive border-destructive/30 animate-pulse">Low Stock</Badge>
+                                                {isMadeToOrder ? (
+                                                    <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">Made to Order</Badge>
+                                                ) : Number(product.stock) <= Number(product.minStock) ? (
+                                                    <Badge className="bg-destructive/20 text-destructive">Low Stock</Badge>
                                                 ) : (
-                                                    <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20">Available</Badge>
+                                                    <Badge className="bg-green-500/15 text-green-700 border-green-500/20">In Stock</Badge>
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(product)} className="h-8 w-8 hover:bg-primary/10 hover:text-primary">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(product)} className="h-8 w-8">
                                                         <Edit2 className="h-4 w-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)} className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive text-muted-foreground">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                    )
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
 

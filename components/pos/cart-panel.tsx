@@ -17,13 +17,19 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/mock-data"
-import { Minus, Plus, Trash2, ShoppingCart, User, Receipt, CreditCard, Banknote, X, Loader2 } from "lucide-react"
+import { Minus, Plus, Trash2, ShoppingCart, User, Receipt, CreditCard, Banknote, X, Loader2, ClipboardList } from "lucide-react"
 import { useClients } from "@/hooks/use-clients"
 import { useTransactions } from "@/hooks/use-transactions"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
 
-export function CartPanel() {
+interface CartPanelProps {
+  orderMode?: "quick" | "dinein" | "takeaway"
+  onCreateOrder?: () => void
+  creatingOrder?: boolean
+}
+
+export function CartPanel({ orderMode = "quick", onCreateOrder, creatingOrder = false }: CartPanelProps) {
   const {
     items,
     selectedClient,
@@ -279,14 +285,34 @@ export function CartPanel() {
           </div>
 
           <div className="grid w-full grid-cols-2 gap-2">
-            <Button variant="outline" disabled={items.length === 0} onClick={() => { setPaymentMethod("credit"); setShowCheckout(true); }}>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Credit
-            </Button>
-            <Button disabled={items.length === 0} onClick={() => { setPaymentMethod("cash"); setShowCheckout(true); }}>
-              <Banknote className="mr-2 h-4 w-4" />
-              Cash
-            </Button>
+            {orderMode === "quick" ? (
+              <>
+                <Button variant="outline" disabled={items.length === 0} onClick={() => { setPaymentMethod("credit"); setShowCheckout(true); }}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Credit
+                </Button>
+                <Button disabled={items.length === 0} onClick={() => { setPaymentMethod("cash"); setShowCheckout(true); }}>
+                  <Banknote className="mr-2 h-4 w-4" />
+                  Cash
+                </Button>
+              </>
+            ) : (
+              <div className="col-span-2">
+                <Button
+                  className="w-full"
+                  size="lg"
+                  disabled={items.length === 0 || creatingOrder}
+                  onClick={onCreateOrder}
+                >
+                  {creatingOrder ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                  )}
+                  {creatingOrder ? "Creating..." : "Create Order"}
+                </Button>
+              </div>
+            )}
           </div>
         </CardFooter>
       </Card>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { stock, stockAdjustments, products, stockMovements } from "@/lib/db/schema"
 import { eq, desc, sql } from "drizzle-orm"
+import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function GET() {
     try {
@@ -49,8 +50,11 @@ export async function POST(request: Request) {
                     updatedAt: new Date(),
                 }).where(eq(stock.productId, productId))
             } else {
+                const [prod] = await tx.select({ productType: products.productType }).from(products).where(eq(products.id, productId)).limit(1)
+                const warehouse = await resolveWarehouse(tx, prod?.productType || "ingredient")
                 await tx.insert(stock).values({
                     productId,
+                    locationId: warehouse.id,
                     quantityOnHand: quantityChange,
                 })
             }

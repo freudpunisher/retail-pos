@@ -12,7 +12,6 @@ interface SeedProduct {
   name: string
   categoryName: string
   price: number
-  cost: number
   stock: number
   minStock: number
   image?: string
@@ -25,7 +24,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Wireless Mouse",
     categoryName: "Electronics",
     price: 29.99,
-    cost: 15.00,
     stock: 50,
     minStock: 10,
     image: "/products/wireless-mouse.jpg"
@@ -35,7 +33,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "USB-C Cable",
     categoryName: "Electronics",
     price: 12.99,
-    cost: 5.00,
     stock: 100,
     minStock: 20,
     image: "/products/usb-cable.jpg"
@@ -45,7 +42,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Mechanical Keyboard",
     categoryName: "Electronics",
     price: 79.99,
-    cost: 40.00,
     stock: 30,
     minStock: 5,
     image: "/products/keyboard.jpg"
@@ -55,7 +51,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "4K Monitor",
     categoryName: "Electronics",
     price: 399.99,
-    cost: 250.00,
     stock: 15,
     minStock: 3,
     image: "/products/monitor.jpg"
@@ -67,7 +62,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Cotton T-Shirt",
     categoryName: "Clothing",
     price: 19.99,
-    cost: 8.00,
     stock: 75,
     minStock: 15,
     image: "/products/tshirt.jpg"
@@ -77,7 +71,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Denim Jeans",
     categoryName: "Clothing",
     price: 59.99,
-    cost: 30.00,
     stock: 45,
     minStock: 10,
     image: "/products/jeans.jpg"
@@ -87,7 +80,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Casual Sneakers",
     categoryName: "Clothing",
     price: 89.99,
-    cost: 45.00,
     stock: 40,
     minStock: 8,
     image: "/products/sneakers.jpg"
@@ -97,7 +89,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Winter Jacket",
     categoryName: "Clothing",
     price: 149.99,
-    cost: 75.00,
     stock: 25,
     minStock: 5,
     image: "/products/jacket.jpg"
@@ -109,7 +100,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Premium Coffee Beans",
     categoryName: "Food & Beverages",
     price: 14.99,
-    cost: 6.00,
     stock: 80,
     minStock: 15,
     image: "/products/coffee.jpg"
@@ -119,7 +109,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Organic Whole Milk",
     categoryName: "Food & Beverages",
     price: 4.99,
-    cost: 2.00,
     stock: 120,
     minStock: 30,
     image: "/products/milk.jpg"
@@ -129,7 +118,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Fresh Bread",
     categoryName: "Food & Beverages",
     price: 3.99,
-    cost: 1.50,
     stock: 60,
     minStock: 20,
     image: "/products/bread.jpg"
@@ -139,7 +127,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Bottled Water Case",
     categoryName: "Food & Beverages",
     price: 9.99,
-    cost: 4.00,
     stock: 150,
     minStock: 40,
     image: "/products/water.jpg"
@@ -151,7 +138,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "LED Desk Lamp",
     categoryName: "Home & Garden",
     price: 34.99,
-    cost: 18.00,
     stock: 55,
     minStock: 10,
     image: "/products/lamp.jpg"
@@ -161,7 +147,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Bedding Set",
     categoryName: "Home & Garden",
     price: 79.99,
-    cost: 35.00,
     stock: 35,
     minStock: 8,
     image: "/products/bedding.jpg"
@@ -171,7 +156,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Kitchen Knife Set",
     categoryName: "Home & Garden",
     price: 49.99,
-    cost: 25.00,
     stock: 42,
     minStock: 10,
     image: "/products/knives.jpg"
@@ -181,7 +165,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Garden Shovel",
     categoryName: "Home & Garden",
     price: 24.99,
-    cost: 12.00,
     stock: 38,
     minStock: 8,
     image: "/products/shovel.jpg"
@@ -193,7 +176,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Running Shoes",
     categoryName: "Sports & Outdoors",
     price: 119.99,
-    cost: 60.00,
     stock: 35,
     minStock: 7,
     image: "/products/running-shoes.jpg"
@@ -203,7 +185,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Yoga Mat",
     categoryName: "Sports & Outdoors",
     price: 29.99,
-    cost: 12.00,
     stock: 65,
     minStock: 15,
     image: "/products/yoga-mat.jpg"
@@ -213,7 +194,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Dumbbell Set",
     categoryName: "Sports & Outdoors",
     price: 99.99,
-    cost: 50.00,
     stock: 25,
     minStock: 5,
     image: "/products/dumbbells.jpg"
@@ -223,7 +203,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Bicycle Helmet",
     categoryName: "Sports & Outdoors",
     price: 59.99,
-    cost: 30.00,
     stock: 45,
     minStock: 10,
     image: "/products/helmet.jpg"
@@ -235,7 +214,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Fiction Novel",
     categoryName: "Books & Media",
     price: 16.99,
-    cost: 7.00,
     stock: 70,
     minStock: 15,
     image: "/products/novel.jpg"
@@ -245,7 +223,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Self-Help Guide",
     categoryName: "Books & Media",
     price: 19.99,
-    cost: 8.00,
     stock: 50,
     minStock: 10,
     image: "/products/selfhelp.jpg"
@@ -255,7 +232,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Educational Textbook",
     categoryName: "Books & Media",
     price: 89.99,
-    cost: 45.00,
     stock: 30,
     minStock: 5,
     image: "/products/textbook.jpg"
@@ -265,7 +241,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Magazine Subscription",
     categoryName: "Books & Media",
     price: 9.99,
-    cost: 3.00,
     stock: 100,
     minStock: 20,
     image: "/products/magazine.jpg"
@@ -277,7 +252,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Facial Moisturizer",
     categoryName: "Beauty & Personal Care",
     price: 32.99,
-    cost: 15.00,
     stock: 55,
     minStock: 12,
     image: "/products/moisturizer.jpg"
@@ -287,7 +261,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Shampoo Bottle",
     categoryName: "Beauty & Personal Care",
     price: 12.99,
-    cost: 5.00,
     stock: 85,
     minStock: 20,
     image: "/products/shampoo.jpg"
@@ -297,7 +270,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Lipstick Set",
     categoryName: "Beauty & Personal Care",
     price: 39.99,
-    cost: 18.00,
     stock: 45,
     minStock: 10,
     image: "/products/lipstick.jpg"
@@ -307,7 +279,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Toothbrush Pack",
     categoryName: "Beauty & Personal Care",
     price: 8.99,
-    cost: 3.00,
     stock: 120,
     minStock: 30,
     image: "/products/toothbrush.jpg"
@@ -319,7 +290,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Board Game",
     categoryName: "Toys & Games",
     price: 34.99,
-    cost: 16.00,
     stock: 40,
     minStock: 8,
     image: "/products/boardgame.jpg"
@@ -329,7 +299,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Action Figure",
     categoryName: "Toys & Games",
     price: 24.99,
-    cost: 10.00,
     stock: 60,
     minStock: 15,
     image: "/products/figure.jpg"
@@ -339,7 +308,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Puzzle Set",
     categoryName: "Toys & Games",
     price: 19.99,
-    cost: 8.00,
     stock: 50,
     minStock: 10,
     image: "/products/puzzle.jpg"
@@ -349,7 +317,6 @@ const SEED_PRODUCTS: SeedProduct[] = [
     name: "Video Game",
     categoryName: "Toys & Games",
     price: 59.99,
-    cost: 30.00,
     stock: 35,
     minStock: 8,
     image: "/products/game.jpg"
@@ -370,7 +337,6 @@ async function seedProducts() {
       name: product.name,
       categoryId: categoryMap.get(product.categoryName),
       price: product.price.toString(),
-      cost: product.cost.toString(),
       stock: product.stock,
       minStock: product.minStock,
       image: product.image || null

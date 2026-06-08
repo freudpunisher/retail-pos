@@ -64,13 +64,24 @@ function getCategoryIcon(category: string, productName: string) {
 export function ProductGrid() {
   const [search, setSearch] = useState("")
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+  const [posFilter, setPosFilter] = useState<string>("all")
   const { addItem } = useCart()
 
   const { products, loading: productsLoading } = useProducts(selectedCategoryId || "all", search)
   const { categories, loading: categoriesLoading } = useCategories()
 
+  // Filter: only show drink and food (not ingredients), optionally filter by type
+  const posProducts = useMemo(() => {
+    return products.filter((p: any) => {
+      if (p.productType === "ingredient") return false
+      if (posFilter === "all") return true
+      return p.productType === posFilter
+    })
+  }, [products, posFilter])
+
   const getStockStatus = (product: any) => {
-    if (product.stock === 0) return "out"
+    if (product.productType === "food") return "mto" // made to order
+    if (product.stock === 0 && product.productType !== "food") return "out"
     if (product.stock <= product.minStock) return "low"
     return "in-stock"
   }
@@ -80,7 +91,6 @@ export function ProductGrid() {
     addItem({
       ...product,
       price: Number.parseFloat(product.price),
-      cost: Number.parseFloat(product.cost),
       category: product.categoryName || product.category
     })
   }
@@ -100,13 +110,40 @@ export function ProductGrid() {
 
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-2 pb-2">
+            {/* Type filter */}
+            <Button
+              variant={posFilter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPosFilter("all")}
+              className="shrink-0"
+            >
+              All
+            </Button>
+            <Button
+              variant={posFilter === "drink" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPosFilter("drink")}
+              className="shrink-0"
+            >
+              Drinks
+            </Button>
+            <Button
+              variant={posFilter === "food" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPosFilter("food")}
+              className="shrink-0"
+            >
+              Food
+            </Button>
+            <div className="w-px bg-border mx-1" />
+            {/* Category filter */}
             <Button
               variant={selectedCategoryId === null ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCategoryId(null)}
               className="shrink-0"
             >
-              All
+              Categories
             </Button>
             {categories.map((category: any) => (
               <Button
@@ -130,9 +167,10 @@ export function ProductGrid() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product: any) => {
+            {posProducts.map((product: any) => {
               const stockStatus = getStockStatus(product)
               const isOutOfStock = stockStatus === "out"
+              const isMadeToOrder = stockStatus === "mto"
               const IconComponent = getCategoryIcon(product.categoryName || "", product.name)
 
               return (
@@ -149,16 +187,19 @@ export function ProductGrid() {
                       <div className="flex h-full items-center justify-center">
                         <IconComponent className="h-12 w-12 text-muted-foreground" />
                       </div>
-                      {stockStatus !== "in-stock" && (
-                        <Badge
-                          className={cn(
-                            "absolute right-1 top-1",
-                            stockStatus === "out" ? "bg-destructive" : "bg-warning",
-                          )}
-                        >
-                          {stockStatus === "out" ? "Out of Stock" : "Low Stock"}
+                      {isMadeToOrder ? (
+                        <Badge className="absolute right-1 top-1 bg-purple-500/80 text-white border-0 text-xs">
+                          MTO
                         </Badge>
-                      )}
+                      ) : stockStatus === "out" ? (
+                        <Badge className="absolute right-1 top-1 bg-destructive text-xs">
+                          Out
+                        </Badge>
+                      ) : stockStatus === "low" ? (
+                        <Badge className="absolute right-1 top-1 bg-warning text-xs">
+                          Low
+                        </Badge>
+                      ) : null}
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                         <Plus className="h-8 w-8 text-white" />
                       </div>
@@ -168,7 +209,9 @@ export function ProductGrid() {
                       <p className="text-xs text-muted-foreground">{product.sku}</p>
                       <div className="flex items-center justify-between">
                         <p className="font-semibold text-primary">{formatCurrency(Number.parseFloat(product.price))}</p>
-                        <span className="text-xs text-muted-foreground">{product.stock} in stock</span>
+                        <span className="text-xs text-muted-foreground">
+                          {isMadeToOrder ? "Made to Order" : `${product.stock} in stock`}
+                        </span>
                       </div>
                     </div>
                   </CardContent>
@@ -177,7 +220,7 @@ export function ProductGrid() {
             })}
           </div>
         )}
-        {!productsLoading && products.length === 0 && (
+        {!productsLoading && posProducts.length === 0 && (
           <div className="flex h-40 items-center justify-center text-muted-foreground">
             <p>No products found</p>
           </div>

@@ -1,0 +1,87 @@
+import { NextResponse } from "next/server"
+import db from "@/lib/db"
+import { transactions } from "@/lib/db/schema"
+import { eq, desc } from "drizzle-orm"
+
+export async function GET() {
+    try {
+        const orders = await db.query.transactions.findMany({
+            where: eq(transactions.type, "sale"),
+            orderBy: [desc(transactions.date)],
+            with: {
+                items: true,
+                client: true,
+                user: true,
+                waiter: { columns: { id: true, name: true } },
+                table: { columns: { id: true, number: true, section: true } },
+            },
+        })
+        return NextResponse.json(orders)
+    } catch (error) {
+        console.error("Failed to fetch orders:", error)
+        return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 })
+    }
+}
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.json()
+        const { items, userId, waiterId, tableId, clientId, notes } = body
+
+        if (!items || items.length === 0 || !userId) {
+            return NextResponse.json({ error: "Items and userId are required" }, { status: 400 })
+        }
+
+        const total = items.reduce(
+            (sum: number, item: any) => sum + item.price * item.quantity * (1 - (item.discount || 0) / 100),
+            0,
+        )
+
+        const [newOrder] = await db
+            .insert(transactions)
+            .values({
+                type: "sale",
+                status: "pending",
+                orderStatus: "pending",
+                total: total.toString(),
+                userId,
+                waiterId: waiterId || userId,
+                tableId,
+                clientId,
+            })
+            .returning()
+
+        // Insert transaction items
+        const { transactionItems } = await import("@/lib/db/schema")
+        for (const item of items) {
+            await db.insert(transactionItems).values({
+                transactionId: newOrder.id,
+                productId: item.productId,
+                productName: item.productName,
+                quantity: item.quantity,
+                price: item.price.toString(),
+                discount: (item.discount || 0).toString(),
+            })
+        }
+
+        // Mark table as occupied
+        if (tableId) {
+            const { tables } = await import("@/lib/db/schema")
+            await db.update(tables).set({ status: "occupied" }).where(eq(tables.id, tableId))
+        }
+
+        const order = await db.query.transactions.findFirst({
+            where: eq(transactions.id, newOrder.id),
+            with: {
+                items: true,
+                waiter: { columns: { id: true, name: true } },
+                table: { columns: { id: true, number: true, section: true } },
+            },
+        })
+
+        return NextResponse.json(order)
+    } catch (error) {
+        console.error("Failed to create order:", error)
+        return NextResponse.json({ error: "Failed to create order" }, { status: 500 })
+    }
+}

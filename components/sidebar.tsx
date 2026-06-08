@@ -24,6 +24,7 @@ import {
   ClipboardList,
   Receipt,
   LogOut,
+  ArrowRightLeft,
 } from "lucide-react"
 
 const navItems = [
@@ -36,6 +37,7 @@ const navItems = [
   { href: "/inventory/adjustments", label: "Stock Adjustments", icon: RefreshCw, roles: ["admin", "manager"] },
   { href: "/inventory/count", label: "Inventory Count", icon: ClipboardList, roles: ["admin", "manager"] },
   { href: "/stock-movements", label: "Stock Movements", icon: ArrowLeftRight, roles: ["admin", "manager"] },
+  { href: "/stock/transfers", label: "Stock Transfers", icon: ArrowRightLeft, roles: ["admin", "manager"] },
   { href: "/clients", label: "Clients", icon: Users, roles: ["admin", "manager", "cashier"] },
   { href: "/credit", label: "Credit Management", icon: CreditCard, roles: ["admin", "manager"] },
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager"] },

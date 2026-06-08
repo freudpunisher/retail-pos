@@ -65,21 +65,12 @@ export function ProductDetailsModal({ product, open, onOpenChange }: ProductDeta
 
             <Separator />
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg border border-border bg-secondary/30 p-3">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-xs">Selling Price</span>
-                </div>
-                <p className="mt-1 text-xl font-bold text-primary">{formatCurrency(product.price)}</p>
+            <div className="rounded-lg border border-border bg-secondary/30 p-3">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <DollarSign className="h-4 w-4" />
+                <span className="text-xs">Selling Price</span>
               </div>
-              <div className="rounded-lg border border-border bg-secondary/30 p-3">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-xs">Cost Price</span>
-                </div>
-                <p className="mt-1 text-xl font-bold">{formatCurrency(product.cost)}</p>
-              </div>
+              <p className="mt-1 text-xl font-bold text-primary">{formatCurrency(product.price)}</p>
             </div>
 
             <Separator />
@@ -105,26 +96,7 @@ export function ProductDetailsModal({ product, open, onOpenChange }: ProductDeta
               </div>
             </div>
 
-            <Separator />
 
-            <div className="rounded-lg border border-border bg-secondary/30 p-3">
-              <p className="text-xs text-muted-foreground">Stock Valuation</p>
-              <p className="text-lg font-bold">{formatCurrency(product.stock * product.cost)}</p>
-              <p className="text-xs text-muted-foreground">Based on cost price</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Profit Margin:</span>
-                <span className="ml-2 font-medium text-accent">
-                  {(((product.price - product.cost) / product.cost) * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Profit per Unit:</span>
-                <span className="ml-2 font-medium">{formatCurrency(product.price - product.cost)}</span>
-              </div>
-            </div>
           </div>
         </div>
       </DialogContent>

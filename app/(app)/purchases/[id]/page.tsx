@@ -42,6 +42,10 @@ export default function EditPurchaseOrderPage() {
 
   const { suppliers, loading: suppliersLoading } = useSuppliers()
   const { products, loading: productsLoading } = useProducts()
+
+  const purchasableProducts = products.filter(
+    (p) => p.productType === "ingredient" || (p.productType === "drink" && p.trackStock)
+  )
   const { updateOrder, cancelOrder, markAsReceived } = usePurchases()
   const { user } = useAuth()
 
@@ -92,7 +96,7 @@ export default function EditPurchaseOrderPage() {
           productId: product.id,
           productName: product.name,
           quantity: 1,
-          cost: parseFloat(product.cost) || 0,
+          cost: 0,
         },
       ])
     }
@@ -290,9 +294,9 @@ export default function EditPurchaseOrderPage() {
                       <SelectValue placeholder="Choose product..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {products.map((p) => (
+                      {purchasableProducts.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
-                          {p.name} – {formatCurrency(parseFloat(p.cost || "0"))}
+                          {p.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

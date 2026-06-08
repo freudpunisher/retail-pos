@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 
-export function useStock() {
+export function useStock(locationId?: string) {
     const [stockItems, setStockItems] = useState<any[]>([])
     const [adjustments, setAdjustments] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -11,7 +11,8 @@ export function useStock() {
     const fetchStock = useCallback(async () => {
         setLoading(true)
         try {
-            const response = await fetch("/api/stock")
+            const url = locationId ? `/api/stock?locationId=${locationId}` : "/api/stock"
+            const response = await fetch(url)
             if (!response.ok) throw new Error("Failed to fetch stock status")
             const data = await response.json()
             setStockItems(data)
@@ -20,7 +21,7 @@ export function useStock() {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [locationId])
 
     const fetchAdjustments = useCallback(async () => {
         setLoading(true)

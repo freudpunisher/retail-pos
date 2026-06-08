@@ -1,4 +1,6 @@
-export type UserRole = "admin" | "manager" | "cashier"
+export type UserRole = "admin" | "manager" | "cashier" | "waiter"
+export type ProductType = "drink" | "food" | "ingredient"
+export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled"
 
 export interface User {
   id: string
@@ -13,10 +15,11 @@ export interface Product {
   sku: string
   name: string
   category: string
+  productType: ProductType
   price: number
-  cost: number
   stock: number
   minStock: number
+  trackStock: boolean
   image?: string
 }
 
@@ -50,10 +53,15 @@ export interface Transaction {
   date: string
   total: number
   status: "completed" | "pending" | "cancelled"
-  paymentMethod: "cash" | "credit" | "card"
+  orderStatus: OrderStatus
+  paymentMethod?: "cash" | "credit" | "card"
   clientId?: string
   items: TransactionItem[]
   userId: string
+  waiterId?: string
+  tableId?: string
+  waiter?: { id: string; name: string }
+  table?: { id: string; number: number; section?: string }
 }
 
 export interface TransactionItem {
@@ -123,4 +131,33 @@ export interface Category {
   id: string
   name: string
   description?: string
+}
+
+export interface Location {
+  id: string
+  name: string
+  type: "principal" | "secondary"
+  isActive: boolean
+}
+
+export interface RestoTable {
+  id: string
+  number: number
+  capacity: number
+  status: "free" | "occupied" | "reserved"
+  section?: string
+}
+
+export interface StockTransfer {
+  id: string
+  productId: string
+  fromLocationId: string
+  toLocationId: string
+  quantity: number
+  userId: string
+  date: string
+  notes?: string
+  product?: { name: string; sku: string }
+  fromLocation?: { name: string }
+  toLocation?: { name: string }
 }

@@ -15,6 +15,13 @@
       "when": 1769415494169,
       "tag": "0001_serious_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769500000000,
+      "tag": "0002_restobar_tables",
+      "breakpoints": true
     }
   ]
 }

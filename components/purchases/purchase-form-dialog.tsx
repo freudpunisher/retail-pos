@@ -41,6 +41,10 @@ export function PurchaseFormDialog({ open, onOpenChange, onSubmit }: PurchaseFor
   const { suppliers, loading: suppliersLoading } = useSuppliers()
   const { products, loading: productsLoading } = useProducts()
 
+  const purchasableProducts = products.filter(
+    (p) => p.productType === "ingredient" || (p.productType === "drink" && p.trackStock)
+  )
+
   useEffect(() => {
     if (!open) {
       setSupplierId("")
@@ -148,14 +152,9 @@ export function PurchaseFormDialog({ open, onOpenChange, onSubmit }: PurchaseFor
                     <SelectValue placeholder={productsLoading ? "Loading products..." : "Select product"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {products.map((product) => (
+                    {purchasableProducts.map((product) => (
                       <SelectItem key={product.id} value={product.id}>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>{product.name}</span>
-                          <span className="text-muted-foreground">
-                            {formatCurrency(parseFloat(product.cost) || 0)}
-                          </span>
-                        </div>
+                        {product.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
