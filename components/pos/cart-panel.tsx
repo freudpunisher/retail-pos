@@ -215,7 +215,17 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="w-8 text-center font-medium">{item.quantity}</span>
+                        <Input
+                          type="number"
+                          min="1"
+                          max={item.stock}
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0
+                            if (val >= 0) updateQuantity(item.id, val)
+                          }}
+                          className="h-7 w-14 text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
                         <Button
                           variant="outline"
                           size="icon"
