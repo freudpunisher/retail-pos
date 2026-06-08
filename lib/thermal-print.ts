@@ -89,7 +89,7 @@ export function printThermal(data: ReceiptData): void {
 
   <!-- Transaction Info -->
   <div class="info-line" style="font-size:14px;font-weight:bold;letter-spacing:2px;margin-bottom:1mm;">${data.billReference || `#${data.orderId.slice(0, 8).toUpperCase()}`}</div>
-  <div class="info-line"><span class="info-label">Date</span> ${data.date.toLocaleDateString()} ${data.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+  <div class="info-line"><span class="info-label">Date</span> ${data.date.toLocaleDateString()} ${data.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
   ${data.client ? `<div class="info-line"><span class="info-label">Client</span> ${data.client}</div>` : ""}
   ${data.cashier ? `<div class="info-line"><span class="info-label">Cashier</span> ${data.cashier}</div>` : ""}
   ${data.waiter ? `<div class="info-line"><span class="info-label">Waiter</span> ${data.waiter}</div>` : ""}

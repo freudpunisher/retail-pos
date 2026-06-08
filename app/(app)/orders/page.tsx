@@ -203,7 +203,7 @@ export default function OrdersPage() {
                         {order.table?.section && (
                           <span>{order.table.section}</span>
                         )}
-                        <span>{new Date(order.createdAt || order.updatedAt).toLocaleTimeString()}</span>
+                        <span>{new Date(order.createdAt || order.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
                       </div>
                     </div>
                     <Badge className={statusColors[order.orderStatus]}>

@@ -400,7 +400,7 @@ export default function SalesHistoryPage() {
                             <div className="flex items-center gap-2">
                               <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                               <span className="text-sm whitespace-nowrap">{new Date(txn.date).toLocaleDateString()}</span>
-                              <span className="text-xs text-muted-foreground">{new Date(txn.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                              <span className="text-xs text-muted-foreground">{new Date(txn.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
                             </div>
                           </TableCell>
                           <TableCell>
