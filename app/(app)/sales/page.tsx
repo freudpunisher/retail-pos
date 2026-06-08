@@ -5,6 +5,15 @@ import { ProductGrid } from "@/components/pos/product-grid"
 import { CartPanel } from "@/components/pos/cart-panel"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useUsers } from "@/hooks/use-users"
 import { useTables } from "@/hooks/use-tables"
 import { useOrders } from "@/hooks/use-orders"
@@ -12,7 +21,7 @@ import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/hooks/use-settings"
 import { toast } from "sonner"
-import { Table2, User, Utensils, ShoppingBag } from "lucide-react"
+import { Table2, User, Utensils, ShoppingBag, AlertCircle } from "lucide-react"
 import { printThermal } from "@/lib/thermal-print"
 
 export default function SalesPage() {
@@ -27,12 +36,19 @@ export default function SalesPage() {
   const [selectedTableId, setSelectedTableId] = useState<string>("")
   const [selectedWaiterId, setSelectedWaiterId] = useState<string>("")
   const [creating, setCreating] = useState(false)
+  const [showValidation, setShowValidation] = useState(false)
 
   const waiters = useMemo(() => users.filter((u) => u.role === "waiter"), [users])
   const freeTables = useMemo(() => tables.filter((t) => t.status === "free"), [tables])
 
   const handleCreateOrder = async () => {
     if (!user || items.length === 0) return
+
+    if (orderMode === "dinein" && !selectedTableId) {
+      setShowValidation(true)
+      return
+    }
+
     setCreating(true)
     try {
       const order = await createOrder({
