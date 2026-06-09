@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useProducts, useCategories } from "@/hooks/use-products"
+import { useAuth } from "@/lib/auth-context"
 
 function getCategoryIcon(category: string, productName: string) {
   // Specific product icons
@@ -65,9 +66,15 @@ export function ProductGrid() {
   const [search, setSearch] = useState("")
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const { addItem } = useCart()
+  const { user } = useAuth()
 
-  const { products, loading: productsLoading } = useProducts(selectedCategoryId || "all", search)
+  const { products, loading: productsLoading, refresh } = useProducts(selectedCategoryId || "all", search)
   const { categories, loading: categoriesLoading } = useCategories()
+
+  const filteredProducts = useMemo(() => {
+    if (user?.role !== "cashier_bakery") return products
+    return products.filter((product: any) => product.sector === "Boulangerie" && product.type === "finished_good")
+  }, [products, user?.role])
 
   const getStockStatus = (product: any) => {
     if (product.stock === 0) return "out"
@@ -84,6 +91,14 @@ export function ProductGrid() {
       category: product.categoryName || product.category
     })
   }
+
+  useEffect(() => {
+    const onTransactionCompleted = () => {
+      refresh()
+    }
+    window.addEventListener("pos:transaction-completed", onTransactionCompleted)
+    return () => window.removeEventListener("pos:transaction-completed", onTransactionCompleted)
+  }, [refresh])
 
   return (
     <div className="flex flex-col">
@@ -130,7 +145,7 @@ export function ProductGrid() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product: any) => {
+            {filteredProducts.map((product: any) => {
               const stockStatus = getStockStatus(product)
               const isOutOfStock = stockStatus === "out"
               const IconComponent = getCategoryIcon(product.categoryName || "", product.name)
@@ -177,7 +192,7 @@ export function ProductGrid() {
             })}
           </div>
         )}
-        {!productsLoading && products.length === 0 && (
+        {!productsLoading && filteredProducts.length === 0 && (
           <div className="flex h-40 items-center justify-center text-muted-foreground">
             <p>No products found</p>
           </div>

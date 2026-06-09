@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatCurrency } from "@/lib/mock-data"
 import {
   BarChart3,
@@ -23,27 +24,62 @@ import {
 } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 import { useTransactions } from "@/hooks/use-transactions"
+import { useProducts } from "@/hooks/use-products"
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders"
 import { useStockMovements } from "@/hooks/use-stock-movements"
 import { useClients } from "@/hooks/use-clients"
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--warning))", "hsl(var(--destructive))"]
 
+const getMonthStart = () => {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), 1)
+  return start.toISOString().slice(0, 10)
+}
+
+const getMonthEnd = () => {
+  const now = new Date()
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  return end.toISOString().slice(0, 10)
+}
+
 export default function ReportsPage() {
-  const [dateFrom, setDateFrom] = useState("2024-12-01")
-  const [dateTo, setDateTo] = useState("2024-12-31")
+  const [dateFrom, setDateFrom] = useState(getMonthStart)
+  const [dateTo, setDateTo] = useState(getMonthEnd)
+  const [granularity, setGranularity] = useState<"day" | "week" | "month">("day")
 
   const { transactions, loading: txLoading, fetchTransactions } = useTransactions()
   const { purchaseOrders, loading: poLoading } = usePurchaseOrders()
   const { movements, loading: moveLoading } = useStockMovements()
   const { clients, loading: clientLoading } = useClients()
+  const { products, loading: productsLoading } = useProducts()
 
   useEffect(() => {
     fetchTransactions()
   }, [fetchTransactions])
 
-  // Sales data
-  const saleTransactions = transactions.filter((t: any) => t.type === "sale" && t.status === "completed")
+  const isLoading = txLoading || poLoading || moveLoading || clientLoading || productsLoading
+
+  const productSectorById = new Map(products.map((p: any) => [p.id, p.sector]))
+
+  const dateStart = dateFrom ? new Date(dateFrom) : null
+  const dateEnd = dateTo ? new Date(dateTo) : null
+  if (dateEnd) dateEnd.setHours(23, 59, 59, 999)
+
+  const isInRange = (dateStr: string) => {
+    const d = new Date(dateStr)
+    if (dateStart && d < dateStart) return false
+    if (dateEnd && d > dateEnd) return false
+    return true
+  }
+
+  const isBakeryTransaction = (t: any) =>
+    (t.items || []).some((it: any) => productSectorById.get(it.productId) === "Boulangerie")
+
+  // Sales data (Boulangerie)
+  const saleTransactions = transactions.filter(
+    (t: any) => t.type === "sale" && t.status === "completed" && isInRange(t.date) && isBakeryTransaction(t)
+  )
   const salesTotal = saleTransactions.reduce((sum, t) => sum + Number.parseFloat(t.total), 0)
 
   const salesByPayment = [
@@ -67,32 +103,59 @@ export default function ReportsPage() {
     },
   ]
 
-  const dailySales = [
-    { day: "Mon", sales: 1250 },
-    { day: "Tue", sales: 1890 },
-    { day: "Wed", sales: 1420 },
-    { day: "Thu", sales: 2280 },
-    { day: "Fri", sales: 2950 },
-    { day: "Sat", sales: 3400 },
-    { day: "Sun", sales: 2100 },
-  ]
+  const groupKey = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, "0")
+    if (granularity === "month") return `${y}-${m}`
+    if (granularity === "week") {
+      const firstDay = new Date(d.getFullYear(), 0, 1)
+      const dayOfYear = Math.floor((d.getTime() - firstDay.getTime()) / 86400000) + 1
+      const week = Math.ceil(dayOfYear / 7)
+      return `${y}-W${String(week).padStart(2, "0")}`
+    }
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${y}-${m}-${day}`
+  }
+
+  const salesByPeriodMap = new Map<string, number>()
+  for (const t of saleTransactions) {
+    const key = groupKey(new Date(t.date))
+    salesByPeriodMap.set(key, (salesByPeriodMap.get(key) || 0) + Number.parseFloat(t.total))
+  }
+  const dailySales = Array.from(salesByPeriodMap.entries()).map(([day, sales]) => ({ day, sales }))
 
   // Purchase data
-  const purchaseTotal = purchaseOrders.reduce((sum, po) => sum + Number.parseFloat(po.total), 0)
+  const bakeryPurchaseOrders = purchaseOrders.filter(
+    (po: any) => po.sector === "Boulangerie" && isInRange(po.date)
+  )
+  const purchaseTotal = bakeryPurchaseOrders.reduce((sum, po) => sum + Number.parseFloat(po.total), 0)
 
   // Stock movement data
-  const inboundQty = movements.filter((m) => m.quantity > 0).reduce((sum, m) => sum + m.quantity, 0)
-  const outboundQty = movements.filter((m) => m.quantity < 0).reduce((sum, m) => sum + Math.abs(m.quantity), 0)
+  const bakeryMovements = movements.filter((m: any) => {
+    if (!isInRange(m.date)) return false
+    return productSectorById.get(m.productId) === "Boulangerie"
+  })
+  const inboundQty = bakeryMovements
+    .filter((m) => Number(m.quantity) > 0)
+    .reduce((sum, m) => sum + Number(m.quantity || 0), 0)
+  const outboundQty = bakeryMovements
+    .filter((m) => Number(m.quantity) < 0)
+    .reduce((sum, m) => sum + Math.abs(Number(m.quantity || 0)), 0)
 
-  // Credit data
-  const totalCreditBalance = clients.reduce((sum, c) => sum + Number.parseFloat(c.creditBalance), 0)
+  const bakeryClientIds = new Set(
+    transactions
+      .filter((t: any) => isInRange(t.date) && isBakeryTransaction(t) && t.clientId)
+      .map((t: any) => t.clientId),
+  )
+  const bakeryClients = clients.filter((c: any) => bakeryClientIds.has(c.id))
+
+  // Credit data (Boulangerie)
+  const totalCreditBalance = bakeryClients.reduce((sum, c) => sum + Number.parseFloat(c.creditBalance), 0)
 
   const handleExport = (reportType: string) => {
     console.log(`Exporting ${reportType} report...`)
     // Mock export functionality
   }
-
-  const isLoading = txLoading || poLoading || moveLoading || clientLoading
 
   return (
     <div className="space-y-6">
@@ -115,10 +178,19 @@ export default function ReportsPage() {
               <Label>To Date</Label>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" />
             </div>
-            <Button variant="outline">
-              <Calendar className="mr-2 h-4 w-4" />
-              Apply Filter
-            </Button>
+            <div className="space-y-2">
+              <Label>Granularité</Label>
+              <Select value={granularity} onValueChange={(v) => setGranularity(v as any)}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Période" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">Jour</SelectItem>
+                  <SelectItem value="week">Semaine</SelectItem>
+                  <SelectItem value="month">Mois</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -181,8 +253,8 @@ export default function ReportsPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle>Daily Sales</CardTitle>
-              </CardHeader>
+              <CardTitle>Sales (Boulangerie)</CardTitle>
+            </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -322,7 +394,7 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Purchase Orders</p>
-                    <p className="text-2xl font-bold">{poLoading ? "..." : purchaseOrders.length}</p>
+                    <p className="text-2xl font-bold">{poLoading ? "..." : bakeryPurchaseOrders.length}</p>
                   </div>
                   <ArrowDownRight className="h-8 w-8 text-accent" />
                 </div>
@@ -357,14 +429,14 @@ export default function ReportsPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : purchaseOrders.length === 0 ? (
+                    ) : bakeryPurchaseOrders.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                           No purchase orders found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      purchaseOrders.map((po: any) => (
+                      bakeryPurchaseOrders.map((po: any) => (
                         <TableRow key={po.id} className="border-border">
                           <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{po.id}</TableCell>
                           <TableCell>{new Date(po.date).toLocaleDateString()}</TableCell>
@@ -409,7 +481,7 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Inbound</p>
-                    <p className="text-2xl font-bold text-accent">+{moveLoading ? "..." : inboundQty} units</p>
+                    <p className="text-2xl font-bold text-foreground">+{moveLoading ? "..." : inboundQty} units</p>
                   </div>
                   <ArrowDownRight className="h-8 w-8 text-accent" />
                 </div>
@@ -455,14 +527,14 @@ export default function ReportsPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : movements.length === 0 ? (
+                    ) : bakeryMovements.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                           No movements found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      movements.map((movement: any) => (
+                      bakeryMovements.map((movement: any) => (
                         <TableRow key={movement.id} className="border-border">
                           <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{movement.id}</TableCell>
                           <TableCell>{new Date(movement.date).toLocaleDateString()}</TableCell>
@@ -471,17 +543,17 @@ export default function ReportsPage() {
                             <Badge
                               className={
                                 movement.type === "purchase"
-                                  ? "bg-accent/20 text-accent"
+                                  ? "bg-accent text-accent-foreground"
                                   : movement.type === "sale"
-                                    ? "bg-primary/20 text-primary"
-                                    : "bg-warning/20 text-warning"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-warning text-warning-foreground"
                               }
                             >
                               {movement.type}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <span className={movement.quantity > 0 ? "text-accent" : "text-destructive"}>
+                            <span className="text-foreground">
                               {movement.quantity > 0 ? "+" : ""}
                               {movement.quantity}
                             </span>
@@ -545,14 +617,14 @@ export default function ReportsPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : clients.filter((c: any) => Number.parseFloat(c.creditBalance) > 0).length === 0 ? (
+                    ) : bakeryClients.filter((c: any) => Number.parseFloat(c.creditBalance) > 0).length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                           No clients with credit balance found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      clients
+                      bakeryClients
                         .filter((c: any) => Number.parseFloat(c.creditBalance) > 0)
                         .map((client: any) => (
                           <TableRow key={client.id} className="border-border">

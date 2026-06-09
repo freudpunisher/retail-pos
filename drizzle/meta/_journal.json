@@ -15,6 +15,62 @@
       "when": 1769415494169,
       "tag": "0001_serious_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770736872348,
+      "tag": "0002_add_measurement_units",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1770742053367,
+      "tag": "0003_products_unit_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770749157189,
+      "tag": "0004_add_invoice_payment_refs",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1770791144113,
+      "tag": "0005_add_production_cost",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1770792559556,
+      "tag": "0006_add_recipe_grs",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1770795202313,
+      "tag": "0007_add_product_sector",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770802442402,
+      "tag": "0008_add_purchase_orders_sector",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1770803101231,
+      "tag": "0009_add_purchase_order_ref",
+      "breakpoints": true
     }
   ]
 }

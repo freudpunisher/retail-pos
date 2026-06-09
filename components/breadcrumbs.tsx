@@ -13,6 +13,8 @@ const routeLabels: Record<string, string> = {
   clients: "Clients",
   credit: "Credit Management",
   reports: "Reports",
+  finance: "Finance",
+  payments: "Historique paiements",
   settings: "Settings",
 }
 

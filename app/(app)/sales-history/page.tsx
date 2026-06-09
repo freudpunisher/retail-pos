@@ -4,12 +4,17 @@ import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatCurrency } from "@/lib/mock-data"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { useTransactions } from "@/hooks/use-transactions"
+import { useAuth } from "@/lib/auth-context"
+import { useCredits, type CreditRecordDTO } from "@/hooks/use-credits"
+import { toast } from "sonner"
 import {
     Receipt,
     Search,
@@ -22,21 +27,40 @@ import {
     Package,
     Loader2,
     Eye,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react"
 
 export default function SalesHistoryPage() {
-    const { transactions, loading, fetchTransactions } = useTransactions()
+    const { user } = useAuth()
+    const sector = user?.role === "cashier_bakery" ? "Boulangerie" : undefined
+    const { transactions, loading, fetchTransactions } = useTransactions(sector)
+    const { records: creditRecords, loading: creditLoading, recordPayment, refresh: refreshCredits } = useCredits(undefined, sector)
     const [search, setSearch] = useState("")
     const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null)
     const [showDetails, setShowDetails] = useState(false)
     const [showReport, setShowReport] = useState(false)
+    const [showCreditPaymentDialog, setShowCreditPaymentDialog] = useState(false)
+    const [selectedCreditRecord, setSelectedCreditRecord] = useState<CreditRecordDTO | null>(null)
+    const [creditPaymentAmount, setCreditPaymentAmount] = useState("")
+    const [creditPaymentMethod, setCreditPaymentMethod] = useState<"cash" | "card">("cash")
+    const [isProcessingCreditPayment, setIsProcessingCreditPayment] = useState(false)
 
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
+
     useEffect(() => {
         fetchTransactions()
     }, [fetchTransactions])
+
+    // Reset page when search or dates change
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [search, startDate, endDate])
 
     const filteredTransactions = useMemo(() => {
         // First filter by type "sale"
@@ -47,6 +71,7 @@ export default function SalesHistoryPage() {
             const lowerSearch = search.toLowerCase()
             filtered = filtered.filter((t: any) =>
                 t.id.toLowerCase().includes(lowerSearch) ||
+                t.invoiceRef?.toLowerCase().includes(lowerSearch) ||
                 t.client?.name?.toLowerCase().includes(lowerSearch) ||
                 t.user?.name?.toLowerCase().includes(lowerSearch)
             )
@@ -68,14 +93,27 @@ export default function SalesHistoryPage() {
         return filtered
     }, [transactions, search, startDate, endDate])
 
+    const paginatedTransactions = useMemo(() => {
+        const start = (currentPage - 1) * pageSize
+        return filteredTransactions.slice(start, start + pageSize)
+    }, [filteredTransactions, currentPage, pageSize])
+
+    const totalPages = Math.ceil(filteredTransactions.length / pageSize)
+
     const stats = useMemo(() => {
-        const sales = transactions.filter((t: any) => t.type === "sale") // calculate stats on ALL sales, or filtered? Usually ALL or filtered. Let's use filtered for dynamic stats? No, usually overall stats. Sticking to overall for now as per code.
+        const sales = filteredTransactions // calculate stats on filtered sales
         const totalRevenue = sales.reduce((sum: number, t: any) => sum + Number.parseFloat(t.total), 0)
         const cashSales = sales.filter((t: any) => t.paymentMethod === "cash").length
         const creditSales = sales.filter((t: any) => t.paymentMethod === "credit").length
         const cardSales = sales.filter((t: any) => t.paymentMethod === "card").length
         return { totalSales: sales.length, totalRevenue, cashSales, creditSales, cardSales }
-    }, [transactions])
+    }, [filteredTransactions])
+
+    const creditByTransactionId = useMemo(() => {
+        const map = new Map<string, CreditRecordDTO>()
+        creditRecords.forEach((record) => map.set(record.transactionId, record))
+        return map
+    }, [creditRecords])
 
     const handleViewDetails = (transaction: any) => {
         setSelectedTransaction(transaction)
@@ -85,6 +123,54 @@ export default function SalesHistoryPage() {
     const handlePrint = () => {
         if (typeof window !== "undefined") {
             window.print()
+        }
+    }
+
+    const handleOpenCreditPayment = (transaction: any) => {
+        const record = creditByTransactionId.get(transaction.id)
+        if (!record) {
+            toast.error("Aucun dossier de crédit trouvé pour cette facture")
+            return
+        }
+
+        const remaining = Number(record.amount) - Number(record.paidAmount)
+        if (remaining <= 0) {
+            toast.success("Cette facture est déjà entièrement réglée")
+            return
+        }
+
+        setSelectedCreditRecord(record)
+        setCreditPaymentAmount(String(remaining))
+        setCreditPaymentMethod("cash")
+        setShowCreditPaymentDialog(true)
+    }
+
+    const handleConfirmCreditPayment = async () => {
+        if (!selectedCreditRecord) return
+
+        const amount = Number(creditPaymentAmount || 0)
+        const remaining = Number(selectedCreditRecord.amount) - Number(selectedCreditRecord.paidAmount)
+        if (!amount || amount <= 0) {
+            toast.error("Montant invalide")
+            return
+        }
+        if (amount > remaining) {
+            toast.error("Le montant dépasse le reste à payer")
+            return
+        }
+
+        try {
+            setIsProcessingCreditPayment(true)
+            await recordPayment(selectedCreditRecord.id, amount, creditPaymentMethod)
+            await Promise.all([fetchTransactions(), refreshCredits()])
+            setShowCreditPaymentDialog(false)
+            setSelectedCreditRecord(null)
+            setCreditPaymentAmount("")
+            toast.success("Paiement de crédit enregistré")
+        } catch (error: any) {
+            toast.error(error.message || "Échec du paiement de crédit")
+        } finally {
+            setIsProcessingCreditPayment(false)
         }
     }
 
@@ -137,8 +223,10 @@ export default function SalesHistoryPage() {
 
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-foreground">Sales History</h2>
-                    <p className="text-muted-foreground">View all completed sales transactions</p>
+                    <h2 className="text-2xl font-bold text-foreground">{sector ? "Factures Boulangerie" : "Sales History"}</h2>
+                    <p className="text-muted-foreground">
+                        {sector ? "Liste des factures de vente de la boulangerie" : "View all completed sales transactions"}
+                    </p>
                 </div>
             </div>
 
@@ -250,18 +338,35 @@ export default function SalesHistoryPage() {
 
             {/* Sales Table */}
             <Card className="border-border bg-card">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
                     <CardTitle className="flex items-center gap-2">
                         <Receipt className="h-5 w-5" />
                         Transaction History
                     </CardTitle>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">Lignes par page:</span>
+                        <Select value={String(pageSize)} onValueChange={(v) => {
+                            setPageSize(Number(v))
+                            setCurrentPage(1)
+                        }}>
+                            <SelectTrigger className="w-[70px] h-8">
+                                <SelectValue placeholder="10" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="10">10</SelectItem>
+                                <SelectItem value="20">20</SelectItem>
+                                <SelectItem value="50">50</SelectItem>
+                                <SelectItem value="100">100</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="rounded-md border border-border">
                         <Table>
                             <TableHeader>
                                 <TableRow className="hover:bg-transparent border-border">
-                                    <TableHead className="text-muted-foreground">Transaction ID</TableHead>
+                                    <TableHead className="text-muted-foreground">Invoice Ref</TableHead>
                                     <TableHead className="text-muted-foreground">Date & Time</TableHead>
                                     <TableHead className="text-muted-foreground">Customer</TableHead>
                                     <TableHead className="text-muted-foreground">Items</TableHead>
@@ -288,60 +393,120 @@ export default function SalesHistoryPage() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredTransactions.map((txn: any) => (
-                                        <TableRow key={txn.id} className="border-border hover:bg-secondary/50">
-                                            <TableCell>
-                                                <span className="font-mono text-xs">{txn.id.slice(0, 8)}...</span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                    <span className="text-sm">{new Date(txn.date).toLocaleString()}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {txn.client ? (
+                                    paginatedTransactions.map((txn: any) => {
+                                        const creditRecord = creditByTransactionId.get(txn.id)
+                                        const remainingCredit = creditRecord
+                                            ? Number(creditRecord.amount) - Number(creditRecord.paidAmount)
+                                            : 0
+                                        const canPayCredit =
+                                            txn.paymentMethod === "credit" &&
+                                            !!creditRecord &&
+                                            remainingCredit > 0
+
+                                        return (
+                                            <TableRow key={txn.id} className="border-border hover:bg-secondary/50">
+                                                <TableCell>
+                                                    <span className="font-mono text-xs">{txn.invoiceRef || txn.id.slice(0, 8) + "..."}</span>
+                                                </TableCell>
+                                                <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <User className="h-3 w-3 text-muted-foreground" />
-                                                        <span>{txn.client.name}</span>
+                                                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                                                        <span className="text-sm">{new Date(txn.date).toLocaleString()}</span>
                                                     </div>
-                                                ) : (
-                                                    <span className="text-muted-foreground">Walk-in</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="secondary">{txn.items?.length || 0} items</Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    {getPaymentIcon(txn.paymentMethod)}
-                                                    <span className="capitalize">{txn.paymentMethod}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="font-bold text-primary">
-                                                    {formatCurrency(Number.parseFloat(txn.total))}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={txn.status === "completed" ? "default" : "secondary"}
-                                                    className={txn.status === "completed" ? "bg-green-500/15 text-green-700 hover:bg-green-500/25 border-green-500/20" : ""}
-                                                >
-                                                    {txn.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => handleViewDetails(txn)}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                                </TableCell>
+                                                <TableCell>
+                                                    {txn.client ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <User className="h-3 w-3 text-muted-foreground" />
+                                                            <span>{txn.client.name}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">Walk-in</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="secondary">{txn.items?.length || 0} items</Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        {getPaymentIcon(txn.paymentMethod)}
+                                                        <span className="capitalize">{txn.paymentMethod}</span>
+                                                        {txn.paymentMethod === "credit" && creditRecord && (
+                                                            <Badge variant="outline" className="text-xs">
+                                                                Reste: {formatCurrency(Math.max(remainingCredit, 0))}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="font-bold text-primary">
+                                                        {formatCurrency(Number.parseFloat(txn.total))}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={txn.status === "completed" ? "default" : "secondary"}
+                                                        className={txn.status === "completed" ? "bg-green-500/15 text-green-700 hover:bg-green-500/25 border-green-500/20" : ""}
+                                                    >
+                                                        {txn.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        {canPayCredit && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => handleOpenCreditPayment(txn)}
+                                                                disabled={creditLoading}
+                                                            >
+                                                                Payer crédit
+                                                            </Button>
+                                                        )}
+                                                        <Button variant="ghost" size="icon" onClick={() => handleViewDetails(txn)}>
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
                                 )}
                             </TableBody>
                         </Table>
                     </div>
+                    {filteredTransactions.length > 0 && (
+                        <div className="flex items-center justify-between p-4 border-t border-border">
+                            <div className="text-sm text-muted-foreground">
+                                Affichage de {((currentPage - 1) * pageSize) + 1} à {Math.min(currentPage * pageSize, filteredTransactions.length)} sur {filteredTransactions.length} transactions
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                >
+                                    <ChevronLeft className="h-4 w-4 mr-1" />
+                                    Précédent
+                                </Button>
+                                <div className="flex items-center gap-1 mx-2">
+                                    <span className="text-sm font-medium">{currentPage}</span>
+                                    <span className="text-sm text-muted-foreground">/</span>
+                                    <span className="text-sm text-muted-foreground">{totalPages}</span>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    Suivant
+                                    <ChevronRight className="h-4 w-4 ml-1" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -361,8 +526,8 @@ export default function SalesHistoryPage() {
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div>
-                                        <p className="text-muted-foreground">Transaction ID</p>
-                                        <p className="font-mono">{selectedTransaction.id}</p>
+                                        <p className="text-muted-foreground">Invoice Ref</p>
+                                        <p className="font-mono">{selectedTransaction.invoiceRef || selectedTransaction.id}</p>
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground">Date</p>
@@ -441,8 +606,8 @@ export default function SalesHistoryPage() {
                                         <span>{new Date(selectedTransaction.date).toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Transaction ID:</span>
-                                        <span>{selectedTransaction.id}</span>
+                                        <span>Invoice Ref:</span>
+                                        <span>{selectedTransaction.invoiceRef || selectedTransaction.id}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span>Customer:</span>
@@ -491,6 +656,74 @@ export default function SalesHistoryPage() {
                             </div>
                         </>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Credit Payment Dialog */}
+            <Dialog open={showCreditPaymentDialog} onOpenChange={setShowCreditPaymentDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Paiement de facture à crédit</DialogTitle>
+                        <DialogDescription>
+                            Enregistrer un paiement sur la facture {selectedCreditRecord?.invoiceRef || selectedCreditRecord?.transactionId}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedCreditRecord && (
+                        <div className="space-y-4 py-2">
+                            <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Montant facture</span>
+                                    <span className="font-medium">{formatCurrency(Number(selectedCreditRecord.amount))}</span>
+                                </div>
+                                <div className="mt-1 flex justify-between">
+                                    <span className="text-muted-foreground">Déjà payé</span>
+                                    <span className="font-medium">{formatCurrency(Number(selectedCreditRecord.paidAmount))}</span>
+                                </div>
+                                <div className="mt-1 flex justify-between">
+                                    <span className="text-muted-foreground">Reste à payer</span>
+                                    <span className="font-semibold text-warning">
+                                        {formatCurrency(Number(selectedCreditRecord.amount) - Number(selectedCreditRecord.paidAmount))}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="credit-payment-amount">Montant à payer</Label>
+                                <Input
+                                    id="credit-payment-amount"
+                                    type="number"
+                                    step="0.01"
+                                    value={creditPaymentAmount}
+                                    onChange={(e) => setCreditPaymentAmount(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="credit-payment-method">Méthode</Label>
+                                <Select
+                                    value={creditPaymentMethod}
+                                    onValueChange={(value) => setCreditPaymentMethod(value as "cash" | "card")}
+                                >
+                                    <SelectTrigger id="credit-payment-method">
+                                        <SelectValue placeholder="Choisir une méthode" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="cash">Cash</SelectItem>
+                                        <SelectItem value="card">Card</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowCreditPaymentDialog(false)} disabled={isProcessingCreditPayment}>
+                            Annuler
+                        </Button>
+                        <Button onClick={handleConfirmCreditPayment} disabled={isProcessingCreditPayment}>
+                            {isProcessingCreditPayment ? "Traitement..." : "Valider paiement"}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

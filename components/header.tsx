@@ -37,6 +37,8 @@ export function Header() {
       case "admin":
         return "bg-destructive/20 text-destructive"
       case "manager":
+      case "investor":
+      case "accountant":
         return "bg-primary/20 text-primary"
       default:
         return "bg-accent/20 text-accent"
@@ -92,11 +94,11 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/profile")}>
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/settings")}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>

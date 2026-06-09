@@ -1,36 +1,41 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { StatsCard } from "@/components/stats-card"
 import { DataTable } from "@/components/data-table"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SalesChart } from "@/components/dashboard/sales-chart"
 import { TimePeriodSelector, TimePeriod } from "@/components/dashboard/time-period-selector"
 import { formatCurrency } from "@/lib/mock-data"
-import { DollarSign, TrendingUp, CreditCard, AlertTriangle, Loader2, RefreshCw } from "lucide-react"
+import { DollarSign, TrendingUp, CreditCard, AlertTriangle, Loader2, RefreshCw, Users, ClipboardList, Boxes, ShieldCheck } from "lucide-react"
 import { useDashboardStats } from "@/hooks/use-dashboard-stats"
 import { useTransactions } from "@/hooks/use-transactions"
+import { useAuth } from "@/lib/auth-context"
 
 export default function DashboardPage() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("today")
-  const { stats, loading: statsLoading, refresh: refreshStats } = useDashboardStats(timePeriod)
-  const { transactions, fetchTransactions, loading: txLoading } = useTransactions()
+  const { user } = useAuth()
+  const dashboardSector = user?.role === "cashier_bakery" ? "Boulangerie" : undefined
+  const { stats, loading: statsLoading, refresh: refreshStats } = useDashboardStats(timePeriod, dashboardSector)
+  const { transactions, fetchTransactions, loading: txLoading } = useTransactions(dashboardSector)
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+  const isSystemAdmin = user?.role === "admin"
 
   // Auto-refresh dashboard every 30 seconds
   useEffect(() => {
     if (!autoRefreshEnabled) return
 
     const interval = setInterval(() => {
-      refreshStats()
+      refreshStats(timePeriod, dashboardSector)
       fetchTransactions()
     }, 30000)
 
     return () => clearInterval(interval)
-  }, [autoRefreshEnabled, refreshStats, fetchTransactions])
+  }, [autoRefreshEnabled, refreshStats, fetchTransactions, timePeriod, dashboardSector])
 
   useEffect(() => {
     fetchTransactions()
@@ -38,11 +43,28 @@ export default function DashboardPage() {
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true)
-    await Promise.all([refreshStats(), fetchTransactions()])
+    await Promise.all([refreshStats(timePeriod, dashboardSector), fetchTransactions()])
     setIsManualRefreshing(false)
   }
 
-  const recentTransactions = transactions.slice(0, 5)
+  const recentTransactions = (stats?.recentTransactions?.length ? stats.recentTransactions : transactions).slice(0, 5)
+  const adminConnectedUsers = stats?.systemAdminActivity?.connectedUsers || []
+  const adminChangeHistory = stats?.systemAdminActivity?.adminChangeHistory || []
+
+  const roleLabel = (role: string) => {
+    const labels: Record<string, string> = {
+      admin: "Admin système",
+      cashier_food: "Caissier alimentation",
+      supervisor_food: "Superviseur alimentation",
+      cashier_bakery: "Caissier boulangerie",
+      supervisor_bakery: "Superviseur boulangerie",
+      production_bakery: "Production boulangerie",
+      manager: "Manager",
+      investor: "Investisseur",
+      accountant: "Comptable",
+    }
+    return labels[role] || role
+  }
 
   const transactionColumns = [
     {
@@ -111,8 +133,12 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-          <p className="text-muted-foreground">Overview of your store performance</p>
+          <h2 className="text-2xl font-bold text-foreground">
+            {dashboardSector ? "Tableau de bord Boulangerie" : "Dashboard"}
+          </h2>
+          <p className="text-muted-foreground">
+            {dashboardSector ? "Vue des activités de la boulangerie" : "Overview of your store performance"}
+          </p>
         </div>
         <TimePeriodSelector selected={timePeriod} onSelect={setTimePeriod} />
       </div>
@@ -170,7 +196,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <SalesChart loading={statsLoading} timePeriod={timePeriod} />
+        <SalesChart loading={statsLoading} timePeriod={timePeriod} sector={dashboardSector} />
 
         <Card className="border-border bg-card">
           <CardHeader>
@@ -242,6 +268,129 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {isSystemAdmin && (
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <CardTitle>Activité administrateur système</CardTitle>
+            <CardDescription>Suivi des actions et points de contrôle administratifs</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border border-border p-4">
+                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  <span className="text-sm">Total utilisateurs</span>
+                </div>
+                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.totalUsers || 0}</p>
+              </div>
+              <div className="rounded-lg border border-border p-4">
+                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span className="text-sm">Comptes admin</span>
+                </div>
+                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.adminUsers || 0}</p>
+              </div>
+              <div className="rounded-lg border border-border p-4">
+                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+                  <ClipboardList className="h-4 w-4" />
+                  <span className="text-sm">Total produits</span>
+                </div>
+                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.totalProducts || 0}</p>
+              </div>
+              <div className="rounded-lg border border-border p-4">
+                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+                  <Boxes className="h-4 w-4" />
+                  <span className="text-sm">Total catégories</span>
+                </div>
+                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.totalCategories || 0}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-lg border border-border p-4">
+                <p className="text-sm text-muted-foreground">Total unités de mesure</p>
+                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.totalMeasurementUnits || 0}</p>
+              </div>
+              <div className="rounded-lg border border-border p-4">
+                <p className="text-sm text-muted-foreground">Bons d'achat en attente</p>
+                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.pendingPurchaseOrders || 0}</p>
+              </div>
+              <div className="rounded-lg border border-border p-4">
+                <p className="text-sm text-muted-foreground">Inventaires en cours</p>
+                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.inProgressInventories || 0}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div className="rounded-lg border border-border p-4">
+                <p className="mb-3 text-sm font-medium">Utilisateurs actifs (24h)</p>
+                <div className="space-y-2">
+                  {adminConnectedUsers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucun utilisateur actif récent.</p>
+                  ) : (
+                    adminConnectedUsers.map((item: any) => (
+                      <div key={item.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                        <div>
+                          <p className="text-sm font-medium">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">{roleLabel(item.role)}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge className="bg-accent/20 text-accent">Actif</Badge>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {new Date(item.lastActivity).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border p-4">
+                <p className="mb-3 text-sm font-medium">Historique création / modification</p>
+                <div className="space-y-2">
+                  {adminChangeHistory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucun historique disponible.</p>
+                  ) : (
+                    adminChangeHistory.map((item: any) => (
+                      <div key={item.id} className="rounded-md border border-border px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium">{item.description}</p>
+                          <Badge variant="outline">{item.actionType}</Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {item.userName} ({roleLabel(item.userRole)}) - {new Date(item.date).toLocaleString()}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
+              <p className="text-sm text-muted-foreground">
+                Ajustements de stock sur la période:{" "}
+                <span className="font-semibold text-foreground">
+                  {statsLoading ? "..." : stats?.systemAdminActivity?.stockAdjustmentsInPeriod || 0}
+                </span>
+              </p>
+              <div className="flex gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/users">Utilisateurs</Link>
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/notifications">Notifications</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/settings">Paramétrage</Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {txLoading ? (
         <Card className="flex h-40 flex-col items-center justify-center">

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { products, categories, stock } from "@/lib/db/schema"
 import { eq, desc, sql } from "drizzle-orm"
+import { requireAdmin } from "@/lib/auth-guard"
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -14,13 +15,16 @@ export async function GET(request: Request) {
                 id: products.id,
                 sku: products.sku,
                 name: products.name,
+                type: products.type,
                 price: products.price,
                 cost: products.cost,
                 stock: products.stock,
                 minStock: products.minStock,
+                unit: products.unit,
                 image: products.image,
                 categoryId: products.categoryId,
                 categoryName: categories.name,
+                sector: products.sector,
             })
             .from(products)
             .leftJoin(categories, eq(products.categoryId, categories.id))
@@ -44,8 +48,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        const authError = await requireAdmin()
+        if (authError) return authError
+
         const body = await request.json()
-        const { name, categoryId, price, cost, minStock, image } = body
+        const { name, categoryId, price, cost, minStock, unit, image, sector } = body
         let { sku } = body
 
         if (!name || price === undefined) {
@@ -66,6 +73,8 @@ export async function POST(request: Request) {
                     sku,
                     name,
                     categoryId,
+                    unit: unit || "unit",
+                    sector: sector || "Alimentation",
                     price: price.toString(),
                     cost: cost ? cost.toString() : null,
                     stock: 0, // Always 0 on creation

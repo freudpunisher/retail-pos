@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
@@ -20,21 +19,30 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Store, Tag, Percent, Users, Plus, Edit2, Trash2, Shield, Save, Loader2 } from "lucide-react"
+import { Store, Tag, Percent, Plus, Trash2, Save, Loader2, Ruler, Pencil, Search } from "lucide-react"
+import Swal from "sweetalert2"
 import { useSettings } from "@/hooks/use-settings"
 import { useCategories } from "@/hooks/use-products"
-import { useUsers } from "@/hooks/use-users"
+import { UserManagement } from "@/components/user-management"
+import { useUnits } from "@/hooks/use-units"
 
 export default function SettingsPage() {
   const { settings, loading: settingsLoading, updateSettings } = useSettings()
-  const { categories, loading: categoriesLoading, createCategory, deleteCategory } = useCategories()
-  const { users, loading: usersLoading, createUser, deleteUser } = useUsers()
+  const { categories, loading: categoriesLoading, createCategory, deleteCategory, updateCategory } = useCategories()
+  const { units, loading: unitsLoading, createUnit, deleteUnit, updateUnit } = useUnits()
 
   const [storeInfo, setStoreInfo] = useState<any>(null)
   const [newCategory, setNewCategory] = useState({ name: "", description: "" })
-  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "cashier" })
+  const [newUnit, setNewUnit] = useState({ code: "", name: "", symbol: "" })
   const [showAddCategory, setShowAddCategory] = useState(false)
-  const [showAddUser, setShowAddUser] = useState(false)
+  const [showAddUnit, setShowAddUnit] = useState(false)
+  const [categorySearch, setCategorySearch] = useState("")
+  const [categoryPage, setCategoryPage] = useState(1)
+  const [categoryPageSize, setCategoryPageSize] = useState(10)
+  const [showEditCategory, setShowEditCategory] = useState(false)
+  const [editCategory, setEditCategory] = useState<{ id: string; name: string; description: string } | null>(null)
+  const [showEditUnit, setShowEditUnit] = useState(false)
+  const [editUnit, setEditUnit] = useState<{ id: string; code: string; name: string; symbol: string } | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -54,29 +62,194 @@ export default function SettingsPage() {
 
   const handleAddCategory = async () => {
     if (newCategory.name.trim()) {
-      await createCategory(newCategory)
-      setNewCategory({ name: "", description: "" })
-      setShowAddCategory(false)
+      try {
+        await createCategory(newCategory)
+        setNewCategory({ name: "", description: "" })
+        setShowAddCategory(false)
+        await Swal.fire({
+          icon: "success",
+          title: "Category added",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to add category",
+        })
+      }
     }
   }
 
   const handleDeleteCategory = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this category?")) {
-      await deleteCategory(id)
+    const result = await Swal.fire({
+      title: "Delete category?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+    })
+
+    if (result.isConfirmed) {
+      try {
+        await deleteCategory(id)
+        await Swal.fire({
+          icon: "success",
+          title: "Category deleted",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to delete category",
+        })
+      }
     }
   }
 
-  const handleAddUser = async () => {
-    if (newUser.name.trim() && newUser.email.trim() && newUser.password.trim()) {
-      await createUser(newUser)
-      setNewUser({ name: "", email: "", password: "", role: "cashier" })
-      setShowAddUser(false)
+  const filteredCategories = categories.filter((category) => {
+    const searchValue = categorySearch.trim().toLowerCase()
+    if (!searchValue) return true
+    const name = category.name?.toLowerCase() ?? ""
+    const description = category.description?.toLowerCase() ?? ""
+    return name.includes(searchValue) || description.includes(searchValue)
+  })
+  const categoryTotalPages = Math.max(1, Math.ceil(filteredCategories.length / categoryPageSize))
+  const categoryCurrentPage = Math.min(categoryPage, categoryTotalPages)
+  const paginatedCategories = filteredCategories.slice(
+    (categoryCurrentPage - 1) * categoryPageSize,
+    categoryCurrentPage * categoryPageSize,
+  )
+
+  const handleCategorySearchChange = (value: string) => {
+    setCategorySearch(value)
+    setCategoryPage(1)
+  }
+
+  const handleCategoryPageSizeChange = (value: string) => {
+    const nextSize = Number(value)
+    setCategoryPageSize(nextSize)
+    setCategoryPage(1)
+  }
+
+  const handleStartEditCategory = (category: any) => {
+    setEditCategory({
+      id: category.id,
+      name: category.name ?? "",
+      description: category.description ?? "",
+    })
+    setShowEditCategory(true)
+  }
+
+  const handleUpdateCategory = async () => {
+    if (!editCategory) return
+    if (editCategory.name.trim()) {
+      try {
+        await updateCategory(editCategory.id, {
+          name: editCategory.name,
+          description: editCategory.description,
+        })
+        setShowEditCategory(false)
+        setEditCategory(null)
+        await Swal.fire({
+          icon: "success",
+          title: "Category updated",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to update category",
+        })
+      }
     }
   }
 
-  const handleDeleteUser = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      await deleteUser(id)
+  const handleAddUnit = async () => {
+    if (newUnit.code.trim() && newUnit.name.trim()) {
+      try {
+        await createUnit(newUnit)
+        setNewUnit({ code: "", name: "", symbol: "" })
+        setShowAddUnit(false)
+        await Swal.fire({
+          icon: "success",
+          title: "Unit added",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to add unit",
+        })
+      }
+    }
+  }
+
+  const handleDeleteUnit = async (id: string) => {
+    const result = await Swal.fire({
+      title: "Delete unit?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+    })
+
+    if (result.isConfirmed) {
+      try {
+        await deleteUnit(id)
+        await Swal.fire({
+          icon: "success",
+          title: "Unit deleted",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to delete unit",
+        })
+      }
+    }
+  }
+
+  const handleStartEditUnit = (unit: any) => {
+    setEditUnit({
+      id: unit.id,
+      code: unit.code ?? "",
+      name: unit.name ?? "",
+      symbol: unit.symbol ?? "",
+    })
+    setShowEditUnit(true)
+  }
+
+  const handleUpdateUnit = async () => {
+    if (!editUnit) return
+    if (editUnit.code.trim() && editUnit.name.trim()) {
+      try {
+        await updateUnit(editUnit.id, {
+          code: editUnit.code,
+          name: editUnit.name,
+          symbol: editUnit.symbol,
+        })
+        setShowEditUnit(false)
+        setEditUnit(null)
+        await Swal.fire({
+          icon: "success",
+          title: "Unit updated",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to update unit",
+        })
+      }
     }
   }
 
@@ -97,9 +270,10 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="store">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="store">Store Info</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="units">Units</TabsTrigger>
           <TabsTrigger value="tax">Tax & Discounts</TabsTrigger>
           <TabsTrigger value="users">Users & Roles</TabsTrigger>
         </TabsList>
@@ -179,7 +353,7 @@ export default function SettingsPage() {
         {/* Categories */}
         <TabsContent value="categories" className="mt-4">
           <Card className="border-border bg-card">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Tag className="h-5 w-5" />
@@ -187,44 +361,65 @@ export default function SettingsPage() {
                 </CardTitle>
                 <CardDescription>Manage product categories</CardDescription>
               </div>
-              <Dialog open={showAddCategory} onOpenChange={setShowAddCategory}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Category
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Category</DialogTitle>
-                    <DialogDescription>Create a new product category</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Category Name</Label>
-                      <Input
-                        placeholder="Enter category name"
-                        value={newCategory.name}
-                        onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Description</Label>
-                      <Input
-                        placeholder="Enter description"
-                        value={newCategory.description}
-                        onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowAddCategory(false)}>
-                      Cancel
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search categories..."
+                    value={categorySearch}
+                    onChange={(e) => handleCategorySearchChange(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={String(categoryPageSize)} onValueChange={handleCategoryPageSizeChange}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Rows" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 rows</SelectItem>
+                    <SelectItem value="20">20 rows</SelectItem>
+                    <SelectItem value="50">50 rows</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Dialog open={showAddCategory} onOpenChange={setShowAddCategory}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Category
                     </Button>
-                    <Button onClick={handleAddCategory}>Add Category</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Category</DialogTitle>
+                      <DialogDescription>Create a new product category</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Category Name</Label>
+                        <Input
+                          placeholder="Enter category name"
+                          value={newCategory.name}
+                          onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Input
+                          placeholder="Enter description"
+                          value={newCategory.description}
+                          onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddCategory(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleAddCategory}>Add Category</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <div className="rounded-md border border-border">
@@ -244,20 +439,30 @@ export default function SettingsPage() {
                           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
-                    ) : categories.length === 0 ? (
+                    ) : paginatedCategories.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                           No categories found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      categories.map((category) => (
+                      paginatedCategories.map((category) => (
                         <TableRow key={category.id} className="border-border">
                           <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{category.id}</TableCell>
                           <TableCell className="font-medium">{category.name}</TableCell>
                           <TableCell className="text-muted-foreground">{category.description || "-"}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground"
+                                title="Edit category"
+                                aria-label="Edit category"
+                                onClick={() => handleStartEditCategory(category)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -274,8 +479,77 @@ export default function SettingsPage() {
                   </TableBody>
                 </Table>
               </div>
+              <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Showing {(categoryCurrentPage - 1) * categoryPageSize + 1}-
+                  {Math.min(categoryCurrentPage * categoryPageSize, filteredCategories.length)} of {filteredCategories.length}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCategoryPage((p) => Math.max(1, p - 1))}
+                    disabled={categoryCurrentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-sm text-muted-foreground">
+                    Page {categoryCurrentPage} of {categoryTotalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCategoryPage((p) => Math.min(categoryTotalPages, p + 1))}
+                    disabled={categoryCurrentPage === categoryTotalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
+          <Dialog
+            open={showEditCategory}
+            onOpenChange={(open) => {
+              setShowEditCategory(open)
+              if (!open) setEditCategory(null)
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Category</DialogTitle>
+                <DialogDescription>Update category details</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    placeholder="e.g. Bakery"
+                    value={editCategory?.name ?? ""}
+                    onChange={(e) =>
+                      setEditCategory((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description (optional)</Label>
+                  <Input
+                    placeholder="Category description"
+                    value={editCategory?.description ?? ""}
+                    onChange={(e) =>
+                      setEditCategory((prev) => (prev ? { ...prev, description: e.target.value } : prev))
+                    }
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowEditCategory(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateCategory}>Save Changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* Tax & Discounts */}
@@ -341,78 +615,60 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Users & Roles */}
-        <TabsContent value="users" className="mt-4">
+        {/* Units */}
+        <TabsContent value="units" className="mt-4">
           <Card className="border-border bg-card">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  User Management
+                  <Ruler className="h-5 w-5" />
+                  Measurement Units
                 </CardTitle>
-                <CardDescription>Manage users and their roles</CardDescription>
+                <CardDescription>Manage product measurement units</CardDescription>
               </div>
-              <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
+              <Dialog open={showAddUnit} onOpenChange={setShowAddUnit}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
-                    Add User
+                    Add Unit
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Add User</DialogTitle>
-                    <DialogDescription>Create a new user account</DialogDescription>
+                    <DialogTitle>Add Unit</DialogTitle>
+                    <DialogDescription>Create a new measurement unit</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
+                      <Label>Code</Label>
+                      <Input
+                        placeholder="e.g. kg"
+                        value={newUnit.code}
+                        onChange={(e) => setNewUnit({ ...newUnit, code: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label>Name</Label>
                       <Input
-                        placeholder="Enter name"
-                        value={newUser.name}
-                        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                        placeholder="e.g. Kilogramme"
+                        value={newUnit.name}
+                        onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Email</Label>
+                      <Label>Symbol (optional)</Label>
                       <Input
-                        type="email"
-                        placeholder="Enter email"
-                        value={newUser.email}
-                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                        placeholder="e.g. kg"
+                        value={newUnit.symbol}
+                        onChange={(e) => setNewUnit({ ...newUnit, symbol: e.target.value })}
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Password</Label>
-                      <Input
-                        type="password"
-                        placeholder="Enter password"
-                        value={newUser.password}
-                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Role</Label>
-                      <Select
-                        value={newUser.role}
-                        onValueChange={(value) => setNewUser({ ...newUser, role: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="cashier">Cashier</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowAddUser(false)}>
+                    <Button variant="outline" onClick={() => setShowAddUnit(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={handleAddUser}>Add User</Button>
+                    <Button onClick={handleAddUnit}>Add Unit</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -422,51 +678,48 @@ export default function SettingsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-muted-foreground">User</TableHead>
-                      <TableHead className="text-muted-foreground">Email</TableHead>
-                      <TableHead className="text-muted-foreground">Role</TableHead>
-                      <TableHead className="text-muted-foreground text-right w-24">Actions</TableHead>
+                      <TableHead className="text-muted-foreground">Code</TableHead>
+                      <TableHead className="text-muted-foreground">Name</TableHead>
+                      <TableHead className="text-muted-foreground">Symbol</TableHead>
+                      <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {usersLoading ? (
+                    {unitsLoading ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center">
                           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
-                    ) : users.length === 0 ? (
+                    ) : units.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                          No users found
+                          No units found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      users.map((user) => (
-                        <TableRow key={user.id} className="border-border">
-                          <TableCell className="font-medium">{user.name}</TableCell>
-                          <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                user.role === "admin"
-                                  ? "bg-destructive/20 text-destructive"
-                                  : user.role === "manager"
-                                    ? "bg-primary/20 text-primary"
-                                    : "bg-accent/20 text-accent"
-                              }
-                            >
-                              <Shield className="mr-1 h-3 w-3" />
-                              {user.role}
-                            </Badge>
-                          </TableCell>
+                      units.map((unit) => (
+                        <TableRow key={unit.id} className="border-border">
+                          <TableCell className="font-mono text-xs">{unit.code}</TableCell>
+                          <TableCell className="font-medium">{unit.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{unit.symbol || "-"}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-8 w-8 text-muted-foreground"
+                                title="Edit unit"
+                                aria-label="Edit unit"
+                                onClick={() => handleStartEditUnit(unit)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="h-8 w-8 text-destructive"
-                                onClick={() => handleDeleteUser(user.id)}
+                                onClick={() => handleDeleteUnit(unit.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -480,6 +733,63 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          <Dialog
+            open={showEditUnit}
+            onOpenChange={(open) => {
+              setShowEditUnit(open)
+              if (!open) setEditUnit(null)
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Unit</DialogTitle>
+                <DialogDescription>Update measurement unit details</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Code</Label>
+                  <Input
+                    placeholder="e.g. kg"
+                    value={editUnit?.code ?? ""}
+                    onChange={(e) =>
+                      setEditUnit((prev) => (prev ? { ...prev, code: e.target.value } : prev))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    placeholder="e.g. Kilogramme"
+                    value={editUnit?.name ?? ""}
+                    onChange={(e) =>
+                      setEditUnit((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Symbol (optional)</Label>
+                  <Input
+                    placeholder="e.g. kg"
+                    value={editUnit?.symbol ?? ""}
+                    onChange={(e) =>
+                      setEditUnit((prev) => (prev ? { ...prev, symbol: e.target.value } : prev))
+                    }
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowEditUnit(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateUnit}>Save Changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        {/* Users & Roles */}
+        <TabsContent value="users" className="mt-4">
+          <UserManagement />
         </TabsContent>
       </Tabs>
     </div>

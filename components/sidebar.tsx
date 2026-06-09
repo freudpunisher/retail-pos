@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAuth } from "@/lib/auth-context"
+import type { UserRole } from "@/lib/types"
 import {
   LayoutDashboard,
   ShoppingCart,
   Package,
   Warehouse,
-  ArrowLeftRight,
   Users,
   CreditCard,
   BarChart3,
@@ -20,26 +20,190 @@ import {
   ChevronLeft,
   ChevronRight,
   Truck,
-  RefreshCw,
   ClipboardList,
   Receipt,
   LogOut,
+  Factory,
+  Wheat,
+  Wallet,
+  HandCoins,
+  PieChart,
+  Bell,
+  Building2,
+  UserRound,
 } from "lucide-react"
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "cashier"] },
-  { href: "/sales", label: "Sales (POS)", icon: ShoppingCart, roles: ["admin", "manager", "cashier"] },
-  { href: "/sales-history", label: "Sales History", icon: Receipt, roles: ["admin", "manager", "cashier"] },
-  { href: "/purchases", label: "Purchases", icon: Truck, roles: ["admin", "manager"] },
-  { href: "/products", label: "Product Management", icon: Package, roles: ["admin", "manager", "cashier"] },
-  { href: "/inventory", label: "Stock Status", icon: Warehouse, roles: ["admin", "manager", "cashier"] },
-  { href: "/inventory/adjustments", label: "Stock Adjustments", icon: RefreshCw, roles: ["admin", "manager"] },
-  { href: "/inventory/count", label: "Inventory Count", icon: ClipboardList, roles: ["admin", "manager"] },
-  { href: "/stock-movements", label: "Stock Movements", icon: ArrowLeftRight, roles: ["admin", "manager"] },
-  { href: "/clients", label: "Clients", icon: Users, roles: ["admin", "manager", "cashier"] },
-  { href: "/credit", label: "Credit Management", icon: CreditCard, roles: ["admin", "manager"] },
-  { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "manager"] },
-  { href: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
+const navItems: { href: string; label: string; icon: any; roles: UserRole[] }[] = [
+  {
+    href: "/dashboard",
+    label: "Tableau de bord",
+    icon: LayoutDashboard,
+    roles: [
+      "admin",
+      "cashier_food",
+      "supervisor_food",
+      "cashier_bakery",
+      "supervisor_bakery",
+      "production_bakery",
+      "manager",
+      "investor",
+      "accountant",
+    ],
+  },
+  {
+    href: "/sales",
+    label: "Ventes",
+    icon: ShoppingCart,
+    roles: ["cashier_food", "supervisor_food", "cashier_bakery", "supervisor_bakery"],
+  },
+  {
+    href: "/sales-history",
+    label: "Factures de vente",
+    icon: Receipt,
+    roles: [
+      "cashier_food",
+      "supervisor_food",
+      "cashier_bakery",
+      "supervisor_bakery",
+      "manager",
+      "investor",
+      "accountant",
+    ],
+  },
+  {
+    href: "/credit",
+    label: "Payement credit",
+    icon: CreditCard,
+    roles: [
+      "cashier_food",
+      "supervisor_food",
+      "cashier_bakery",
+      "supervisor_bakery",
+      "manager",
+      "investor",
+      "accountant",
+    ],
+  },
+  {
+    href: "/purchases",
+    label: "Approvisionnement (Alimentation)",
+    icon: Truck,
+    roles: ["cashier_food", "supervisor_food", "manager", "investor"],
+  },
+  {
+    href: "/suppliers",
+    label: "Fournisseurs",
+    icon: Building2,
+    roles: ["supervisor_food", "supervisor_bakery", "cashier_food", "cashier_bakery"],
+  },
+  {
+    href: "/clients",
+    label: "Clients",
+    icon: UserRound,
+    roles: ["supervisor_food", "supervisor_bakery", "cashier_food", "cashier_bakery"],
+  },
+  {
+    href: "/bakery/raw-materials",
+    label: "Matière Première",
+    icon: Wheat,
+    roles: ["cashier_bakery", "supervisor_bakery", "production_bakery", "manager", "investor"],
+  },
+  {
+    href: "/bakery/purchases/create",
+    label: "Achat Matières Premières",
+    icon: Truck,
+    roles: ["supervisor_bakery", "manager", "investor"],
+  },
+  {
+    href: "/bakery/purchases",
+    label: "Liste Achats Boulangerie",
+    icon: ClipboardList,
+    roles: ["supervisor_bakery", "cashier_bakery", "production_bakery", "manager", "investor"],
+  },
+  {
+    href: "/bakery/stock",
+    label: "Stock Boulangerie",
+    icon: Warehouse,
+    roles: ["supervisor_bakery", "cashier_bakery", "production_bakery", "manager", "investor"],
+  },
+  {
+    href: "/inventory",
+    label: "Statut de l'inventaire",
+    icon: Warehouse,
+    roles: [
+      "cashier_food",
+      "supervisor_food",
+      "cashier_bakery",
+      "supervisor_bakery",
+      "production_bakery",
+      "manager",
+      "investor",
+    ],
+  },
+  {
+    href: "/products",
+    label: "Produits",
+    icon: Package,
+    roles: ["cashier_food", "supervisor_food", "supervisor_bakery", "admin"],
+  },
+  {
+    href: "/inventory/count",
+    label: "Sessions d'inventaire",
+    icon: ClipboardList,
+    roles: ["cashier_food", "supervisor_food"],
+  },
+  {
+    href: "/inventory/count",
+    label: "Sessions d'inventaire (Boulangerie)",
+    icon: ClipboardList,
+    roles: ["cashier_bakery", "supervisor_bakery", "production_bakery"],
+  },
+  {
+    href: "/finance/expenses",
+    label: "Dépenses",
+    icon: Wallet,
+    roles: ["cashier_food", "supervisor_food", "supervisor_bakery", "manager", "investor"],
+  },
+  {
+    href: "/finance/payments",
+    label: "Historique paiements",
+    icon: HandCoins,
+    roles: ["admin", "cashier_food", "supervisor_food", "cashier_bakery", "supervisor_bakery", "manager", "investor", "accountant"],
+  },
+  {
+    href: "/bakery/production",
+    label: "Production",
+    icon: Factory,
+    roles: ["production_bakery", "supervisor_bakery"],
+  },
+  {
+    href: "/bakery/production/history",
+    label: "Historique Production",
+    icon: ClipboardList,
+    roles: ["production_bakery", "supervisor_bakery"],
+  },
+  {
+    href: "/reports",
+    label: "Rapports",
+    icon: BarChart3,
+    roles: [
+      "cashier_food",
+      "supervisor_food",
+      "cashier_bakery",
+      "supervisor_bakery",
+      "production_bakery",
+      "accountant",
+    ],
+  },
+  {
+    href: "/finance/reports",
+    label: "Comptabilité",
+    icon: PieChart,
+    roles: ["manager", "investor", "accountant"],
+  },
+  { href: "/users", label: "Utilisateurs", icon: Users, roles: ["admin"] },
+  { href: "/notifications", label: "Notifications", icon: Bell, roles: ["admin"] },
+  { href: "/settings", label: "Paramétrage", icon: Settings, roles: ["admin"] },
 ]
 
 export function Sidebar() {
@@ -52,7 +216,7 @@ export function Sidebar() {
     window.location.href = "/login"
   }
 
-  const filteredNavItems = navItems.filter((item) => hasRole(item.roles as ("admin" | "manager" | "cashier")[]))
+  const filteredNavItems = navItems.filter((item) => hasRole(item.roles))
 
   return (
     <aside
@@ -80,7 +244,9 @@ export function Sidebar() {
       <ScrollArea className="flex-1 py-4">
         <nav className="space-y-1 px-2">
           {filteredNavItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+            const isActive =
+              pathname === item.href ||
+              (pathname.startsWith(`${item.href}/`) && item.href !== "/bakery/production")
             return (
               <Link key={item.href} href={item.href}>
                 <Button

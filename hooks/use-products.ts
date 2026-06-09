@@ -41,7 +41,7 @@ export function useProducts(categoryId?: string, search?: string) {
             })
             if (!response.ok) throw new Error("Failed to create product")
             const newProduct = await response.json()
-            setProducts((prev) => [newProduct, ...prev])
+            await fetchProducts()
             return newProduct
         } catch (err: any) {
             setError(err.message)
@@ -58,7 +58,7 @@ export function useProducts(categoryId?: string, search?: string) {
             })
             if (!response.ok) throw new Error("Failed to update product")
             const updatedProduct = await response.json()
-            setProducts((prev) => prev.map((p) => (p.id === id ? updatedProduct : p)))
+            await fetchProducts()
             return updatedProduct
         } catch (err: any) {
             setError(err.message)

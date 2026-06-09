@@ -6,21 +6,49 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, Plus, Edit2, Trash2, Filter, Loader2, Package } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Search, Plus, Edit2, Trash2, Loader2, Package } from "lucide-react"
 import { useProducts } from "@/hooks/use-products"
 import { ProductFormDialog } from "@/components/inventory/product-form-dialog"
+import { useAuth } from "@/lib/auth-context"
 
 export default function ProductManagementPage() {
     const [search, setSearch] = useState("")
+    const [page, setPage] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
 
     const { products, loading, deleteProduct, createProduct, updateProduct } = useProducts()
+    const { user } = useAuth()
+    const canEdit = user?.role === "admin"
+    const roleSector =
+        user?.role === "cashier_bakery" || user?.role === "supervisor_bakery" || user?.role === "production_bakery"
+            ? "Boulangerie"
+            : user?.role === "cashier_food" || user?.role === "supervisor_food"
+            ? "Alimentation"
+            : null
 
-    const filteredProducts = products.filter((product) =>
-        product.name.toLowerCase().includes(search.toLowerCase()) ||
-        product.sku.toLowerCase().includes(search.toLowerCase()),
-    )
+    const filteredProducts = products
+        .filter((product) => (roleSector ? product.sector === roleSector : true))
+        .filter((product) =>
+            product.name.toLowerCase().includes(search.toLowerCase()) ||
+            product.sku.toLowerCase().includes(search.toLowerCase()),
+        )
+    const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize))
+    const currentPage = Math.min(page, totalPages)
+    const paginatedProducts = filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value)
+        setPage(1)
+    }
+
+    const handlePageSizeChange = (value: string) => {
+        const nextSize = Number(value)
+        setPageSize(nextSize)
+        setPage(1)
+    }
 
     const handleEdit = (product: any) => {
         setSelectedProduct(product)
@@ -54,10 +82,16 @@ export default function ProductManagementPage() {
                     <h2 className="text-3xl font-bold tracking-tight text-foreground">Product Management</h2>
                     <p className="text-muted-foreground">Catalog and stock overview for your store</p>
                 </div>
-                <Button onClick={handleAddNew} className="bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Product
-                </Button>
+                {canEdit ? (
+                    <Button onClick={handleAddNew} className="bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Product
+                    </Button>
+                ) : (
+                    <Badge variant="outline" className="border-border/50 bg-background/50 text-muted-foreground">
+                        Lecture seule
+                    </Badge>
+                )}
             </div>
 
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl">
@@ -73,13 +107,20 @@ export default function ProductManagementPage() {
                                 <Input
                                     placeholder="Search by name or SKU..."
                                     value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
+                                    onChange={(e) => handleSearchChange(e.target.value)}
                                     className="pl-10 bg-background/50 border-border/50 focus:ring-primary/20"
                                 />
                             </div>
-                            <Button variant="outline" size="icon" className="border-border/50">
-                                <Filter className="h-4 w-4" />
-                            </Button>
+                            <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+                                <SelectTrigger className="w-[120px] border-border/50">
+                                    <SelectValue placeholder="Rows" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="10">10 rows</SelectItem>
+                                    <SelectItem value="20">20 rows</SelectItem>
+                                    <SelectItem value="50">50 rows</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 </CardHeader>
@@ -90,6 +131,7 @@ export default function ProductManagementPage() {
                                 <TableRow className="hover:bg-transparent border-border/50 bg-secondary/10">
                                     <TableHead className="w-24">SKU</TableHead>
                                     <TableHead>Product Name</TableHead>
+                                    <TableHead>Secteur</TableHead>
                                     <TableHead>Category</TableHead>
                                     <TableHead className="text-right">Price</TableHead>
                                     <TableHead className="text-right">Stock</TableHead>
@@ -107,17 +149,22 @@ export default function ProductManagementPage() {
                                             </div>
                                         </TableCell>
                                     </TableRow>
-                                ) : filteredProducts.length === 0 ? (
+                                ) : paginatedProducts.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={7} className="h-32 text-center text-muted-foreground italic">
                                             No products found matching your search.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredProducts.map((product) => (
+                                    paginatedProducts.map((product) => (
                                         <TableRow key={product.id} className="border-border/50 hover:bg-secondary/5 transition-colors">
                                             <TableCell className="font-mono text-xs text-muted-foreground">{product.sku}</TableCell>
                                             <TableCell className="font-medium text-foreground">{product.name}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="font-normal border-border/50 bg-background/50">
+                                                    {product.sector || "—"}
+                                                </Badge>
+                                            </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className="font-normal border-border/50 bg-background/50">
                                                     {product.categoryName || "Uncategorized"}
@@ -137,20 +184,52 @@ export default function ProductManagementPage() {
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(product)} className="h-8 w-8 hover:bg-primary/10 hover:text-primary">
-                                                        <Edit2 className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)} className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive text-muted-foreground">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
+                                                {canEdit ? (
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(product)} className="h-8 w-8 hover:bg-primary/10 hover:text-primary">
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)} className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive text-muted-foreground">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">Lecture seule</span>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+                    <div className="flex flex-col gap-3 border-t border-border/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-sm text-muted-foreground">
+                            Showing {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, filteredProducts.length)} of {filteredProducts.length}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-border/50"
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Previous
+                            </Button>
+                            <div className="text-sm text-muted-foreground">
+                                Page {currentPage} of {totalPages}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-border/50"
+                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                            >
+                                Next
+                            </Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

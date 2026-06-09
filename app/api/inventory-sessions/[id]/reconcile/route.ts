@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { inventory, inventoryItems, stock, stockMovements, products } from "@/lib/db/schema"
+import { inventory, inventoryItems, stock, stockMovements, products, stockAdjustments } from "@/lib/db/schema"
 import { eq, sql } from "drizzle-orm"
 
 export async function POST(
@@ -31,22 +31,37 @@ export async function POST(
         const result = await db.transaction(async (tx) => {
             // 1. Update stock levels and record movements for each variance
             for (const item of session.items) {
-                if (item.variance !== 0) {
+                const variance = Number(item.variance ?? 0)
+                const physicalQty = Number(item.physicalQuantity ?? 0)
+                if (variance !== 0) {
                     // Update Stock table
-                    await tx
-                        .update(stock)
-                        .set({
-                            quantityOnHand: item.physicalQuantity,
+                    const [stockRow] = await tx.select().from(stock).where(eq(stock.productId, item.productId))
+                    if (stockRow) {
+                        await tx
+                            .update(stock)
+                            .set({
+                                quantityOnHand: physicalQty.toString(),
+                                lastCountedDate: new Date(),
+                                updatedAt: new Date(),
+                            })
+                            .where(eq(stock.productId, item.productId))
+                    } else {
+                        await tx.insert(stock).values({
+                            productId: item.productId,
+                            quantityOnHand: physicalQty.toString(),
+                            quantityReserved: "0",
+                            reorderLevel: Number(item.product?.minStock || 10),
+                            reorderQuantity: 20,
                             lastCountedDate: new Date(),
                             updatedAt: new Date(),
                         })
-                        .where(eq(stock.productId, item.productId))
+                    }
 
                     // Update Products table (denormalized total stock)
                     const [product] = await tx.select().from(products).where(eq(products.id, item.productId))
                     if (product) {
                         await tx.update(products).set({
-                            stock: item.physicalQuantity
+                            stock: physicalQty
                         }).where(eq(products.id, item.productId))
                     }
 
@@ -55,19 +70,42 @@ export async function POST(
                         productId: item.productId,
                         productName: item.product.name,
                         type: "adjustment",
-                        quantity: item.variance,
+                        quantity: variance.toString(),
                         userId: session.countedBy,
                         notes: `Inventory Count Reconciliation (Session ${session.id})`,
                     })
+
+                    // Record detailed adjustment (loss/surplus correction) for reporting
+                    await tx.insert(stockAdjustments).values({
+                        productId: item.productId,
+                        quantityChange: variance.toString(),
+                        adjustmentType: variance < 0 ? "loss" : "correction",
+                        reason: variance < 0 ? "Physical inventory loss" : "Physical inventory surplus",
+                        createdBy: session.countedBy,
+                        notes: `Session ${session.id} | logical=${Number(item.quantityInStock)} physical=${physicalQty} variance=${variance}`,
+                    })
                 } else {
                     // Even if variance is 0, update last counted date
-                    await tx
-                        .update(stock)
-                        .set({
+                    const [stockRow] = await tx.select().from(stock).where(eq(stock.productId, item.productId))
+                    if (stockRow) {
+                        await tx
+                            .update(stock)
+                            .set({
+                                lastCountedDate: new Date(),
+                                updatedAt: new Date(),
+                            })
+                            .where(eq(stock.productId, item.productId))
+                    } else {
+                        await tx.insert(stock).values({
+                            productId: item.productId,
+                            quantityOnHand: physicalQty.toString(),
+                            quantityReserved: "0",
+                            reorderLevel: Number(item.product?.minStock || 10),
+                            reorderQuantity: 20,
                             lastCountedDate: new Date(),
                             updatedAt: new Date(),
                         })
-                        .where(eq(stock.productId, item.productId))
+                    }
                 }
             }
 

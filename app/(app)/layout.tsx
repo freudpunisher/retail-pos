@@ -25,14 +25,18 @@ function LayoutSkeleton() {
 }
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!loading && !isAuthenticated) {
       router.push("/")
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, loading, router])
+
+  if (loading) {
+    return <LayoutSkeleton />
+  }
 
   if (!isAuthenticated) {
     return null

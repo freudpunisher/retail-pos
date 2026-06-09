@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 
-export function useTransactions() {
+export function useTransactions(sector?: string) {
     const [transactions, setTransactions] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -10,7 +10,11 @@ export function useTransactions() {
     const fetchTransactions = useCallback(async () => {
         setLoading(true)
         try {
-            const response = await fetch("/api/transactions")
+            const params = new URLSearchParams()
+            if (sector) {
+                params.set("sector", sector)
+            }
+            const response = await fetch(`/api/transactions?${params.toString()}`)
             if (!response.ok) throw new Error("Failed to fetch transactions")
             const data = await response.json()
             setTransactions(data)
@@ -19,7 +23,7 @@ export function useTransactions() {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [sector])
 
     const processTransaction = useCallback(async (transactionData: any) => {
         setLoading(true)

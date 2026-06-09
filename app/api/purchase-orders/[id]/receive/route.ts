@@ -37,6 +37,7 @@ export async function POST(
                 .where(eq(purchaseOrderItems.purchaseOrderId, id));
 
             for (const item of items) {
+                const quantity = Number(item.quantity || 0);
                 // Update main products stock & last cost
                 const [product] = await tx
                     .select()
@@ -47,7 +48,7 @@ export async function POST(
                     await tx
                         .update(products)
                         .set({
-                            stock: sql`${products.stock} + ${item.quantity}`,
+                            stock: sql`${products.stock} + ${quantity}`,
                             cost: item.cost, // update to latest purchase cost
                         })
                         .where(eq(products.id, item.productId));
@@ -63,10 +64,19 @@ export async function POST(
                     await tx
                         .update(stock)
                         .set({
-                            quantityOnHand: sql`${stock.quantityOnHand} + ${item.quantity}`,
+                            quantityOnHand: sql`${stock.quantityOnHand} + ${quantity}`,
                             updatedAt: new Date(),
                         })
                         .where(eq(stock.productId, item.productId));
+                } else {
+                    await tx.insert(stock).values({
+                        productId: item.productId,
+                        quantityOnHand: quantity,
+                        quantityReserved: 0,
+                        reorderLevel: product?.minStock ?? 10,
+                        reorderQuantity: 20,
+                        updatedAt: new Date(),
+                    });
                 }
 
                 // Record movement
@@ -74,7 +84,7 @@ export async function POST(
                     productId: item.productId,
                     productName: item.productName,
                     type: "purchase",
-                    quantity: item.quantity,
+                    quantity,
                     userId,
                     notes: `Received from PO ${id}`,
                 });

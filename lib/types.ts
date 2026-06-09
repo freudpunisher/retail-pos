@@ -1,10 +1,20 @@
-export type UserRole = "admin" | "manager" | "cashier"
+export type UserRole =
+  | "admin"
+  | "cashier_food"
+  | "supervisor_food"
+  | "cashier_bakery"
+  | "supervisor_bakery"
+  | "production_bakery"
+  | "manager"
+  | "investor"
+  | "accountant"
 
 export interface User {
   id: string
   name: string
   email: string
   role: UserRole
+  phone?: string
   avatar?: string
 }
 
@@ -13,6 +23,7 @@ export interface Product {
   sku: string
   name: string
   category: string
+  sector?: string
   price: number
   cost: number
   stock: number
@@ -46,6 +57,7 @@ export interface Supplier {
 
 export interface Transaction {
   id: string
+  invoiceRef?: string | null
   type: "sale" | "purchase" | "credit_payment"
   date: string
   total: number
@@ -70,6 +82,7 @@ export interface PurchaseOrder {
   date: string
   status: "pending" | "received" | "cancelled"
   total: number
+  sector?: string
   items: PurchaseOrderItem[]
 }
 
@@ -94,9 +107,11 @@ export interface StockMovement {
 export interface CreditRecord {
   id: string
   clientId: string
+  clientName?: string | null
   transactionId: string
-  amount: number
-  paidAmount: number
+  invoiceRef?: string | null
+  amount: number | string
+  paidAmount: number | string
   dueDate: string
   status: "paid" | "partial" | "overdue" | "pending"
   payments: CreditPayment[]
@@ -104,9 +119,10 @@ export interface CreditRecord {
 
 export interface CreditPayment {
   id: string
-  amount: number
+  amount: number | string
   date: string
   method: "cash" | "card"
+  paymentRef?: string | null
 }
 
 export interface StoreSettings {

@@ -2,21 +2,27 @@ import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { products } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { requireAdmin } from "@/lib/auth-guard"
 
 export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const authError = await requireAdmin()
+        if (authError) return authError
+
         const { id } = await params
         const body = await request.json()
-        const { name, categoryId, price, cost, minStock, image } = body
+        const { name, categoryId, price, cost, minStock, unit, image, sector } = body
 
         const [updatedProduct] = await db
             .update(products)
             .set({
                 name,
                 categoryId,
+                unit,
+                sector,
                 price: price?.toString(),
                 cost: cost ? cost.toString() : null,
                 minStock,
@@ -41,6 +47,9 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const authError = await requireAdmin()
+        if (authError) return authError
+
         const { id } = await params
         const [deletedProduct] = await db
             .delete(products)

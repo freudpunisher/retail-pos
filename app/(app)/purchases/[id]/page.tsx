@@ -17,6 +17,7 @@ import { useProducts } from "@/hooks/use-products"
 import { usePurchases } from "@/hooks/use-purchases"
 import { formatCurrency } from "@/lib/mock-data"
 import { ArrowLeft, Loader2, Plus, Trash2, Package, ShoppingCart, XCircle, CheckCircle2 } from "lucide-react"
+import Swal from "sweetalert2"
 import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "@/lib/auth-context"
 
@@ -120,7 +121,7 @@ export default function EditPurchaseOrderPage() {
   }
 
   const total = items.reduce((sum, i) => sum + i.quantity * i.cost, 0)
-  const totalUnits = items.reduce((sum, i) => sum + i.quantity, 0)
+  const totalUnits = items.reduce((sum, i) => sum + Number(i.quantity || 0), 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -161,7 +162,15 @@ export default function EditPurchaseOrderPage() {
   }
 
   const handleReceiveOrder = async () => {
-    if (!confirm("Mark as received? This will update stock levels.")) return
+    const result = await Swal.fire({
+      title: "Mark as received?",
+      text: "This will update stock levels.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, receive",
+      cancelButtonText: "Cancel",
+    })
+    if (!result.isConfirmed) return
     setIsActionLoading(true)
     try {
       await markAsReceived(orderId, user?.id || "")
