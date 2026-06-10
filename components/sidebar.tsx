@@ -27,6 +27,8 @@ import {
   ArrowRightLeft,
   Wallet,
   Loader2,
+  ArrowLeftRight,
+  RefreshCw,
 } from "lucide-react"
 
 const iconMap: Record<string, any> = {
@@ -36,6 +38,25 @@ const iconMap: Record<string, any> = {
   ClipboardList, Receipt, ArrowRightLeft, Wallet,
 }
 
+const DEFAULT_MENUS = [
+  { id: "1", href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", roles: ["admin", "manager", "cashier"], sortOrder: 1 },
+  { id: "2", href: "/sales", label: "Sales (POS)", icon: "ShoppingCart", roles: ["admin", "manager", "cashier"], sortOrder: 2 },
+  { id: "3", href: "/sales-history", label: "Sales History", icon: "Receipt", roles: ["admin", "manager", "cashier"], sortOrder: 3 },
+  { id: "4", href: "/purchases", label: "Purchases", icon: "Truck", roles: ["admin", "manager"], sortOrder: 4 },
+  { id: "5", href: "/products", label: "Product Management", icon: "Package", roles: ["admin", "manager", "cashier"], sortOrder: 5 },
+  { id: "6", href: "/inventory", label: "Stock Status", icon: "Warehouse", roles: ["admin", "manager", "cashier"], sortOrder: 6 },
+  { id: "7", href: "/inventory/adjustments", label: "Stock Adjustments", icon: "RefreshCw", roles: ["admin", "manager"], sortOrder: 7 },
+  { id: "8", href: "/inventory/count", label: "Inventory Count", icon: "ClipboardList", roles: ["admin", "manager"], sortOrder: 8 },
+  { id: "9", href: "/stock-movements", label: "Stock Movements", icon: "ArrowLeftRight", roles: ["admin", "manager"], sortOrder: 9 },
+  { id: "10", href: "/stock/transfers", label: "Stock Transfers", icon: "ArrowRightLeft", roles: ["admin", "manager"], sortOrder: 10 },
+  { id: "11", href: "/expenses", label: "Expenses", icon: "Wallet", roles: ["admin", "manager"], sortOrder: 11 },
+  { id: "12", href: "/staff-tables", label: "Staff & Tables", icon: "UserCog", roles: ["admin", "manager"], sortOrder: 12 },
+  { id: "13", href: "/clients", label: "Clients", icon: "Users", roles: ["admin", "manager", "cashier"], sortOrder: 13 },
+  { id: "14", href: "/credit", label: "Credit Management", icon: "CreditCard", roles: ["admin", "manager"], sortOrder: 14 },
+  { id: "15", href: "/reports", label: "Reports", icon: "BarChart3", roles: ["admin", "manager"], sortOrder: 15 },
+  { id: "16", href: "/settings", label: "Settings", icon: "Settings", roles: ["admin"], sortOrder: 16 },
+]
+
 interface MenuItem {
   id: string
   href: string
@@ -43,6 +64,10 @@ interface MenuItem {
   icon: string
   roles: string[]
   sortOrder: number
+}
+
+function getDefaultMenus(role: string = "cashier"): MenuItem[] {
+  return DEFAULT_MENUS.filter((m) => m.roles.includes(role))
 }
 
 export function Sidebar() {
@@ -58,14 +83,18 @@ export function Sidebar() {
         const res = await fetch("/api/menus")
         if (res.ok) {
           const data = await res.json()
-          setMenuItems(data)
+          if (data.length > 0) {
+            setMenuItems(data)
+            setLoading(false)
+            return
+          }
         }
-      } catch {} finally {
-        setLoading(false)
-      }
+      } catch {} 
+      setMenuItems(getDefaultMenus(user?.role))
+      setLoading(false)
     }
     fetchMenus()
-  }, [])
+  }, [user?.role])
 
   const handleLogout = async () => {
     await logout()

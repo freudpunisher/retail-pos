@@ -16,6 +16,15 @@ export const inventoryAdjustmentTypeEnum = pgEnum("inventory_adjustment_type", [
 export const inventorySessionStatusEnum = pgEnum("inventory_session_status", ["in_progress", "completed", "reconciled"])
 export const locationTypeEnum = pgEnum("location_type", ["principal", "secondary"])
 export const tableStatusEnum = pgEnum("table_status", ["free", "occupied", "reserved"])
+export const productionStatusEnum = pgEnum("production_status", ["planned", "in_progress", "completed", "cancelled"])
+export const expenseCategoryEnum = pgEnum("expense_category", [
+    "rent", "utilities", "salaries", "supplies", "maintenance",
+    "marketing", "transport", "insurance", "taxes", "other"
+])
+export const cashFlowTypeEnum = pgEnum("cash_flow_type", ["inflow", "outflow"])
+export const cashFlowCategoryEnum = pgEnum("cash_flow_category", [
+    "sale", "purchase", "expense", "salary", "utility", "rent", "other"
+])
 
 // Tables
 export const users = pgTable("users", {
@@ -41,6 +50,10 @@ export const products = pgTable("products", {
     categoryId: uuid("category_id").references(() => categories.id),
     productType: productTypeEnum("product_type").notNull().default("food"),
     price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+    sector: text("sector"),
+    type: text("type"),
+    unit: text("unit"),
+    cost: numeric("cost", { precision: 12, scale: 2 }),
     stock: integer("stock").notNull().default(0), // Kept for backward compatibility/simplicity
     minStock: integer("min_stock").notNull().default(0),
     trackStock: boolean("track_stock").notNull().default(false),
@@ -162,6 +175,7 @@ export const transactions = pgTable("transactions", {
     waiterId: uuid("waiter_id").references(() => users.id),
     tableId: uuid("table_id").references(() => tables.id),
     reference: text("reference"),
+    invoiceRef: text("invoice_ref"),
 })
 
 export const transactionItems = pgTable("transaction_items", {
@@ -503,25 +517,15 @@ export const creditPaymentsRelations = relations(creditPayments, ({ one }) => ({
     }),
 }))
 
-// Expense category enum
-export const expenseCategoryEnum = pgEnum("expense_category", [
-    "rent", "utilities", "salaries", "supplies", "maintenance",
-    "marketing", "transport", "insurance", "taxes", "other"
-])
-
-// Expenses table
-export const expenses = pgTable("expenses", {
+// Menu permissions (which roles can see which menu items)
+export const measurementUnits = pgTable("measurement_units", {
     id: uuid("id").primaryKey().defaultRandom(),
+    code: text("code").notNull(),
     name: text("name").notNull(),
-    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-    category: expenseCategoryEnum("category").notNull(),
-    description: text("description"),
-    date: timestamp("date").notNull().defaultNow(),
-    userId: uuid("user_id").notNull().references(() => users.id),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    symbol: text("symbol"),
+    isActive: boolean("is_active").notNull().default(true),
 })
 
-// Menu permissions (which roles can see which menu items)
 export const menuPermissions = pgTable("menu_permissions", {
     id: uuid("id").primaryKey().defaultRandom(),
     href: text("href").notNull().unique(),

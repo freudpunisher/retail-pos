@@ -38,11 +38,6 @@ export async function POST(
                 .where(eq(purchaseOrderItems.purchaseOrderId, id));
 
             for (const item of items) {
-<<<<<<< HEAD
-                const quantity = Number(item.quantity || 0);
-                // Update main products stock & last cost
-=======
->>>>>>> origin/alimentation
                 const [product] = await tx
                     .select({ productType: products.productType })
                     .from(products)
@@ -58,21 +53,7 @@ export async function POST(
                     })
                     .where(eq(products.id, item.productId));
 
-<<<<<<< HEAD
-                if (product) {
-                    await tx
-                        .update(products)
-                        .set({
-                            stock: sql`${products.stock} + ${quantity}`,
-                            cost: item.cost, // update to latest purchase cost
-                        })
-                        .where(eq(products.id, item.productId));
-                }
-
-                // Update separate stock table (if you use it)
-=======
                 // Update warehouse stock
->>>>>>> origin/alimentation
                 const [stockRecord] = await tx
                     .select()
                     .from(stock)
@@ -88,24 +69,12 @@ export async function POST(
                             quantityOnHand: sql`${stock.quantityOnHand} + ${quantity}`,
                             updatedAt: new Date(),
                         })
-<<<<<<< HEAD
-                        .where(eq(stock.productId, item.productId));
-                } else {
-                    await tx.insert(stock).values({
-                        productId: item.productId,
-                        quantityOnHand: quantity,
-                        quantityReserved: 0,
-                        reorderLevel: product?.minStock ?? 10,
-                        reorderQuantity: 20,
-                        updatedAt: new Date(),
-=======
                         .where(eq(stock.id, stockRecord.id));
                 } else {
                     await tx.insert(stock).values({
                         productId: item.productId,
                         locationId: warehouse.id,
                         quantityOnHand: item.quantity,
->>>>>>> origin/alimentation
                     });
                 }
 

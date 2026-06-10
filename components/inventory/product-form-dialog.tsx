@@ -14,13 +14,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useCategories } from "@/hooks/use-products"
-<<<<<<< HEAD
 import { useUnits } from "@/hooks/use-units"
-import { Loader2 } from "lucide-react"
-import Swal from "sweetalert2"
-=======
 import { Loader2, Beer, Utensils, Package } from "lucide-react"
->>>>>>> origin/alimentation
+import Swal from "sweetalert2"
 
 interface ProductFormDialogProps {
     product?: any
@@ -111,7 +107,10 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
         }
     }
 
-<<<<<<< HEAD
+    const isIngredient = formData.productType === "ingredient"
+    const isFood = formData.productType === "food"
+    const isDrink = formData.productType === "drink"
+
     const filteredCategories = categories.filter((cat: any) => {
         if (cat.id === formData.categoryId) return true
         if (!formData.sector) return true
@@ -120,11 +119,6 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
         if (formData.sector === "Boulangerie") return name.includes("boulangerie")
         return true
     })
-=======
-    const isIngredient = formData.productType === "ingredient"
-    const isFood = formData.productType === "food"
-    const isDrink = formData.productType === "drink"
->>>>>>> origin/alimentation
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,12 +166,9 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                             />
                         </div>
 
-                        {/* Category */}
+                        {/* Sector */}
                         <div className="grid grid-cols-4 items-center gap-4">
-<<<<<<< HEAD
-                            <Label htmlFor="sector" className="text-right">
-                                Secteur
-                            </Label>
+                            <Label htmlFor="sector" className="text-right">Sector</Label>
                             <Select
                                 value={formData.sector}
                                 onValueChange={(value) => setFormData({ ...formData, sector: value })}
@@ -192,13 +183,9 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                 </SelectContent>
                             </Select>
                         </div>
+                        {/* Category */}
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="category" className="text-right">
-                                Category
-                            </Label>
-=======
                             <Label htmlFor="category" className="text-right">Category</Label>
->>>>>>> origin/alimentation
                             <Select
                                 value={formData.categoryId}
                                 onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
@@ -207,38 +194,34 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                     <SelectValue placeholder="Select category" />
                                 </SelectTrigger>
                                 <SelectContent>
-<<<<<<< HEAD
                                     {filteredCategories.map((cat) => (
-                                        <SelectItem key={cat.id} value={cat.id}>
-                                            {cat.name}
-                                        </SelectItem>
-=======
-                                    {categories.map((cat) => (
                                         <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
->>>>>>> origin/alimentation
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
-<<<<<<< HEAD
+                        {/* Selling Price (hidden for ingredients) */}
+                        {!isIngredient && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="price" className="text-right">
+                                    {isFood ? "Plate Price" : "Sell Price"}
+                                </Label>
+                                <Input
+                                    id="price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={formData.price}
+                                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                    className="col-span-3"
+                                    required
+                                />
+                            </div>
+                        )}
+
+                        {/* Unit */}
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="price" className="text-right">
-                                Price
-                            </Label>
-                            <Input
-                                id="price"
-                                type="number"
-                                step="0.01"
-                                value={formData.price}
-                                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                className="col-span-3"
-                                required
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="unit" className="text-right">
-                                Unit
-                            </Label>
+                            <Label htmlFor="unit" className="text-right">Unit</Label>
                             <Select
                                 value={formData.unit}
                                 onValueChange={(value) => setFormData({ ...formData, unit: value })}
@@ -261,39 +244,6 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                             </Select>
                             {unitsLoading && <span className="col-span-3 text-xs text-muted-foreground">Loading units...</span>}
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="minStock" className="text-right">
-                                Min Stock
-                            </Label>
-                            <Input
-                                id="minStock"
-                                type="number"
-                                value={formData.minStock}
-                                onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
-                                className="col-span-3"
-                                required
-                            />
-                        </div>
-=======
-
-                        {/* Selling Price (hidden for ingredients) */}
-                        {!isIngredient && (
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="price" className="text-right">
-                                    {isFood ? "Plate Price" : "Sell Price"}
-                                </Label>
-                                <Input
-                                    id="price"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={formData.price}
-                                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                    className="col-span-3"
-                                    required
-                                />
-                            </div>
-                        )}
 
                         {/* Track Stock Toggle (drinks only) */}
                         {isDrink && (
@@ -306,13 +256,8 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                         size="sm"
                                         onClick={() => setFormData({ ...formData, trackStock: !formData.trackStock })}
                                     >
-                                        {formData.trackStock ? "Yes — Countable" : "No — Made to Order"}
+                                        {formData.trackStock ? "Yes" : "No"}
                                     </Button>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        {formData.trackStock
-                                            ? "Stock decreases when sold (e.g. bottled beer, soda can)"
-                                            : "No stock tracking (e.g. cafe, fresh juice)"}
-                                    </p>
                                 </div>
                             </div>
                         )}
@@ -331,7 +276,6 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                 />
                             </div>
                         )}
->>>>>>> origin/alimentation
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

@@ -2,11 +2,8 @@ import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { products, categories, stock } from "@/lib/db/schema"
 import { eq, desc, sql } from "drizzle-orm"
-<<<<<<< HEAD
-import { requireAdmin } from "@/lib/auth-guard"
-=======
 import { resolveWarehouse } from "@/lib/db/location-utils"
->>>>>>> origin/alimentation
+import { requireAdmin } from "@/lib/auth-guard"
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -19,19 +16,11 @@ export async function GET(request: Request) {
                 id: products.id,
                 sku: products.sku,
                 name: products.name,
-<<<<<<< HEAD
-                type: products.type,
-=======
                 productType: products.productType,
->>>>>>> origin/alimentation
                 price: products.price,
                 stock: products.stock,
                 minStock: products.minStock,
-<<<<<<< HEAD
-                unit: products.unit,
-=======
                 trackStock: products.trackStock,
->>>>>>> origin/alimentation
                 image: products.image,
                 categoryId: products.categoryId,
                 categoryName: categories.name,
@@ -63,11 +52,7 @@ export async function POST(request: Request) {
         if (authError) return authError
 
         const body = await request.json()
-<<<<<<< HEAD
-        const { name, categoryId, price, cost, minStock, unit, image, sector } = body
-=======
-        const { name, categoryId, productType, price, minStock, trackStock, image } = body
->>>>>>> origin/alimentation
+        const { name, categoryId, productType, price, cost, minStock, unit, trackStock, image, sector } = body
         let { sku } = body
 
         if (!name || price === undefined) {
@@ -88,17 +73,15 @@ export async function POST(request: Request) {
                     sku,
                     name,
                     categoryId,
-<<<<<<< HEAD
-                    unit: unit || "unit",
-                    sector: sector || "Alimentation",
-=======
                     productType: productType || "food",
->>>>>>> origin/alimentation
                     price: price.toString(),
+                    cost: cost ? cost.toString() : null,
                     stock: 0, // Always 0 on creation
                     minStock: minStock || 10,
+                    unit,
                     trackStock: trackStock || false,
                     image,
+                    sector,
                 })
                 .returning()
 

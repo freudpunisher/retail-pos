@@ -17,32 +17,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-<<<<<<< HEAD
-import { Store, Tag, Percent, Plus, Trash2, Save, Loader2, Ruler, Pencil, Search } from "lucide-react"
-import Swal from "sweetalert2"
-import { useSettings } from "@/hooks/use-settings"
-import { useCategories } from "@/hooks/use-products"
-import { UserManagement } from "@/components/user-management"
-import { useUnits } from "@/hooks/use-units"
-
-export default function SettingsPage() {
-  const { settings, loading: settingsLoading, updateSettings } = useSettings()
-  const { categories, loading: categoriesLoading, createCategory, deleteCategory, updateCategory } = useCategories()
-  const { units, loading: unitsLoading, createUnit, deleteUnit, updateUnit } = useUnits()
-
-  const [storeInfo, setStoreInfo] = useState<any>(null)
-  const [newCategory, setNewCategory] = useState({ name: "", description: "" })
-  const [newUnit, setNewUnit] = useState({ code: "", name: "", symbol: "" })
-  const [showAddCategory, setShowAddCategory] = useState(false)
-  const [showAddUnit, setShowAddUnit] = useState(false)
-  const [categorySearch, setCategorySearch] = useState("")
-  const [categoryPage, setCategoryPage] = useState(1)
-  const [categoryPageSize, setCategoryPageSize] = useState(10)
-  const [showEditCategory, setShowEditCategory] = useState(false)
-  const [editCategory, setEditCategory] = useState<{ id: string; name: string; description: string } | null>(null)
-  const [showEditUnit, setShowEditUnit] = useState(false)
-  const [editUnit, setEditUnit] = useState<{ id: string; code: string; name: string; symbol: string } | null>(null)
-=======
 import { Store, Tag, Shield, Plus, Trash2, Save, Loader2 } from "lucide-react"
 import { useSettings } from "@/hooks/use-settings"
 import { useCategories } from "@/hooks/use-products"
@@ -55,7 +29,6 @@ export default function SettingsPage() {
   const [storeInfo, setStoreInfo] = useState<any>(null)
   const [newCategory, setNewCategory] = useState({ name: "", description: "" })
   const [showAddCategory, setShowAddCategory] = useState(false)
->>>>>>> origin/alimentation
   const [isSaving, setIsSaving] = useState(false)
   const [menuItems, setMenuItems] = useState<any[]>([])
   const [menuLoading, setMenuLoading] = useState(false)
@@ -125,149 +98,6 @@ export default function SettingsPage() {
     }
   }
 
-<<<<<<< HEAD
-  const filteredCategories = categories.filter((category) => {
-    const searchValue = categorySearch.trim().toLowerCase()
-    if (!searchValue) return true
-    const name = category.name?.toLowerCase() ?? ""
-    const description = category.description?.toLowerCase() ?? ""
-    return name.includes(searchValue) || description.includes(searchValue)
-  })
-  const categoryTotalPages = Math.max(1, Math.ceil(filteredCategories.length / categoryPageSize))
-  const categoryCurrentPage = Math.min(categoryPage, categoryTotalPages)
-  const paginatedCategories = filteredCategories.slice(
-    (categoryCurrentPage - 1) * categoryPageSize,
-    categoryCurrentPage * categoryPageSize,
-  )
-
-  const handleCategorySearchChange = (value: string) => {
-    setCategorySearch(value)
-    setCategoryPage(1)
-  }
-
-  const handleCategoryPageSizeChange = (value: string) => {
-    const nextSize = Number(value)
-    setCategoryPageSize(nextSize)
-    setCategoryPage(1)
-  }
-
-  const handleStartEditCategory = (category: any) => {
-    setEditCategory({
-      id: category.id,
-      name: category.name ?? "",
-      description: category.description ?? "",
-    })
-    setShowEditCategory(true)
-  }
-
-  const handleUpdateCategory = async () => {
-    if (!editCategory) return
-    if (editCategory.name.trim()) {
-      try {
-        await updateCategory(editCategory.id, {
-          name: editCategory.name,
-          description: editCategory.description,
-        })
-        setShowEditCategory(false)
-        setEditCategory(null)
-        await Swal.fire({
-          icon: "success",
-          title: "Category updated",
-          timer: 1500,
-          showConfirmButton: false,
-        })
-      } catch {
-        await Swal.fire({
-          icon: "error",
-          title: "Failed to update category",
-        })
-      }
-    }
-  }
-
-  const handleAddUnit = async () => {
-    if (newUnit.code.trim() && newUnit.name.trim()) {
-      try {
-        await createUnit(newUnit)
-        setNewUnit({ code: "", name: "", symbol: "" })
-        setShowAddUnit(false)
-        await Swal.fire({
-          icon: "success",
-          title: "Unit added",
-          timer: 1500,
-          showConfirmButton: false,
-        })
-      } catch {
-        await Swal.fire({
-          icon: "error",
-          title: "Failed to add unit",
-        })
-      }
-    }
-  }
-
-  const handleDeleteUnit = async (id: string) => {
-    const result = await Swal.fire({
-      title: "Delete unit?",
-      text: "This action cannot be undone.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
-    })
-
-    if (result.isConfirmed) {
-      try {
-        await deleteUnit(id)
-        await Swal.fire({
-          icon: "success",
-          title: "Unit deleted",
-          timer: 1500,
-          showConfirmButton: false,
-        })
-      } catch {
-        await Swal.fire({
-          icon: "error",
-          title: "Failed to delete unit",
-        })
-      }
-    }
-  }
-
-  const handleStartEditUnit = (unit: any) => {
-    setEditUnit({
-      id: unit.id,
-      code: unit.code ?? "",
-      name: unit.name ?? "",
-      symbol: unit.symbol ?? "",
-    })
-    setShowEditUnit(true)
-  }
-
-  const handleUpdateUnit = async () => {
-    if (!editUnit) return
-    if (editUnit.code.trim() && editUnit.name.trim()) {
-      try {
-        await updateUnit(editUnit.id, {
-          code: editUnit.code,
-          name: editUnit.name,
-          symbol: editUnit.symbol,
-        })
-        setShowEditUnit(false)
-        setEditUnit(null)
-        await Swal.fire({
-          icon: "success",
-          title: "Unit updated",
-          timer: 1500,
-          showConfirmButton: false,
-        })
-      } catch {
-        await Swal.fire({
-          icon: "error",
-          title: "Failed to update unit",
-        })
-      }
-=======
   const fetchMenuItems = async () => {
     setMenuLoading(true)
     try {
@@ -305,7 +135,6 @@ export default function SettingsPage() {
       })
     } finally {
       setMenuSaving(false)
->>>>>>> origin/alimentation
     }
   }
 
@@ -328,19 +157,10 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="store">
-<<<<<<< HEAD
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="store">Store Info</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="units">Units</TabsTrigger>
-          <TabsTrigger value="tax">Tax & Discounts</TabsTrigger>
-          <TabsTrigger value="users">Users & Roles</TabsTrigger>
-=======
         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
           <TabsTrigger value="store">Store Info</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="menus">Menu Permissions</TabsTrigger>
->>>>>>> origin/alimentation
         </TabsList>
 
         {/* Store Information */}
@@ -659,116 +479,12 @@ export default function SettingsPage() {
                   Save Changes
                 </Button>
               </div>
-<<<<<<< HEAD
-            </CardContent>
-          </Card>
-
-          <Card className="border-border bg-card">
-            <CardHeader>
-              <CardTitle>Discount Settings</CardTitle>
-              <CardDescription>Configure discount options</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                <div>
-                  <p className="font-medium">Allow Line Item Discounts</p>
-                  <p className="text-sm text-muted-foreground">Enable discounts on individual items</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                <div>
-                  <p className="font-medium">Allow Order Level Discounts</p>
-                  <p className="text-sm text-muted-foreground">Enable discounts on entire orders</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                <div>
-                  <p className="font-medium">Require Manager Approval</p>
-                  <p className="text-sm text-muted-foreground">Require manager approval for discounts over 20%</p>
-                </div>
-                <Switch />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Units */}
-        <TabsContent value="units" className="mt-4">
-          <Card className="border-border bg-card">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Ruler className="h-5 w-5" />
-                  Measurement Units
-                </CardTitle>
-                <CardDescription>Manage product measurement units</CardDescription>
-              </div>
-              <Dialog open={showAddUnit} onOpenChange={setShowAddUnit}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Unit
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Unit</DialogTitle>
-                    <DialogDescription>Create a new measurement unit</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Code</Label>
-                      <Input
-                        placeholder="e.g. kg"
-                        value={newUnit.code}
-                        onChange={(e) => setNewUnit({ ...newUnit, code: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Name</Label>
-                      <Input
-                        placeholder="e.g. Kilogramme"
-                        value={newUnit.name}
-                        onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Symbol (optional)</Label>
-                      <Input
-                        placeholder="e.g. kg"
-                        value={newUnit.symbol}
-                        onChange={(e) => setNewUnit({ ...newUnit, symbol: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowAddUnit(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleAddUnit}>Add Unit</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-=======
->>>>>>> origin/alimentation
             </CardHeader>
             <CardContent className="p-0">
               <div className="rounded-md border border-border">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
-<<<<<<< HEAD
-                      <TableHead className="text-muted-foreground">Code</TableHead>
-                      <TableHead className="text-muted-foreground">Name</TableHead>
-                      <TableHead className="text-muted-foreground">Symbol</TableHead>
-                      <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {unitsLoading ? (
-=======
                       <TableHead className="text-muted-foreground">Menu Item</TableHead>
                       <TableHead className="text-muted-foreground">Admin</TableHead>
                       <TableHead className="text-muted-foreground">Manager</TableHead>
@@ -778,50 +494,11 @@ export default function SettingsPage() {
                   </TableHeader>
                   <TableBody>
                     {menuLoading ? (
->>>>>>> origin/alimentation
                       <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center">
                           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
-<<<<<<< HEAD
-                    ) : units.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                          No units found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      units.map((unit) => (
-                        <TableRow key={unit.id} className="border-border">
-                          <TableCell className="font-mono text-xs">{unit.code}</TableCell>
-                          <TableCell className="font-medium">{unit.name}</TableCell>
-                          <TableCell className="text-muted-foreground">{unit.symbol || "-"}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground"
-                                title="Edit unit"
-                                aria-label="Edit unit"
-                                onClick={() => handleStartEditUnit(unit)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => handleDeleteUnit(unit.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-=======
                     ) : menuItems.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
@@ -854,7 +531,6 @@ export default function SettingsPage() {
                           </TableRow>
                         )
                       })
->>>>>>> origin/alimentation
                     )}
                   </TableBody>
                 </Table>

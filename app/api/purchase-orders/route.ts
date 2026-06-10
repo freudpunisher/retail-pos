@@ -3,13 +3,9 @@ import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import db from "@/lib/db";
 import { purchaseOrders, purchaseOrderItems, suppliers, products, stock, stockMovements } from "@/lib/db/schema";
-<<<<<<< HEAD
-import { eq, desc, and, gte, lt, sql } from "drizzle-orm";
-=======
 import { eq, desc, and, gte, lte } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { resolveWarehouse } from "@/lib/db/location-utils";
->>>>>>> origin/alimentation
 
 // GET - list orders with optional date range filter
 export async function GET(request: NextRequest) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -81,7 +81,6 @@ export function Header() {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-<<<<<<< HEAD
       case "admin":
         return "bg-destructive/20 text-destructive"
       case "manager":
@@ -90,11 +89,6 @@ export function Header() {
         return "bg-primary/20 text-primary"
       default:
         return "bg-accent/20 text-accent"
-=======
-      case "admin": return "bg-destructive/20 text-destructive"
-      case "manager": return "bg-primary/20 text-primary"
-      default: return "bg-accent/20 text-accent"
->>>>>>> origin/alimentation
     }
   }
 

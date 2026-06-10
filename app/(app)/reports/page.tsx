@@ -46,65 +46,29 @@ const getMonthEnd = () => {
 }
 
 export default function ReportsPage() {
-<<<<<<< HEAD
   const [dateFrom, setDateFrom] = useState(getMonthStart)
   const [dateTo, setDateTo] = useState(getMonthEnd)
   const [granularity, setGranularity] = useState<"day" | "week" | "month">("day")
 
   const { transactions, loading: txLoading, fetchTransactions } = useTransactions()
-  const { purchaseOrders, loading: poLoading } = usePurchaseOrders()
-  const { movements, loading: moveLoading } = useStockMovements()
-  const { clients, loading: clientLoading } = useClients()
-  const { products, loading: productsLoading } = useProducts()
-=======
-  const [dateFrom, setDateFrom] = useState("")
-  const [dateTo, setDateTo] = useState("")
-
-  const { transactions, loading: txLoading, fetchTransactions } = useTransactions()
   const { purchaseOrders, loading: poLoading, refresh: fetchPurchaseOrders } = usePurchaseOrders()
-  const { movements, loading: moveLoading, refresh: fetchMovements } = useStockMovements()
+  const { movements, loading: moveLoading, refresh: fetchStockMovements } = useStockMovements()
   const { clients, loading: clientLoading, refresh: fetchClients } = useClients()
->>>>>>> origin/alimentation
 
   const fetchAllData = useCallback((from?: string, to?: string) => {
     fetchTransactions(from, to)
     fetchPurchaseOrders(from, to)
-    fetchMovements(from, to)
+    fetchStockMovements(from, to)
     fetchClients()
-  }, [fetchTransactions, fetchPurchaseOrders, fetchMovements, fetchClients])
+  }, [fetchTransactions, fetchPurchaseOrders, fetchStockMovements, fetchClients])
 
   // Fetch on mount with no date filter (all data)
   useEffect(() => {
     fetchAllData()
   }, [fetchAllData])
 
-<<<<<<< HEAD
-  const isLoading = txLoading || poLoading || moveLoading || clientLoading || productsLoading
-
-  const productSectorById = new Map(products.map((p: any) => [p.id, p.sector]))
-
-  const dateStart = dateFrom ? new Date(dateFrom) : null
-  const dateEnd = dateTo ? new Date(dateTo) : null
-  if (dateEnd) dateEnd.setHours(23, 59, 59, 999)
-
-  const isInRange = (dateStr: string) => {
-    const d = new Date(dateStr)
-    if (dateStart && d < dateStart) return false
-    if (dateEnd && d > dateEnd) return false
-    return true
-  }
-
-  const isBakeryTransaction = (t: any) =>
-    (t.items || []).some((it: any) => productSectorById.get(it.productId) === "Boulangerie")
-
-  // Sales data (Boulangerie)
-  const saleTransactions = transactions.filter(
-    (t: any) => t.type === "sale" && t.status === "completed" && isInRange(t.date) && isBakeryTransaction(t)
-  )
-=======
   // Sales data (API already filters by date if params provided)
   const saleTransactions = transactions.filter((t: any) => t.type === "sale" && t.status === "completed")
->>>>>>> origin/alimentation
   const salesTotal = saleTransactions.reduce((sum, t) => sum + Number.parseFloat(t.total), 0)
 
   const salesByPayment = [
@@ -112,28 +76,6 @@ export default function ReportsPage() {
     { name: "Credit", value: saleTransactions.filter((t) => t.paymentMethod === "credit").reduce((sum, t) => sum + Number.parseFloat(t.total), 0) },
   ]
 
-<<<<<<< HEAD
-  const groupKey = (d: Date) => {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, "0")
-    if (granularity === "month") return `${y}-${m}`
-    if (granularity === "week") {
-      const firstDay = new Date(d.getFullYear(), 0, 1)
-      const dayOfYear = Math.floor((d.getTime() - firstDay.getTime()) / 86400000) + 1
-      const week = Math.ceil(dayOfYear / 7)
-      return `${y}-W${String(week).padStart(2, "0")}`
-    }
-    const day = String(d.getDate()).padStart(2, "0")
-    return `${y}-${m}-${day}`
-  }
-
-  const salesByPeriodMap = new Map<string, number>()
-  for (const t of saleTransactions) {
-    const key = groupKey(new Date(t.date))
-    salesByPeriodMap.set(key, (salesByPeriodMap.get(key) || 0) + Number.parseFloat(t.total))
-  }
-  const dailySales = Array.from(salesByPeriodMap.entries()).map(([day, sales]) => ({ day, sales }))
-=======
   // Build daily sales from real transaction data, grouped by date
   const dailySalesMap = new Map<string, number>()
   saleTransactions.forEach((t: any) => {
@@ -141,7 +83,6 @@ export default function ReportsPage() {
     dailySalesMap.set(day, (dailySalesMap.get(day) || 0) + Number.parseFloat(t.total))
   })
   const dailySales = Array.from(dailySalesMap.entries()).map(([day, sales]) => ({ day, sales }))
->>>>>>> origin/alimentation
 
   // Purchase data
   const bakeryPurchaseOrders = purchaseOrders.filter(
@@ -318,26 +259,10 @@ export default function ReportsPage() {
               <Label>To Date</Label>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" />
             </div>
-<<<<<<< HEAD
-            <div className="space-y-2">
-              <Label>Granularité</Label>
-              <Select value={granularity} onValueChange={(v) => setGranularity(v as any)}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Période" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">Jour</SelectItem>
-                  <SelectItem value="week">Semaine</SelectItem>
-                  <SelectItem value="month">Mois</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-=======
             <Button variant="outline" onClick={handleApplyFilter}>
               <Calendar className="mr-2 h-4 w-4" />
               Apply Filter
             </Button>
->>>>>>> origin/alimentation
           </div>
         </CardContent>
       </Card>

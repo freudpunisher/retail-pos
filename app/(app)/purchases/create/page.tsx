@@ -62,12 +62,6 @@ export default function CreatePurchaseOrderPage() {
     setSelectedProductId("")
   }
 
-<<<<<<< HEAD
-  const updateQuantity = (productId: string, quantity: number) => {
-    setItems((prev) =>
-      prev.map((i) =>
-        i.productId === productId ? { ...i, quantity: Math.max(0, quantity) } : i
-=======
   const updateQuantity = (productId: string, newQuantity: number) => {
     const qty = Math.max(0, newQuantity)
     if (qty === 0) {
@@ -77,7 +71,6 @@ export default function CreatePurchaseOrderPage() {
         prev.map((i) =>
           i.productId === productId ? { ...i, quantity: qty } : i
         )
->>>>>>> origin/alimentation
       )
     }
   }

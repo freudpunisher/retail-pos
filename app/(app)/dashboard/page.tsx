@@ -1,23 +1,22 @@
 "use client"
 
 import { useEffect, useState } from "react"
-<<<<<<< HEAD
 import Link from "next/link"
 import { StatsCard } from "@/components/stats-card"
 import { DataTable } from "@/components/data-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-=======
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
->>>>>>> origin/alimentation
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SalesChart } from "@/components/dashboard/sales-chart"
 import { TimePeriodSelector, type TimePeriod } from "@/components/dashboard/time-period-selector"
 import { formatCurrency } from "@/lib/mock-data"
-<<<<<<< HEAD
-import { DollarSign, TrendingUp, CreditCard, AlertTriangle, Loader2, RefreshCw, Users, ClipboardList, Boxes, ShieldCheck } from "lucide-react"
+import { DollarSign, TrendingUp, CreditCard, Package, AlertTriangle,
+  Loader2, RefreshCw, Receipt, Banknote, ShoppingCart, Clock,
+  ChefHat, Bell, Utensils, ArrowUpRight, ArrowDownRight, BarChart3,
+  Users, ClipboardList, Boxes, ShieldCheck } from "lucide-react"
 import { useDashboardStats } from "@/hooks/use-dashboard-stats"
 import { useTransactions } from "@/hooks/use-transactions"
+import { useOrders } from "@/hooks/use-orders"
 import { useAuth } from "@/lib/auth-context"
 
 export default function DashboardPage() {
@@ -26,22 +25,7 @@ export default function DashboardPage() {
   const dashboardSector = user?.role === "cashier_bakery" ? "Boulangerie" : undefined
   const { stats, loading: statsLoading, refresh: refreshStats } = useDashboardStats(timePeriod, dashboardSector)
   const { transactions, fetchTransactions, loading: txLoading } = useTransactions(dashboardSector)
-=======
-import { useDashboardStats } from "@/hooks/use-dashboard-stats"
-import { useTransactions } from "@/hooks/use-transactions"
-import { useOrders } from "@/hooks/use-orders"
-import {
-  DollarSign, TrendingUp, CreditCard, Package, AlertTriangle,
-  Loader2, RefreshCw, Receipt, Banknote, ShoppingCart, Clock,
-  ChefHat, Bell, Utensils, ArrowUpRight, ArrowDownRight, BarChart3,
-} from "lucide-react"
-
-export default function DashboardPage() {
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>("today")
-  const { stats, loading: statsLoading, refresh: refreshStats } = useDashboardStats(timePeriod)
-  const { transactions, fetchTransactions, loading: txLoading } = useTransactions()
   const { orders, loading: ordersLoading } = useOrders()
->>>>>>> origin/alimentation
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [isManualRefreshing, setIsManualRefreshing] = useState(false)
   const isSystemAdmin = user?.role === "admin"
@@ -65,7 +49,6 @@ export default function DashboardPage() {
     setIsManualRefreshing(false)
   }
 
-<<<<<<< HEAD
   const recentTransactions = (stats?.recentTransactions?.length ? stats.recentTransactions : transactions).slice(0, 5)
   const adminConnectedUsers = stats?.systemAdminActivity?.connectedUsers || []
   const adminChangeHistory = stats?.systemAdminActivity?.adminChangeHistory || []
@@ -84,11 +67,6 @@ export default function DashboardPage() {
     }
     return labels[role] || role
   }
-=======
-  const recentTransactions = transactions
-    .filter((t: any) => t.type === "sale")
-    .slice(0, 5)
->>>>>>> origin/alimentation
 
   const orderStatusCounts = {
     pending: orders.filter((o: any) => o.orderStatus === "pending").length,
@@ -104,16 +82,12 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-<<<<<<< HEAD
           <h2 className="text-2xl font-bold text-foreground">
             {dashboardSector ? "Tableau de bord Boulangerie" : "Dashboard"}
           </h2>
           <p className="text-muted-foreground">
             {dashboardSector ? "Vue des activités de la boulangerie" : "Overview of your store performance"}
           </p>
-=======
-          <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-muted-foreground">Real-time overview of your business</p>
         </div>
         <div className="flex items-center gap-3">
           <TimePeriodSelector selected={timePeriod} onSelect={setTimePeriod} />
@@ -137,7 +111,6 @@ export default function DashboardPage() {
               <RefreshCw className={`h-4 w-4 ${isManualRefreshing ? "animate-spin" : ""}`} />
             </Button>
           </div>
->>>>>>> origin/alimentation
         </div>
       </div>
 
@@ -160,10 +133,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-<<<<<<< HEAD
-      <div className="grid gap-6 lg:grid-cols-2">
-        <SalesChart loading={statsLoading} timePeriod={timePeriod} sector={dashboardSector} />
-=======
         <Card className="border-border/50 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
@@ -182,7 +151,6 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
->>>>>>> origin/alimentation
 
         <Card className="border-border/50 shadow-sm">
           <CardContent className="p-4">
@@ -231,7 +199,58 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-<<<<<<< HEAD
+      {/* Chart + Quick Stats Side by Side */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <SalesChart loading={statsLoading} timePeriod={timePeriod} sector={dashboardSector} />
+        </div>
+
+        <Card className="border-border/50 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              Performance Metrics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <MetricBar
+              label="Products Sold"
+              value={stats?.productsCount || 0}
+              suffix="items"
+              max={100}
+              loading={statsLoading}
+              color="bg-primary"
+            />
+            <MetricBar
+              label="Transactions"
+              value={stats?.todayTransactionCount || 0}
+              suffix="orders"
+              max={50}
+              loading={statsLoading}
+              color="bg-green-500"
+            />
+            <MetricBar
+              label="Avg Order Value"
+              value={formatCurrency(
+                (stats?.todaySales || 0) / Math.max(stats?.todayTransactionCount || 1, 1)
+              )}
+              max={100}
+              progress={Math.min(((stats?.todaySales || 0) / Math.max(stats?.todayTransactionCount || 1, 1)) / 50000 * 100, 100)}
+              loading={statsLoading}
+              color="bg-amber-500"
+            />
+            <MetricBar
+              label="Credit Sales"
+              value={`${stats?.creditSalesRatio || 0}%`}
+              suffix={`${stats?.creditSalesRatio || 0}% of total`}
+              max={100}
+              loading={statsLoading}
+              color="bg-red-500"
+            />
+          </CardContent>
+        </Card>
+      </div>
+
       {isSystemAdmin && (
         <Card className="border-border bg-card">
           <CardHeader>
@@ -354,64 +373,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
-
-      {txLoading ? (
-        <Card className="flex h-40 flex-col items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="mt-2 text-sm text-muted-foreground">Loading recent transactions...</p>
-=======
-      {/* Chart + Quick Stats Side by Side */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <SalesChart loading={statsLoading} timePeriod={timePeriod} />
-        </div>
-
-        <Card className="border-border/50 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              Performance Metrics
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <MetricBar
-              label="Products Sold"
-              value={stats?.productsCount || 0}
-              suffix="items"
-              max={100}
-              loading={statsLoading}
-              color="bg-primary"
-            />
-            <MetricBar
-              label="Transactions"
-              value={stats?.todayTransactionCount || 0}
-              suffix="orders"
-              max={50}
-              loading={statsLoading}
-              color="bg-green-500"
-            />
-            <MetricBar
-              label="Avg Order Value"
-              value={formatCurrency(
-                (stats?.todaySales || 0) / Math.max(stats?.todayTransactionCount || 1, 1)
-              )}
-              max={100}
-              progress={Math.min(((stats?.todaySales || 0) / Math.max(stats?.todayTransactionCount || 1, 1)) / 50000 * 100, 100)}
-              loading={statsLoading}
-              color="bg-amber-500"
-            />
-            <MetricBar
-              label="Credit Sales"
-              value={`${stats?.creditSalesRatio || 0}%`}
-              suffix={`${stats?.creditSalesRatio || 0}% of total`}
-              max={100}
-              loading={statsLoading}
-              color="bg-red-500"
-            />
-          </CardContent>
->>>>>>> origin/alimentation
-        </Card>
-      </div>
 
       {/* Recent Transactions */}
       <Card className="border-border/50 shadow-sm">

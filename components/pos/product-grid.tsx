@@ -65,41 +65,27 @@ function getCategoryIcon(category: string, productName: string) {
 export function ProductGrid() {
   const [search, setSearch] = useState("")
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
-<<<<<<< HEAD
-  const { addItem } = useCart()
-  const { user } = useAuth()
-=======
   const [posFilter, setPosFilter] = useState<string>("all")
   const { addItem, items, productStockMap } = useCart()
->>>>>>> origin/alimentation
+  const { user } = useAuth()
 
   const { products, loading: productsLoading, refresh } = useProducts(selectedCategoryId || "all", search)
   const { categories, loading: categoriesLoading } = useCategories()
 
-<<<<<<< HEAD
-  const filteredProducts = useMemo(() => {
-    if (user?.role !== "cashier_bakery") return products
-    return products.filter((product: any) => product.sector === "Boulangerie" && product.type === "finished_good")
-  }, [products, user?.role])
-
-  const getStockStatus = (product: any) => {
-    if (product.stock === 0) return "out"
-    if (product.stock <= product.minStock) return "low"
-=======
   // Filter: only show drink and food (not ingredients), optionally filter by type
   const posProducts = useMemo(() => {
-    return products.filter((p: any) => {
-      if (p.productType === "ingredient") return false
-      if (posFilter === "all") return true
-      return p.productType === posFilter
-    })
-  }, [products, posFilter])
+    let filtered = products.filter((p: any) => p.productType !== "ingredient")
+    if (posFilter !== "all") filtered = filtered.filter((p: any) => p.productType === posFilter)
+    if (user?.role === "cashier_bakery") {
+      filtered = filtered.filter((p: any) => p.sector === "Boulangerie" && p.type === "finished_good")
+    }
+    return filtered
+  }, [products, posFilter, user?.role])
 
   const getStockStatus = (product: any, effectiveStock: number) => {
-    if (product.productType === "food") return "mto" // made to order
+    if (product.productType === "food") return "mto"
     if (effectiveStock === 0 && product.productType !== "food") return "out"
     if (effectiveStock <= product.minStock) return "low"
->>>>>>> origin/alimentation
     return "in-stock"
   }
 
@@ -192,15 +178,10 @@ export function ProductGrid() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
-<<<<<<< HEAD
-            {filteredProducts.map((product: any) => {
-              const stockStatus = getStockStatus(product)
-=======
             {posProducts.map((product: any) => {
               const isTracked = product.productType === "food" || product.trackStock
               const effectiveStock = isTracked ? (productStockMap[product.id] ?? product.stock) : Infinity
               const stockStatus = getStockStatus(product, effectiveStock)
->>>>>>> origin/alimentation
               const isOutOfStock = stockStatus === "out"
               const isMadeToOrder = stockStatus === "mto"
               const IconComponent = getCategoryIcon(product.categoryName || "", product.name)
@@ -257,11 +238,7 @@ export function ProductGrid() {
             })}
           </div>
         )}
-<<<<<<< HEAD
-        {!productsLoading && filteredProducts.length === 0 && (
-=======
         {!productsLoading && posProducts.length === 0 && (
->>>>>>> origin/alimentation
           <div className="flex h-40 items-center justify-center text-muted-foreground">
             <p>No products found</p>
           </div>
