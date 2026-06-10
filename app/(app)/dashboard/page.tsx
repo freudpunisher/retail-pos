@@ -15,6 +15,7 @@ import {
   Loader2, RefreshCw, Receipt, Banknote, ShoppingCart, Clock,
   ChefHat, Bell, Utensils, ArrowUpRight, ArrowDownRight, BarChart3,
 } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function DashboardPage() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("today")
@@ -23,6 +24,8 @@ export default function DashboardPage() {
   const { orders, loading: ordersLoading } = useOrders()
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+  const [dashboardSector] = useState<string | undefined>(undefined)
+  const { user } = useAuth()
   const isSystemAdmin = user?.role === "admin"
 
   useEffect(() => {
@@ -253,9 +256,8 @@ export default function DashboardPage() {
               {recentTransactions.map((txn: any) => (
                 <div key={txn.id} className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                      txn.paymentMethod === "cash" ? "bg-green-500/10" : txn.paymentMethod === "credit" ? "bg-blue-500/10" : "bg-muted"
-                    }`}>
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${txn.paymentMethod === "cash" ? "bg-green-500/10" : txn.paymentMethod === "credit" ? "bg-blue-500/10" : "bg-muted"
+                      }`}>
                       {txn.paymentMethod === "cash"
                         ? <Banknote className="h-4 w-4 text-green-600" />
                         : txn.paymentMethod === "credit"
@@ -281,11 +283,10 @@ export default function DashboardPage() {
                     <span className="text-sm font-semibold">{formatCurrency(Number.parseFloat(txn.total))}</span>
                     <Badge
                       variant="outline"
-                      className={`text-[10px] px-1.5 py-0 ${
-                        txn.status === "completed"
+                      className={`text-[10px] px-1.5 py-0 ${txn.status === "completed"
                           ? "border-green-500/30 bg-green-500/10 text-green-700"
                           : "border-amber-500/30 bg-amber-500/10 text-amber-700"
-                      }`}
+                        }`}
                     >
                       {txn.status === "completed" ? "Paid" : txn.status}
                     </Badge>

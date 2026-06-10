@@ -28,6 +28,8 @@ import {
   Wallet,
   Loader2,
   ChefHat,
+  ArrowLeftRight,
+  RefreshCw,
 } from "lucide-react"
 
 const iconMap: Record<string, any> = {
@@ -62,7 +64,7 @@ export function Sidebar() {
           const data = await res.json()
           setMenuItems(data)
         }
-      } catch {} finally {
+      } catch { } finally {
         setLoading(false)
       }
     }
