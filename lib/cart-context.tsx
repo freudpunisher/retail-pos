@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react"
 import type { Product, CartItem, Client } from "./types"
 
 interface CartContextType {
@@ -18,6 +18,10 @@ interface CartContextType {
   total: number
   taxRate: number
   setTaxRate: (rate: number) => void
+  setProductStocks: (stocks: Record<string, number>) => void
+  productStockMap: Record<string, number>
+  setPrincipalStocks: (stocks: Record<string, number>) => void
+  principalStockMap: Record<string, number>
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -25,11 +29,27 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [taxRate, setTaxRate] = useState(0) // Default tax rate 0%
+  const [taxRate, setTaxRate] = useState(0)
+  const [productStockMap, setProductStockMap] = useState<Record<string, number>>({})
+  const [principalStockMap, setPrincipalStockMap] = useState<Record<string, number>>({})
+  const productStocksRef = useRef<Record<string, number>>({})
+
+  const setProductStocks = useCallback((stocks: Record<string, number>) => {
+    productStocksRef.current = stocks
+    setProductStockMap(stocks)
+  }, [])
+
+  const setPrincipalStocks = useCallback((stocks: Record<string, number>) => {
+    setPrincipalStockMap(stocks)
+  }, [])
 
   const addItem = useCallback((product: Product) => {
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id)
+      const currentQty = existing ? existing.quantity : 0
+      const isTracked = product.productType === "food" || product.trackStock
+      const maxQty = isTracked ? (productStocksRef.current[product.id] ?? 0) : Infinity
+      if (product.productType !== "food" && currentQty >= maxQty) return prev
       if (existing) {
         return prev.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item))
       }
@@ -45,7 +65,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (quantity <= 0) {
       setItems((prev) => prev.filter((item) => item.id !== productId))
     } else {
-      setItems((prev) => prev.map((item) => (item.id === productId ? { ...item, quantity } : item)))
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === productId
+            ? {
+                ...item,
+                quantity:
+                  item.productType !== "food"
+                    ? Math.min(quantity, item.trackStock ? (productStocksRef.current[item.id] ?? 0) : Infinity)
+                    : quantity,
+              }
+            : item,
+        ),
+      )
     }
   }, [])
 
@@ -83,6 +115,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         total,
         taxRate,
         setTaxRate,
+        setProductStocks,
+        productStockMap,
+        setPrincipalStocks,
+        principalStockMap,
       }}
     >
       {children}

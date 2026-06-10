@@ -1,12 +1,27 @@
 // app/api/purchases/route.ts
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import db from "@/lib/db";
 import { purchaseOrders, purchaseOrderItems, suppliers, products, stock, stockMovements } from "@/lib/db/schema";
-import { eq, desc, and, gte, lt, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { sql } from "drizzle-orm";
+import { resolveWarehouse } from "@/lib/db/location-utils";
 
-// GET - list all orders (same as before, but maybe add status filter later)
-export async function GET() {
+// GET - list orders with optional date range filter
+export async function GET(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams
+    const dateFrom = searchParams.get("dateFrom")
+    const dateTo = searchParams.get("dateTo")
+
+    const conditions = []
+    if (dateFrom) conditions.push(gte(purchaseOrders.date, new Date(dateFrom)))
+    if (dateTo) {
+      const end = new Date(dateTo)
+      end.setHours(23, 59, 59, 999)
+      conditions.push(lte(purchaseOrders.date, end))
+    }
+
     const orders = await db
       .select({
         id: purchaseOrders.id,
@@ -20,6 +35,7 @@ export async function GET() {
       })
       .from(purchaseOrders)
       .leftJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id))
+      .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(purchaseOrders.date));
 
     const ordersWithItems = await Promise.all(
@@ -180,27 +196,29 @@ export async function receive(request: Request) {
 
       // Update stock for each item
       for (const item of items) {
-        // Update products table
         const [product] = await tx
-          .select()
+          .select({ productType: products.productType })
           .from(products)
+          .where(eq(products.id, item.productId))
+          .limit(1)
+        const warehouse = await resolveWarehouse(tx, product?.productType || "ingredient")
+
+        // Update legacy products.stock
+        await tx
+          .update(products)
+          .set({
+            stock: sql`${products.stock} + ${item.quantity}`,
+          })
           .where(eq(products.id, item.productId));
 
-        if (product) {
-          await tx
-            .update(products)
-            .set({
-              stock: sql`${products.stock} + ${item.quantity}`,
-              cost: item.cost, // last purchase price
-            })
-            .where(eq(products.id, item.productId));
-        }
-
-        // Update stock table (if you keep separate stock)
+        // Update warehouse stock
         const [stockRecord] = await tx
           .select()
           .from(stock)
-          .where(eq(stock.productId, item.productId));
+          .where(
+            sql`${stock.productId} = ${item.productId} AND ${stock.locationId} = ${warehouse.id}`
+          )
+          .limit(1);
 
         if (stockRecord) {
           await tx
@@ -209,7 +227,13 @@ export async function receive(request: Request) {
               quantityOnHand: sql`${stock.quantityOnHand} + ${item.quantity}`,
               updatedAt: new Date(),
             })
-            .where(eq(stock.productId, item.productId));
+            .where(eq(stock.id, stockRecord.id));
+        } else {
+          await tx.insert(stock).values({
+            productId: item.productId,
+            locationId: warehouse.id,
+            quantityOnHand: item.quantity,
+          });
         }
 
         // Stock movement
@@ -219,7 +243,7 @@ export async function receive(request: Request) {
           type: "purchase",
           quantity: item.quantity,
           userId,
-          notes: `Received from PO ${id}`,
+          notes: `Received from PO ${id} at ${warehouse.name}`,
         });
       }
 

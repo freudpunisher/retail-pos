@@ -32,6 +32,10 @@ export default function CreatePurchaseOrderPage() {
   const { products, loading: productsLoading } = useProducts()
   const { createOrder } = usePurchases()
 
+  const purchasableProducts = products.filter(
+    (p) => p.productType === "ingredient" || (p.productType === "drink" && p.trackStock)
+  )
+
   const addProduct = () => {
     if (!selectedProductId) return
     const product = products.find((p) => p.id === selectedProductId)
@@ -51,19 +55,24 @@ export default function CreatePurchaseOrderPage() {
           productId: product.id,
           productName: product.name,
           quantity: 1,
-          cost: parseFloat(product.cost) || 0,
+          cost: 0,
         },
       ])
     }
     setSelectedProductId("")
   }
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    setItems((prev) =>
-      prev.map((i) =>
-        i.productId === productId ? { ...i, quantity: Math.max(0, quantity) } : i
+  const updateQuantity = (productId: string, newQuantity: number) => {
+    const qty = Math.max(0, newQuantity)
+    if (qty === 0) {
+      setItems((prev) => prev.filter((i) => i.productId !== productId))
+    } else {
+      setItems((prev) =>
+        prev.map((i) =>
+          i.productId === productId ? { ...i, quantity: qty } : i
+        )
       )
-    )
+    }
   }
 
   const updateCost = (productId: string, cost: string) => {
@@ -167,9 +176,9 @@ export default function CreatePurchaseOrderPage() {
                     <SelectValue placeholder={productsLoading ? "Loading..." : "Choose product"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {products.map((p) => (
+                    {purchasableProducts.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
-                        {p.name} – {formatCurrency(parseFloat(p.cost || "0"))}
+                        {p.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

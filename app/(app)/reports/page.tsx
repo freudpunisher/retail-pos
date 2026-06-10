@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,9 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatCurrency } from "@/lib/mock-data"
+import { printReport } from "@/lib/print-report"
 import {
   BarChart3,
   Download,
+  Printer,
   Calendar,
   TrendingUp,
   ShoppingCart,
@@ -44,85 +46,42 @@ const getMonthEnd = () => {
 }
 
 export default function ReportsPage() {
-  const [dateFrom, setDateFrom] = useState(getMonthStart)
-  const [dateTo, setDateTo] = useState(getMonthEnd)
-  const [granularity, setGranularity] = useState<"day" | "week" | "month">("day")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
 
   const { transactions, loading: txLoading, fetchTransactions } = useTransactions()
-  const { purchaseOrders, loading: poLoading } = usePurchaseOrders()
-  const { movements, loading: moveLoading } = useStockMovements()
-  const { clients, loading: clientLoading } = useClients()
-  const { products, loading: productsLoading } = useProducts()
+  const { purchaseOrders, loading: poLoading, refresh: fetchPurchaseOrders } = usePurchaseOrders()
+  const { movements, loading: moveLoading, refresh: fetchMovements } = useStockMovements()
+  const { clients, loading: clientLoading, refresh: fetchClients } = useClients()
 
+  const fetchAllData = useCallback((from?: string, to?: string) => {
+    fetchTransactions(from, to)
+    fetchPurchaseOrders(from, to)
+    fetchMovements(from, to)
+    fetchClients()
+  }, [fetchTransactions, fetchPurchaseOrders, fetchMovements, fetchClients])
+
+  // Fetch on mount with no date filter (all data)
   useEffect(() => {
-    fetchTransactions()
-  }, [fetchTransactions])
+    fetchAllData()
+  }, [fetchAllData])
 
-  const isLoading = txLoading || poLoading || moveLoading || clientLoading || productsLoading
-
-  const productSectorById = new Map(products.map((p: any) => [p.id, p.sector]))
-
-  const dateStart = dateFrom ? new Date(dateFrom) : null
-  const dateEnd = dateTo ? new Date(dateTo) : null
-  if (dateEnd) dateEnd.setHours(23, 59, 59, 999)
-
-  const isInRange = (dateStr: string) => {
-    const d = new Date(dateStr)
-    if (dateStart && d < dateStart) return false
-    if (dateEnd && d > dateEnd) return false
-    return true
-  }
-
-  const isBakeryTransaction = (t: any) =>
-    (t.items || []).some((it: any) => productSectorById.get(it.productId) === "Boulangerie")
-
-  // Sales data (Boulangerie)
-  const saleTransactions = transactions.filter(
-    (t: any) => t.type === "sale" && t.status === "completed" && isInRange(t.date) && isBakeryTransaction(t)
-  )
+  // Sales data (API already filters by date if params provided)
+  const saleTransactions = transactions.filter((t: any) => t.type === "sale" && t.status === "completed")
   const salesTotal = saleTransactions.reduce((sum, t) => sum + Number.parseFloat(t.total), 0)
 
   const salesByPayment = [
-    {
-      name: "Cash",
-      value: saleTransactions
-        .filter((t) => t.paymentMethod === "cash")
-        .reduce((sum, t) => sum + Number.parseFloat(t.total), 0),
-    },
-    {
-      name: "Card",
-      value: saleTransactions
-        .filter((t) => t.paymentMethod === "card")
-        .reduce((sum, t) => sum + Number.parseFloat(t.total), 0),
-    },
-    {
-      name: "Credit",
-      value: saleTransactions
-        .filter((t) => t.paymentMethod === "credit")
-        .reduce((sum, t) => sum + Number.parseFloat(t.total), 0),
-    },
+    { name: "Cash", value: saleTransactions.filter((t) => t.paymentMethod === "cash").reduce((sum, t) => sum + Number.parseFloat(t.total), 0) },
+    { name: "Credit", value: saleTransactions.filter((t) => t.paymentMethod === "credit").reduce((sum, t) => sum + Number.parseFloat(t.total), 0) },
   ]
 
-  const groupKey = (d: Date) => {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, "0")
-    if (granularity === "month") return `${y}-${m}`
-    if (granularity === "week") {
-      const firstDay = new Date(d.getFullYear(), 0, 1)
-      const dayOfYear = Math.floor((d.getTime() - firstDay.getTime()) / 86400000) + 1
-      const week = Math.ceil(dayOfYear / 7)
-      return `${y}-W${String(week).padStart(2, "0")}`
-    }
-    const day = String(d.getDate()).padStart(2, "0")
-    return `${y}-${m}-${day}`
-  }
-
-  const salesByPeriodMap = new Map<string, number>()
-  for (const t of saleTransactions) {
-    const key = groupKey(new Date(t.date))
-    salesByPeriodMap.set(key, (salesByPeriodMap.get(key) || 0) + Number.parseFloat(t.total))
-  }
-  const dailySales = Array.from(salesByPeriodMap.entries()).map(([day, sales]) => ({ day, sales }))
+  // Build daily sales from real transaction data, grouped by date
+  const dailySalesMap = new Map<string, number>()
+  saleTransactions.forEach((t: any) => {
+    const day = new Date(t.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+    dailySalesMap.set(day, (dailySalesMap.get(day) || 0) + Number.parseFloat(t.total))
+  })
+  const dailySales = Array.from(dailySalesMap.entries()).map(([day, sales]) => ({ day, sales }))
 
   // Purchase data
   const bakeryPurchaseOrders = purchaseOrders.filter(
@@ -154,7 +113,128 @@ export default function ReportsPage() {
 
   const handleExport = (reportType: string) => {
     console.log(`Exporting ${reportType} report...`)
-    // Mock export functionality
+  }
+
+  const handleApplyFilter = () => {
+    fetchAllData(dateFrom || undefined, dateTo || undefined)
+  }
+
+  const handlePrintSales = () => {
+    const periodStr = dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : "All time"
+    printReport({
+      title: "Sales Report",
+      subtitle: "Smart POS System",
+      period: periodStr,
+      metrics: [
+        { label: "Total Sales", value: formatCurrency(salesTotal), highlight: true },
+        { label: "Transactions", value: saleTransactions.length },
+        { label: "Average Order", value: formatCurrency(salesTotal / (saleTransactions.length || 1)) },
+        { label: "Cash Sales", value: saleTransactions.filter((t) => t.paymentMethod === "cash").length },
+        { label: "Credit Sales", value: saleTransactions.filter((t) => t.paymentMethod === "credit").length },
+      ],
+      columns: [
+        { header: "ID", key: "id", format: "text" },
+        { header: "Date", key: "date", format: "date" },
+        { header: "Customer", key: "clientName" },
+        { header: "Payment", key: "paymentMethod" },
+        { header: "Cashier", key: "cashier" },
+        { header: "Amount", key: "total", format: "currency", align: "right" },
+      ],
+      rows: saleTransactions.map((t: any) => ({
+        id: t.id.slice(0, 8),
+        date: t.date,
+        clientName: t.client?.name || "Walk-in",
+        paymentMethod: t.paymentMethod || "—",
+        cashier: t.user?.name || "—",
+        total: t.total,
+      })),
+    })
+  }
+
+  const handlePrintPurchases = () => {
+    const periodStr = dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : "All time"
+    printReport({
+      title: "Purchases Report",
+      subtitle: "Smart POS System",
+      period: periodStr,
+      metrics: [
+        { label: "Total Purchases", value: formatCurrency(purchaseTotal), highlight: true },
+        { label: "Purchase Orders", value: purchaseOrders.length },
+      ],
+      columns: [
+        { header: "ID", key: "id", format: "text" },
+        { header: "Date", key: "date", format: "date" },
+        { header: "Supplier", key: "supplier" },
+        { header: "Items", key: "items", format: "number", align: "right" },
+        { header: "Status", key: "status" },
+        { header: "Total", key: "total", format: "currency", align: "right" },
+      ],
+      rows: purchaseOrders.map((po: any) => ({
+        id: po.id.slice(0, 8),
+        date: po.date,
+        supplier: po.supplier?.name || "—",
+        items: po.items?.length || 0,
+        status: po.status,
+        total: po.total,
+      })),
+    })
+  }
+
+  const handlePrintStock = () => {
+    const periodStr = dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : "All time"
+    printReport({
+      title: "Stock Movements Report",
+      subtitle: "Smart POS System",
+      period: periodStr,
+      metrics: [
+        { label: "Total Inbound", value: `${inboundQty} units`, highlight: true },
+        { label: "Total Outbound", value: `${outboundQty} units` },
+        { label: "Net Movement", value: `${inboundQty - outboundQty} units` },
+      ],
+      columns: [
+        { header: "ID", key: "id", format: "text" },
+        { header: "Date", key: "date", format: "date" },
+        { header: "Product", key: "product" },
+        { header: "Type", key: "type" },
+        { header: "Quantity", key: "quantity", format: "number", align: "right" },
+        { header: "User", key: "user" },
+      ],
+      rows: movements.map((m: any) => ({
+        id: m.id.slice(0, 8),
+        date: m.date,
+        product: m.productName,
+        type: m.type,
+        quantity: m.quantity,
+        user: m.user?.name || "—",
+      })),
+    })
+  }
+
+  const handlePrintCredit = () => {
+    const activeClients = clients.filter((c: any) => Number.parseFloat(c.creditBalance) > 0)
+    printReport({
+      title: "Credit Report",
+      subtitle: "Smart POS System",
+      period: "All time",
+      metrics: [
+        { label: "Total Outstanding", value: formatCurrency(totalCreditBalance), highlight: true },
+        { label: "Clients with Credit", value: activeClients.length },
+      ],
+      columns: [
+        { header: "Client", key: "name" },
+        { header: "Credit Balance", key: "balance", format: "currency", align: "right" },
+        { header: "Credit Limit", key: "limit", format: "currency", align: "right" },
+        { header: "Utilization", key: "utilization", align: "right" },
+      ],
+      rows: activeClients.map((c: any) => ({
+        name: c.name,
+        balance: c.creditBalance,
+        limit: c.creditLimit,
+        utilization: Number.parseFloat(c.creditLimit) > 0
+          ? `${((Number.parseFloat(c.creditBalance) / Number.parseFloat(c.creditLimit)) * 100).toFixed(1)}%`
+          : "0%",
+      })),
+    })
   }
 
   return (
@@ -178,19 +258,10 @@ export default function ReportsPage() {
               <Label>To Date</Label>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" />
             </div>
-            <div className="space-y-2">
-              <Label>Granularité</Label>
-              <Select value={granularity} onValueChange={(v) => setGranularity(v as any)}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Période" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">Jour</SelectItem>
-                  <SelectItem value="week">Semaine</SelectItem>
-                  <SelectItem value="month">Mois</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Button variant="outline" onClick={handleApplyFilter}>
+              <Calendar className="mr-2 h-4 w-4" />
+              Apply Filter
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -205,10 +276,14 @@ export default function ReportsPage() {
 
         {/* Sales Report */}
         <TabsContent value="sales" className="mt-4 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => handleExport("sales")}>
               <Download className="mr-2 h-4 w-4" />
-              Export Report
+              Export
+            </Button>
+            <Button variant="outline" onClick={handlePrintSales}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
             </Button>
           </div>
 
@@ -370,10 +445,14 @@ export default function ReportsPage() {
 
         {/* Purchases Report */}
         <TabsContent value="purchases" className="mt-4 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => handleExport("purchases")}>
               <Download className="mr-2 h-4 w-4" />
-              Export Report
+              Export
+            </Button>
+            <Button variant="outline" onClick={handlePrintPurchases}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
             </Button>
           </div>
 
@@ -468,10 +547,14 @@ export default function ReportsPage() {
 
         {/* Stock Report */}
         <TabsContent value="stock" className="mt-4 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => handleExport("stock")}>
               <Download className="mr-2 h-4 w-4" />
-              Export Report
+              Export
+            </Button>
+            <Button variant="outline" onClick={handlePrintStock}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
             </Button>
           </div>
 
@@ -571,10 +654,14 @@ export default function ReportsPage() {
 
         {/* Credit Report */}
         <TabsContent value="credit" className="mt-4 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => handleExport("credit")}>
               <Download className="mr-2 h-4 w-4" />
-              Export Report
+              Export
+            </Button>
+            <Button variant="outline" onClick={handlePrintCredit}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
             </Button>
           </div>
 

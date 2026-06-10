@@ -14,18 +14,17 @@ export async function PUT(
 
         const { id } = await params
         const body = await request.json()
-        const { name, categoryId, price, cost, minStock, unit, image, sector } = body
+        const { name, categoryId, productType, price, minStock, trackStock, image } = body
 
         const [updatedProduct] = await db
             .update(products)
             .set({
                 name,
                 categoryId,
-                unit,
-                sector,
+                productType,
                 price: price?.toString(),
-                cost: cost ? cost.toString() : null,
                 minStock,
+                trackStock,
                 image,
             })
             .where(eq(products.id, id))

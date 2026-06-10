@@ -6,35 +6,41 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse, History, CheckCircle2, Save } from "lucide-react"
+import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse, Store } from "lucide-react"
 import { useStock } from "@/hooks/use-stock"
-import { formatCurrency } from "@/lib/mock-data"
-import { useAuth } from "@/lib/auth-context"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
+import { useLocations } from "@/hooks/use-locations"
 
 export default function InventoryStatusPage() {
   const [search, setSearch] = useState("")
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
-  const { stockItems, adjustments, loading, createAdjustment } = useStock()
-  const { user } = useAuth()
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
+  const [productType, setProductType] = useState<string>("all")
+  const { stockItems, loading } = useStock()
+  const { locations } = useLocations()
 
-  const [inventoryForm, setInventoryForm] = useState({
-    productId: "",
-    physicalQuantity: "",
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const isBakeryUser = user?.role === "cashier_bakery" || user?.role === "supervisor_bakery" || user?.role === "production_bakery"
+  const filteredByLocation = useMemo(() => {
+    let items = stockItems
+    if (productType === "drink") {
+      items = items.filter(item => item.product.productType === "drink")
+    } else if (productType === "ingredient") {
+      items = items.filter(item => item.product.productType === "ingredient")
+    }
+    if (selectedLocationId) {
+      items = items.filter(item => item.locationId === selectedLocationId)
+    }
+    return items
+  }, [stockItems, selectedLocationId, productType])
 
   const filteredInventory = useMemo(() => {
-    return stockItems.filter(item =>
+    return filteredByLocation.filter(item =>
       item.product.name.toLowerCase().includes(search.toLowerCase()) ||
       item.product.sku.toLowerCase().includes(search.toLowerCase())
     )
-  }, [stockItems, search])
+  }, [filteredByLocation, search])
+
+  const selectedLocation = locations.find(l => l.id === selectedLocationId)
+  const locationLabel = selectedLocation
+    ? `${selectedLocation.name} (${selectedLocation.type})`
+    : "All Locations"
 
   const bakeryProducts = useMemo(() => {
     return stockItems.filter(item =>
@@ -97,9 +103,63 @@ export default function InventoryStatusPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Statut de l'inventaire</h2>
-          <p className="text-muted-foreground">Surveillez les niveaux de stock en temps réel et effectuez des inventaires</p>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Stock Status</h2>
+          <p className="text-muted-foreground">Monitor real-time stock levels across locations</p>
         </div>
+      </div>
+
+      {/* Location filter */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={!selectedLocationId ? "default" : "outline"}
+          size="sm"
+          onClick={() => setSelectedLocationId(null)}
+        >
+          <Warehouse className="h-4 w-4 mr-1" />
+          All Locations
+        </Button>
+        {locations.map((loc) => (
+          <Button
+            key={loc.id}
+            variant={selectedLocationId === loc.id ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedLocationId(loc.id)}
+          >
+            {loc.type === "principal" ? (
+              <Warehouse className="h-4 w-4 mr-1" />
+            ) : (
+              <Store className="h-4 w-4 mr-1" />
+            )}
+            {loc.name}
+          </Button>
+        ))}
+      </div>
+
+      {/* Product type filter */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={productType === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("all")}
+        >
+          All
+        </Button>
+        <Button
+          variant={productType === "drink" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("drink")}
+        >
+          <Package className="h-4 w-4 mr-1" />
+          Drinks
+        </Button>
+        <Button
+          variant={productType === "ingredient" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("ingredient")}
+        >
+          <AlertTriangle className="h-4 w-4 mr-1" />
+          Ingredients
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -109,7 +169,7 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unités totales</p>
                 <p className="text-3xl font-black text-foreground mt-1">
-                  {stockItems.reduce((acc, item) => acc + Number(item.quantityOnHand || 0), 0)}
+                  {filteredByLocation.reduce((acc, item) => acc + item.quantityOnHand, 0)}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -124,7 +184,7 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unités réservées</p>
                 <p className="text-3xl font-black text-warning mt-1">
-                  {stockItems.reduce((acc, item) => acc + Number(item.quantityReserved || 0), 0)}
+                  {filteredByLocation.reduce((acc, item) => acc + item.quantityReserved, 0)}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-warning/10 flex items-center justify-center">
@@ -139,7 +199,7 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Alertes stock bas</p>
                 <p className="text-3xl font-black text-destructive mt-1">
-                  {stockItems.filter(item => item.quantityOnHand <= item.reorderLevel).length}
+                  {filteredByLocation.filter(item => item.quantityOnHand <= item.reorderLevel).length}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -152,9 +212,9 @@ export default function InventoryStatusPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valorisation en direct</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Products</p>
                 <p className="text-3xl font-black text-accent mt-1">
-                  {formatCurrency(stockItems.reduce((acc, item) => acc + (item.quantityOnHand * (parseFloat(item.product.cost) || 0)), 0))}
+                  {new Set(filteredByLocation.map(i => i.product.id)).size}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
@@ -169,8 +229,8 @@ export default function InventoryStatusPage() {
         <Card className="border-border/50 shadow-xl">
           <CardHeader className="pb-3 bg-secondary/5 border-b border-border/50">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-              Inventaire physique (Boulangerie)
+              <Warehouse className="h-5 w-5 text-primary" />
+              {locationLabel}
             </CardTitle>
             <CardDescription>
               Saisissez la quantité physique pour mettre à jour le stock
@@ -245,129 +305,73 @@ export default function InventoryStatusPage() {
                 Journal d'état des stocks
               </CardTitle>
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="p-4 bg-secondary/5 border-b border-border/50 space-y-4">
-              <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Filtrer par nom ou SKU..."
-                    value={search}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-10 bg-background/50 border-border/50"
-                  />
-                </div>
-                <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
-                  <SelectTrigger className="w-[120px] border-border/50">
-                    <SelectValue placeholder="Lignes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10 lignes</SelectItem>
-                    <SelectItem value="20">20 lignes</SelectItem>
-                    <SelectItem value="50">50 lignes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-secondary/10 hover:bg-secondary/10 border-border/50">
-                  <TableHead className="font-bold">Produit</TableHead>
-                  <TableHead className="text-right font-bold">En main</TableHead>
-                  <TableHead className="font-bold">Statut</TableHead>
-                  <TableHead className="font-bold">Dernier comptage</TableHead>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-secondary/10 hover:bg-secondary/10 border-border/50">
+                <TableHead className="font-bold">Product</TableHead>
+                <TableHead className="font-bold">SKU</TableHead>
+                <TableHead className="font-bold">Location</TableHead>
+                <TableHead className="text-right font-bold">On Hand</TableHead>
+                <TableHead className="text-right font-bold">Reserved</TableHead>
+                <TableHead className="text-right font-bold">Reorder Level</TableHead>
+                <TableHead className="text-right font-bold">Reorder Qty</TableHead>
+                <TableHead className="font-bold">Status</TableHead>
+                <TableHead className="font-bold">Last Counted</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <p className="mt-2 text-sm text-muted-foreground">Analyzing inventory...</p>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-32 text-center">
-                      <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                      <p className="mt-2 text-sm text-muted-foreground">Analyse de l'inventaire...</p>
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!loading && paginatedInventory.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-32 text-center text-muted-foreground italic">
-                      Aucun enregistrement trouvé.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {paginatedInventory.map((item) => (
-                  <TableRow key={item.id} className="border-border/50 hover:bg-secondary/5 transition-colors group">
-                    <TableCell className="font-bold text-foreground group-hover:text-primary transition-colors">
-                      <div className="flex flex-col">
-                        <span>{item.product.name}</span>
-                        <span className="text-[10px] font-mono text-muted-foreground">{item.product.sku}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-black text-lg">{item.quantityOnHand}</TableCell>
-                    <TableCell>
-                      {item.quantityOnHand <= 0 ? (
-                        <Badge variant="destructive" className="font-bold shadow-sm">Rupture</Badge>
-                      ) : item.quantityOnHand <= item.reorderLevel ? (
-                        <Badge className="bg-warning text-warning-foreground font-bold shadow-sm ring-1 ring-warning/30">Bas</Badge>
+              )}
+              {!loading && filteredInventory.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-32 text-center text-muted-foreground italic">
+                    No inventory records found.
+                  </TableCell>
+                </TableRow>
+              )}
+              {filteredInventory.map((item) => (
+                <TableRow key={item.id} className="border-border/50 hover:bg-secondary/5 transition-colors group">
+                  <TableCell className="font-bold text-foreground group-hover:text-primary transition-colors">{item.product.name}</TableCell>
+                  <TableCell className="font-mono text-xs">{item.product.sku}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      {item.location?.type === "principal" ? (
+                        <Warehouse className="h-3 w-3" />
                       ) : (
-                        <Badge className="bg-accent/20 text-accent font-bold shadow-sm ring-1 ring-accent/30">Sain</Badge>
+                        <Store className="h-3 w-3" />
                       )}
-                    </TableCell>
-                    <TableCell className="text-xs font-medium text-muted-foreground">
-                      {item.lastCountedDate ? new Date(item.lastCountedDate).toLocaleDateString() : (
-                        <span className="flex items-center gap-1 opacity-50">
-                          <AlertTriangle className="h-3 w-3" /> Jamais
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <div className="flex flex-col gap-3 border-t border-border/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-muted-foreground">
-                Affichage {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, filteredInventory.length)} sur {filteredInventory.length}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-border/50"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Précédent
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-border/50"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Suivant
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 shadow-2xl overflow-hidden">
-          <CardHeader className="bg-secondary/5 border-b border-border/50 py-4">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <History className="h-5 w-5 text-primary" />
-              Historique des inventaires
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-secondary/10 hover:bg-secondary/10 border-border/50">
-                  <TableHead className="font-bold">Produit</TableHead>
-                  <TableHead className="text-right font-bold">Avant</TableHead>
-                  <TableHead className="text-right font-bold">Après</TableHead>
-                  <TableHead className="text-right font-bold">Perte</TableHead>
-                  <TableHead className="font-bold">Date</TableHead>
+                      {item.location?.name || "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-black text-lg">{item.quantityOnHand}</TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{item.quantityReserved}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{item.reorderLevel}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{item.reorderQuantity}</TableCell>
+                  <TableCell>
+                    {item.quantityOnHand <= 0 ? (
+                      <Badge variant="destructive" className="font-bold shadow-sm">Out of Stock</Badge>
+                    ) : item.quantityOnHand <= item.reorderLevel ? (
+                      <Badge className="bg-warning text-warning-foreground font-bold shadow-sm ring-1 ring-warning/30">Low Stock</Badge>
+                    ) : (
+                      <Badge className="bg-accent/20 text-accent font-bold shadow-sm ring-1 ring-accent/30">Healthy</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs font-medium text-muted-foreground">
+                    {item.lastCountedDate ? new Date(item.lastCountedDate).toLocaleDateString() : (
+                      <span className="flex items-center gap-1 opacity-50">
+                        <AlertTriangle className="h-3 w-3" /> Never
+                      </span>
+                    )}
+                  </TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody>

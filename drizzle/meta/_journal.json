@@ -19,6 +19,8 @@
     {
       "idx": 2,
       "version": "7",
+      "when": 1769500000000,
+      "tag": "0002_restobar_tables",
       "when": 1770736872348,
       "tag": "0002_add_measurement_units",
       "breakpoints": true
@@ -26,6 +28,8 @@
     {
       "idx": 3,
       "version": "7",
+      "when": 1770000000000,
+      "tag": "0003_ingredient_type",
       "when": 1770742053367,
       "tag": "0003_products_unit_text",
       "breakpoints": true
@@ -33,20 +37,22 @@
     {
       "idx": 4,
       "version": "7",
-      "when": 1770749157189,
-      "tag": "0004_add_invoice_payment_refs",
+      "when": 1770000000001,
+      "tag": "0004_bill_reference",
       "breakpoints": true
     },
     {
       "idx": 5,
       "version": "7",
-      "when": 1770791144113,
-      "tag": "0005_add_production_cost",
+      "when": 1770500000000,
+      "tag": "0005_expenses",
       "breakpoints": true
     },
     {
       "idx": 6,
       "version": "7",
+      "when": 1770600000000,
+      "tag": "0006_menu_permissions",
       "when": 1770792559556,
       "tag": "0006_add_recipe_grs",
       "breakpoints": true
@@ -54,6 +60,8 @@
     {
       "idx": 7,
       "version": "7",
+      "when": 1770700000000,
+      "tag": "0007_notifications",
       "when": 1770795202313,
       "tag": "0007_add_product_sector",
       "breakpoints": true
