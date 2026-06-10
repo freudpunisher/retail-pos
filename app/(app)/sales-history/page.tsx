@@ -566,10 +566,13 @@ export default function SalesHistoryPage() {
                 </h4>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
                   {selectedTransaction.items?.map((item: any, idx: number) => (
-                    <div key={idx} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{item.quantity}x</span>
+                    <div key={idx} className="flex justify-between text-sm items-center">
+                      <span className="text-muted-foreground shrink-0">{item.quantity}x</span>
                       <span className="flex-1 px-2">{item.productName}</span>
-                      <span className="font-medium">{formatCurrency(Number.parseFloat(item.price) * item.quantity)}</span>
+                      <span className="text-xs text-muted-foreground shrink-0 mr-2">
+                        @{formatCurrency(Number.parseFloat(item.price))}
+                      </span>
+                      <span className="font-medium shrink-0">{formatCurrency(Number.parseFloat(item.price) * item.quantity)}</span>
                     </div>
                   ))}
                   {(!selectedTransaction.items || selectedTransaction.items.length === 0) && (

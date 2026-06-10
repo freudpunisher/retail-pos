@@ -45,6 +45,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
     total,
     taxRate,
     setTaxRate,
+    productStockMap,
   } = useCart()
 
   const { user } = useAuth()
@@ -234,7 +235,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
                         <Input
                           type="number"
                           min="1"
-                          max={item.stock}
+                          max={productStockMap[item.id] ?? 0}
                           value={item.quantity}
                           onChange={(e) => {
                             const val = parseInt(e.target.value) || 0
@@ -247,7 +248,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
                           size="icon"
                           className="h-7 w-7 bg-transparent"
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          disabled={item.quantity >= item.stock}
+                          disabled={item.quantity >= (productStockMap[item.id] ?? 0)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -414,7 +415,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
 
           <div id="printable-area" ref={receiptRef} className="rounded-lg border border-border bg-card p-4 font-mono text-sm">
             <div className="text-center mb-4">
-              <p className="text-lg font-bold">{settings?.name || "SmartPOS Store"}</p>
+              <img src="/assets/icon.png" alt="Logo" className="mx-auto max-h-12 mb-1" />
               {settings?.address && <p className="text-xs text-muted-foreground">{settings.address}</p>}
               {settings?.phone && <p className="text-xs text-muted-foreground">Tel: {settings.phone}</p>}
             </div>

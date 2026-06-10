@@ -81,14 +81,9 @@ export function Header() {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case "admin":
-        return "bg-destructive/20 text-destructive"
-      case "manager":
-      case "investor":
-      case "accountant":
-        return "bg-primary/20 text-primary"
-      default:
-        return "bg-accent/20 text-accent"
+      case "admin": return "bg-destructive/20 text-destructive"
+      case "manager": return "bg-primary/20 text-primary"
+      default: return "bg-accent/20 text-accent"
     }
   }
 

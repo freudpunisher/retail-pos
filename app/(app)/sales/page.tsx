@@ -32,11 +32,13 @@ export default function SalesPage() {
   const { users } = useUsers()
   const { tables } = useTables()
   const { createOrder } = useOrders()
-  const { items, selectedClient, total, clearCart, setProductStocks } = useCart()
+  const { items, selectedClient, total, clearCart, setProductStocks, setPrincipalStocks } = useCart()
 
   const { locations } = useLocations()
-  const secondaryLocation = useMemo(() => locations.find(l => l.type === "secondary"), [locations])
-  const { stockItems } = useStock(secondaryLocation?.id)
+  const barLocation = useMemo(() => locations.find(l => l.type === "bar"), [locations])
+  const principalLocation = useMemo(() => locations.find(l => l.type === "principal"), [locations])
+  const { stockItems } = useStock(barLocation?.id)
+  const { stockItems: principalStock } = useStock(principalLocation?.id)
 
   useEffect(() => {
     if (stockItems.length > 0) {
@@ -47,6 +49,16 @@ export default function SalesPage() {
       setProductStocks(map)
     }
   }, [stockItems, setProductStocks])
+
+  useEffect(() => {
+    if (principalStock.length > 0) {
+      const map: Record<string, number> = {}
+      for (const si of principalStock) {
+        map[si.productId] = si.quantityOnHand
+      }
+      setPrincipalStocks(map)
+    }
+  }, [principalStock, setPrincipalStocks])
 
   const [orderMode, setOrderMode] = useState<"dinein" | "counter" | "takeaway">("dinein")
   const [selectedTableId, setSelectedTableId] = useState<string>("")
@@ -129,30 +141,31 @@ export default function SalesPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex rounded-lg border border-border overflow-hidden">
+    <div className="flex h-full flex-col bg-background">
+      {/* Compact toolbar */}
+      <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 shrink-0 overflow-x-auto">
+        <div className="flex rounded-lg border border-border overflow-hidden shrink-0">
           {(["dinein", "counter", "takeaway"] as const).map((mode) => (
             <Button
               key={mode}
               variant={orderMode === mode ? "default" : "ghost"}
               size="sm"
               onClick={() => setOrderMode(mode)}
-              className="rounded-none"
+              className="rounded-none h-8"
             >
-              {mode === "dinein" && <Utensils className="h-4 w-4 mr-1" />}
-              {mode === "counter" && <Wine className="h-4 w-4 mr-1" />}
-              {mode === "takeaway" && <ShoppingBag className="h-4 w-4 mr-1" />}
+              {mode === "dinein" && <Utensils className="h-3.5 w-3.5 mr-1" />}
+              {mode === "counter" && <Wine className="h-3.5 w-3.5 mr-1" />}
+              {mode === "takeaway" && <ShoppingBag className="h-3.5 w-3.5 mr-1" />}
               {mode === "dinein" ? "Dine-in" : mode === "counter" ? "Counter" : "Takeaway"}
             </Button>
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Table2 className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Table2 className="h-3.5 w-3.5 text-muted-foreground" />
           {orderMode === "dinein" ? (
             <Select value={selectedTableId} onValueChange={setSelectedTableId}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-28 h-8">
                 <SelectValue placeholder="Table" />
               </SelectTrigger>
               <SelectContent>
@@ -166,16 +179,16 @@ export default function SalesPage() {
               </SelectContent>
             </Select>
           ) : orderMode === "counter" ? (
-            <span className="text-sm font-medium text-muted-foreground">Counter</span>
+            <span className="text-xs font-medium text-muted-foreground">Counter</span>
           ) : (
-            <span className="text-sm text-muted-foreground">Takeaway</span>
+            <span className="text-xs text-muted-foreground">Takeaway</span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <User className="h-3.5 w-3.5 text-muted-foreground" />
           <Select value={selectedWaiterId} onValueChange={setSelectedWaiterId}>
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="w-32 h-8">
               <SelectValue placeholder="Waiter" />
             </SelectTrigger>
             <SelectContent>
@@ -187,11 +200,12 @@ export default function SalesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-10 gap-6 items-start">
-        <div className="col-span-6 flex min-w-0 flex-col">
+      {/* Main POS area */}
+      <div className="flex flex-1 gap-1 p-1 overflow-hidden">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <ProductGrid />
         </div>
-        <div className="col-span-4 flex flex-col overflow-hidden sticky top-0 h-[calc(80vh-6rem)]">
+        <div className="w-[420px] flex flex-col overflow-hidden shrink-0">
           <CartPanel
             orderMode={orderMode}
             onCreateOrder={handleCreateOrder}

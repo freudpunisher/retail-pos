@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 import db from "@/lib/db"
-import { transactions, transactionItems, products, stock, stockMovements, clients, creditRecords, cashFlow } from "@/lib/db/schema"
-import { and, eq, gte, lt, lte, sql, max } from "drizzle-orm"
+import { transactions, transactionItems, products, stockMovements, clients } from "@/lib/db/schema"
+import { eq, sql, gte, lte, and, max } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
     try {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { type, total, status, paymentMethod, clientId, userId, items } = body
+        const { type, total, status, paymentMethod, clientId, userId, items, invoiceRef } = body
         const normalizedType = String(type || "").toLowerCase().trim()
         const normalizedPaymentMethod = String(paymentMethod || "").toLowerCase().trim()
 
@@ -98,19 +98,7 @@ export async function POST(request: Request) {
                 }
             }
 
-            // 1. Generate references
-            const now = new Date()
-            const year = now.getFullYear()
-            const month = String(now.getMonth() + 1).padStart(2, "0")
-            const periodStart = new Date(year, now.getMonth(), 1)
-            const periodEnd = new Date(year, now.getMonth() + 1, 1)
-            const [countRow] = await tx
-                .select({ count: sql<number>`count(*)` })
-                .from(transactions)
-                .where(and(gte(transactions.date, periodStart), lt(transactions.date, periodEnd)))
-            const seq = String(Number(countRow?.count || 0) + 1).padStart(4, "0")
-            const invoiceRef = `FACT-${year}-${month}-${seq}`
-
+            // 1. Generate sequential reference
             const [lastRef] = await tx
                 .select({ maxRef: max(transactions.reference) })
                 .from(transactions)

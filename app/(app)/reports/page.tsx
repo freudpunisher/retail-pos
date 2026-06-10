@@ -55,6 +55,8 @@ export default function ReportsPage() {
   const { movements, loading: moveLoading, refresh: fetchStockMovements } = useStockMovements()
   const { clients, loading: clientLoading, refresh: fetchClients } = useClients()
 
+  const isLoading = txLoading || poLoading || moveLoading || clientLoading
+
   const fetchAllData = useCallback((from?: string, to?: string) => {
     fetchTransactions(from, to)
     fetchPurchaseOrders(from, to)

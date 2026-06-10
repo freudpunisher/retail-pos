@@ -27,6 +27,7 @@ import {
   ArrowRightLeft,
   Wallet,
   Loader2,
+  ChefHat,
   ArrowLeftRight,
   RefreshCw,
 } from "lucide-react"
@@ -36,6 +37,7 @@ const iconMap: Record<string, any> = {
   ArrowLeftRight, Users, UserCog, CreditCard,
   BarChart3, Settings, Truck, RefreshCw,
   ClipboardList, Receipt, ArrowRightLeft, Wallet,
+  ChefHat,
 }
 
 const DEFAULT_MENUS = [
@@ -66,10 +68,6 @@ interface MenuItem {
   sortOrder: number
 }
 
-function getDefaultMenus(role: string = "cashier"): MenuItem[] {
-  return DEFAULT_MENUS.filter((m) => m.roles.includes(role))
-}
-
 export function Sidebar() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
@@ -89,9 +87,9 @@ export function Sidebar() {
             return
           }
         }
-      } catch {} 
-      setMenuItems(getDefaultMenus(user?.role))
-      setLoading(false)
+      } catch { } finally {
+        setLoading(false)
+      }
     }
     fetchMenus()
   }, [user?.role])

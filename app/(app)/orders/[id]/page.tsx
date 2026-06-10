@@ -84,8 +84,11 @@ export default function OrderDetailPage() {
                     <Separator className="mb-4" />
                     <div className="space-y-2">
                         {order.items?.map((item: any) => (
-                            <div key={item.id} className="flex justify-between py-1">
-                                <span>{item.quantity}x {item.productName}</span>
+                            <div key={item.id} className="flex items-center justify-between py-1">
+                                <span className="flex-1">{item.quantity}x {item.productName}</span>
+                                <span className="text-xs text-muted-foreground mr-3">
+                                    @{formatCurrency(Number(item.price))}
+                                </span>
                                 <span className="font-medium">
                                     {formatCurrency(Number(item.price) * item.quantity)}
                                     {Number(item.discount) > 0 && (

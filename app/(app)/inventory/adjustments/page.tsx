@@ -342,7 +342,7 @@ export default function StockAdjustmentsPage() {
                                         </TableCell>
                                         <TableCell className="py-5 px-6">{getAdjustmentBadge(adj.adjustmentType)}</TableCell>
                                         <TableCell className="text-right py-5 px-6">
-                                            <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-black ring-1 transition-all group-hover:scale-110 ${adj.quantityChange > 0 ? 'bg-accent/10 text-accent ring-accent/30' : 'bg-destructive/10 text-destructive ring-destructive/30'}`}>
+                                            <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-black ring-1 transition-all group-hover:scale-110 ${adj.quantityChange > 0 ? '  ring-accent/80' : 'bg-destructive/10 text-destructive ring-destructive/30'}`}>
                                                 {adj.quantityChange > 0 ? '+' : ''}{adj.quantityChange}
                                             </div>
                                         </TableCell>

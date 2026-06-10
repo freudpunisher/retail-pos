@@ -17,9 +17,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Store, Tag, Shield, Plus, Trash2, Save, Loader2, Search, Pencil } from "lucide-react"
+import { Store, Tag, Shield, Plus, Trash2, Save, Loader2, Search, Pencil, Ruler } from "lucide-react"
 import { useSettings } from "@/hooks/use-settings"
 import { useCategories } from "@/hooks/use-products"
+import { useUnits } from "@/hooks/use-units"
 import { cn } from "@/lib/utils"
 import { UserManagement } from "@/components/user-management"
 import Swal from "sweetalert2"
@@ -39,43 +40,30 @@ type Unit = {
 
 export default function SettingsPage() {
   const { settings, loading: settingsLoading, updateSettings } = useSettings()
-  const { categories, loading: categoriesLoading, createCategory, deleteCategory } = useCategories()
+  const { categories, loading: categoriesLoading, createCategory, updateCategory, deleteCategory } = useCategories()
+  const { units, loading: unitsLoading, createUnit, updateUnit, deleteUnit } = useUnits()
 
   const [storeInfo, setStoreInfo] = useState<any>(null)
   const [newCategory, setNewCategory] = useState({ name: "", description: "" })
   const [showAddCategory, setShowAddCategory] = useState(false)
+  const [newUnit, setNewUnit] = useState({ code: "", name: "", symbol: "" })
+  const [showAddUnit, setShowAddUnit] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [menuItems, setMenuItems] = useState<any[]>([])
   const [menuLoading, setMenuLoading] = useState(false)
   const [menuSaving, setMenuSaving] = useState(false)
   const [categorySearch, setCategorySearch] = useState("")
   const [unitSearch, setUnitSearch] = useState("")
+  const [categoryPageSize, setCategoryPageSize] = useState(10)
+  const [categoryPage, setCategoryPage] = useState(1)
+  const [unitPageSize, setUnitPageSize] = useState(10)
+  const [unitPage, setUnitPage] = useState(1)
 
-  const handleCategorySearchChange = (value: string) => { setCategorySearch(value); setCategoryPage(1) }
   const handleUnitSearchChange = (value: string) => { setUnitSearch(value); setUnitPage(1) }
 
   const [editCategory, setEditCategory] = useState<any>(null)
   const [showEditCategory, setShowEditCategory] = useState(false)
-  const handleStartEditCategory = (cat: any) => {
-    setEditCategory(cat)
-    setShowEditCategory(true)
-  }
-  const handleUpdateCategory = async () => {
-    if (!editCategory?.name?.trim()) return
-    try {
-      const res = await fetch(`/api/categories/${editCategory.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editCategory.name, description: editCategory.description }),
-      })
-      if (!res.ok) throw new Error("Failed to update")
-      setShowEditCategory(false)
-      setEditCategory(null)
-      window.location.reload()
-    } catch {
-      await Swal.fire({ icon: "error", title: "Failed to update category" })
-    }
-  }
+
 
   const [editUnit, setEditUnit] = useState<any>(null)
   const [showEditUnit, setShowEditUnit] = useState(false)
@@ -86,38 +74,25 @@ export default function SettingsPage() {
   const handleUpdateUnit = async () => {
     if (!editUnit?.code?.trim() || !editUnit?.name?.trim()) return
     try {
-      const res = await fetch(`/api/units/${editUnit.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: editUnit.code, name: editUnit.name, symbol: editUnit.symbol }),
+      await updateUnit(editUnit.id, {
+        code: editUnit.code,
+        name: editUnit.name,
+        symbol: editUnit.symbol,
       })
-      if (!res.ok) throw new Error("Failed to update")
       setShowEditUnit(false)
       setEditUnit(null)
-      window.location.reload()
+      await Swal.fire({
+        icon: "success",
+        title: "Unit updated",
+        timer: 1500,
+        showConfirmButton: false,
+      })
     } catch {
       await Swal.fire({ icon: "error", title: "Failed to update unit" })
     }
   }
 
-  const [categoryPageSize, setCategoryPageSize] = useState(10)
-  const [categoryPage, setCategoryPage] = useState(1)
-  const categoryCurrentPage = categoryPage
-  const handleCategoryPageSizeChange = (value: string) => { setCategoryPageSize(Number(value)); setCategoryPage(1) }
-
-  const filteredCategories = categories.filter((c: any) =>
-    !categorySearch || c.name?.toLowerCase().includes(categorySearch.toLowerCase())
-  )
-  const categoryTotalPages = Math.max(1, Math.ceil(filteredCategories.length / categoryPageSize))
-  const paginatedCategories = filteredCategories.slice(
-    (categoryCurrentPage - 1) * categoryPageSize,
-    categoryCurrentPage * categoryPageSize
-  )
-
-  const [unitPageSize, setUnitPageSize] = useState(10)
-  const [unitPage, setUnitPage] = useState(1)
-  const unitCurrentPage = unitPage
-  const handleUnitPageSizeChange = (value: string) => { setUnitPageSize(Number(value)); setUnitPage(1) }
+  
 
   useEffect(() => {
     if (settings) {
@@ -183,6 +158,135 @@ export default function SettingsPage() {
     }
   }
 
+  const filteredCategories = categories.filter((category) => {
+    const searchValue = categorySearch.trim().toLowerCase()
+    if (!searchValue) return true
+    const name = category.name?.toLowerCase() ?? ""
+    const description = category.description?.toLowerCase() ?? ""
+    return name.includes(searchValue) || description.includes(searchValue)
+  })
+  const categoryTotalPages = Math.max(1, Math.ceil(filteredCategories.length / categoryPageSize))
+  const categoryCurrentPage = Math.min(categoryPage, categoryTotalPages)
+  const paginatedCategories = filteredCategories.slice(
+    (categoryCurrentPage - 1) * categoryPageSize,
+    categoryCurrentPage * categoryPageSize,
+  )
+
+  const handleCategorySearchChange = (value: string) => {
+    setCategorySearch(value)
+    setCategoryPage(1)
+  }
+
+  const handleCategoryPageSizeChange = (value: string) => {
+    const nextSize = Number(value)
+    setCategoryPageSize(nextSize)
+    setCategoryPage(1)
+  }
+
+  const handleStartEditCategory = (category: any) => {
+    setEditCategory({
+      id: category.id,
+      name: category.name ?? "",
+      description: category.description ?? "",
+    })
+    setShowEditCategory(true)
+  }
+
+  const handleUpdateCategory = async () => {
+    if (!editCategory) return
+    if (editCategory.name.trim()) {
+      try {
+        await updateCategory(editCategory.id, {
+          name: editCategory.name,
+          description: editCategory.description,
+        })
+        setShowEditCategory(false)
+        setEditCategory(null)
+        await Swal.fire({
+          icon: "success",
+          title: "Category updated",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to update category",
+        })
+      }
+    }
+  }
+
+  const filteredUnits = units.filter((unit) => {
+    const searchValue = unitSearch.trim().toLowerCase()
+    if (!searchValue) return true
+    const name = unit.name?.toLowerCase() ?? ""
+    const code = unit.code?.toLowerCase() ?? ""
+    const symbol = unit.symbol?.toLowerCase() ?? ""
+    return name.includes(searchValue) || code.includes(searchValue) || symbol.includes(searchValue)
+  })
+  const unitTotalPages = Math.max(1, Math.ceil(filteredUnits.length / unitPageSize))
+  const unitCurrentPage = Math.min(unitPage, unitTotalPages)
+  const paginatedUnits = filteredUnits.slice(
+    (unitCurrentPage - 1) * unitPageSize,
+    unitCurrentPage * unitPageSize,
+  )
+
+  const handleUnitPageSizeChange = (value: string) => {
+    const nextSize = Number(value)
+    setUnitPageSize(nextSize)
+    setUnitPage(1)
+  }
+
+  const handleDeleteUnit = async (id: string) => {
+    const result = await Swal.fire({
+      title: "Delete unit?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+    })
+
+    if (result.isConfirmed) {
+      try {
+        await deleteUnit(id)
+        await Swal.fire({
+          icon: "success",
+          title: "Unit deleted",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to delete unit",
+        })
+      }
+    }
+  }
+
+  const handleAddUnit = async () => {
+    if (newUnit.code.trim() && newUnit.name.trim()) {
+      try {
+        await createUnit(newUnit)
+        setNewUnit({ code: "", name: "", symbol: "" })
+        setShowAddUnit(false)
+        await Swal.fire({
+          icon: "success",
+          title: "Unit added",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to add unit",
+        })
+      }
+    }
+  }
+
   const fetchMenuItems = async () => {
     setMenuLoading(true)
     try {
@@ -242,10 +346,12 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="store">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="store">Store Info</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="units">Units</TabsTrigger>
           <TabsTrigger value="menus">Menu Permissions</TabsTrigger>
+          <TabsTrigger value="users">Users & Roles</TabsTrigger>
         </TabsList>
 
         {/* Store Information */}
@@ -543,6 +649,225 @@ export default function SettingsPage() {
           </Dialog>
         </TabsContent>
 
+        {/* Units */}
+        <TabsContent value="units" className="mt-4">
+          <Card className="border-border bg-card">
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Ruler className="h-5 w-5" />
+                  Measurement Units
+                </CardTitle>
+                <CardDescription>Manage units of measurement for products</CardDescription>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search units..."
+                    value={unitSearch}
+                    onChange={(e) => handleUnitSearchChange(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={String(unitPageSize)} onValueChange={handleUnitPageSizeChange}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Rows" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 rows</SelectItem>
+                    <SelectItem value="20">20 rows</SelectItem>
+                    <SelectItem value="50">50 rows</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Dialog open={showAddUnit} onOpenChange={setShowAddUnit}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Unit
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Unit</DialogTitle>
+                      <DialogDescription>Create a new measurement unit</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Code</Label>
+                        <Input
+                          placeholder="e.g. kg"
+                          value={newUnit.code}
+                          onChange={(e) => setNewUnit({ ...newUnit, code: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Name</Label>
+                        <Input
+                          placeholder="e.g. Kilogramme"
+                          value={newUnit.name}
+                          onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Symbol (optional)</Label>
+                        <Input
+                          placeholder="e.g. kg"
+                          value={newUnit.symbol}
+                          onChange={(e) => setNewUnit({ ...newUnit, symbol: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddUnit(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleAddUnit}>Add Unit</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="rounded-md border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-border">
+                      <TableHead className="text-muted-foreground">Code</TableHead>
+                      <TableHead className="text-muted-foreground">Name</TableHead>
+                      <TableHead className="text-muted-foreground">Symbol</TableHead>
+                      <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {unitsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                        </TableCell>
+                      </TableRow>
+                    ) : paginatedUnits.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                          No units found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedUnits.map((unit) => (
+                        <TableRow key={unit.id} className="border-border">
+                          <TableCell className="font-mono">{unit.code}</TableCell>
+                          <TableCell className="font-medium">{unit.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{unit.symbol || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground"
+                                title="Edit unit"
+                                onClick={() => handleStartEditUnit(unit)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => handleDeleteUnit(unit.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Showing {(unitCurrentPage - 1) * unitPageSize + 1}-
+                  {Math.min(unitCurrentPage * unitPageSize, filteredUnits.length)} of {filteredUnits.length}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUnitPage((p) => Math.max(1, p - 1))}
+                    disabled={unitCurrentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-sm text-muted-foreground">
+                    Page {unitCurrentPage} of {unitTotalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUnitPage((p) => Math.min(unitTotalPages, p + 1))}
+                    disabled={unitCurrentPage === unitTotalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Dialog
+            open={showEditUnit}
+            onOpenChange={(open) => {
+              setShowEditUnit(open)
+              if (!open) setEditUnit(null)
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Unit</DialogTitle>
+                <DialogDescription>Update measurement unit details</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Code</Label>
+                  <Input
+                    placeholder="e.g. kg"
+                    value={editUnit?.code ?? ""}
+                    onChange={(e) =>
+                      setEditUnit((prev) => (prev ? { ...prev, code: e.target.value } : prev))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    placeholder="e.g. Kilogramme"
+                    value={editUnit?.name ?? ""}
+                    onChange={(e) =>
+                      setEditUnit((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Symbol (optional)</Label>
+                  <Input
+                    placeholder="e.g. kg"
+                    value={editUnit?.symbol ?? ""}
+                    onChange={(e) =>
+                      setEditUnit((prev) => (prev ? { ...prev, symbol: e.target.value } : prev))
+                    }
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowEditUnit(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateUnit}>Save Changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
         {/* Menu Permissions */}
         <TabsContent value="menus" className="mt-4">
           <Card className="border-border bg-card">
@@ -622,58 +947,6 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-          <Dialog
-            open={showEditUnit}
-            onOpenChange={(open) => {
-              setShowEditUnit(open)
-              if (!open) setEditUnit(null)
-            }}
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit Unit</DialogTitle>
-                <DialogDescription>Update measurement unit details</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Code</Label>
-                  <Input
-                    placeholder="e.g. kg"
-                    value={editUnit?.code ?? ""}
-                    onChange={(e) =>
-                      setEditUnit((prev) => (prev ? { ...prev, code: e.target.value } : prev))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input
-                    placeholder="e.g. Kilogramme"
-                    value={editUnit?.name ?? ""}
-                    onChange={(e) =>
-                      setEditUnit((prev) => (prev ? { ...prev, name: e.target.value } : prev))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Symbol (optional)</Label>
-                  <Input
-                    placeholder="e.g. kg"
-                    value={editUnit?.symbol ?? ""}
-                    onChange={(e) =>
-                      setEditUnit((prev) => (prev ? { ...prev, symbol: e.target.value } : prev))
-                    }
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowEditUnit(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleUpdateUnit}>Save Changes</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </TabsContent>
 
         {/* Users & Roles */}

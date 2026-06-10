@@ -1,33 +1,31 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
-import { StatsCard } from "@/components/stats-card"
-import { DataTable } from "@/components/data-table"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SalesChart } from "@/components/dashboard/sales-chart"
 import { TimePeriodSelector, type TimePeriod } from "@/components/dashboard/time-period-selector"
 import { formatCurrency } from "@/lib/mock-data"
-import { DollarSign, TrendingUp, CreditCard, Package, AlertTriangle,
-  Loader2, RefreshCw, Receipt, Banknote, ShoppingCart, Clock,
-  ChefHat, Bell, Utensils, ArrowUpRight, ArrowDownRight, BarChart3,
-  Users, ClipboardList, Boxes, ShieldCheck } from "lucide-react"
 import { useDashboardStats } from "@/hooks/use-dashboard-stats"
 import { useTransactions } from "@/hooks/use-transactions"
 import { useOrders } from "@/hooks/use-orders"
+import {
+  DollarSign, TrendingUp, CreditCard, Package, AlertTriangle,
+  Loader2, RefreshCw, Receipt, Banknote, ShoppingCart, Clock,
+  ChefHat, Bell, Utensils, ArrowUpRight, ArrowDownRight, BarChart3,
+} from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 export default function DashboardPage() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("today")
-  const { user } = useAuth()
-  const dashboardSector = user?.role === "cashier_bakery" ? "Boulangerie" : undefined
-  const { stats, loading: statsLoading, refresh: refreshStats } = useDashboardStats(timePeriod, dashboardSector)
-  const { transactions, fetchTransactions, loading: txLoading } = useTransactions(dashboardSector)
+  const { stats, loading: statsLoading, refresh: refreshStats } = useDashboardStats(timePeriod)
+  const { transactions, fetchTransactions, loading: txLoading } = useTransactions()
   const { orders, loading: ordersLoading } = useOrders()
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+  const [dashboardSector] = useState<string | undefined>(undefined)
+  const { user } = useAuth()
   const isSystemAdmin = user?.role === "admin"
 
   useEffect(() => {
@@ -49,24 +47,9 @@ export default function DashboardPage() {
     setIsManualRefreshing(false)
   }
 
-  const recentTransactions = (stats?.recentTransactions?.length ? stats.recentTransactions : transactions).slice(0, 5)
-  const adminConnectedUsers = stats?.systemAdminActivity?.connectedUsers || []
-  const adminChangeHistory = stats?.systemAdminActivity?.adminChangeHistory || []
-
-  const roleLabel = (role: string) => {
-    const labels: Record<string, string> = {
-      admin: "Admin système",
-      cashier_food: "Caissier alimentation",
-      supervisor_food: "Superviseur alimentation",
-      cashier_bakery: "Caissier boulangerie",
-      supervisor_bakery: "Superviseur boulangerie",
-      production_bakery: "Production boulangerie",
-      manager: "Manager",
-      investor: "Investisseur",
-      accountant: "Comptable",
-    }
-    return labels[role] || role
-  }
+  const recentTransactions = transactions
+    .filter((t: any) => t.type === "sale")
+    .slice(0, 5)
 
   const orderStatusCounts = {
     pending: orders.filter((o: any) => o.orderStatus === "pending").length,
@@ -82,12 +65,8 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">
-            {dashboardSector ? "Tableau de bord Boulangerie" : "Dashboard"}
-          </h2>
-          <p className="text-muted-foreground">
-            {dashboardSector ? "Vue des activités de la boulangerie" : "Overview of your store performance"}
-          </p>
+          <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-muted-foreground">Real-time overview of your business</p>
         </div>
         <div className="flex items-center gap-3">
           <TimePeriodSelector selected={timePeriod} onSelect={setTimePeriod} />
@@ -251,129 +230,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {isSystemAdmin && (
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle>Activité administrateur système</CardTitle>
-            <CardDescription>Suivi des actions et points de contrôle administratifs</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg border border-border p-4">
-                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span className="text-sm">Total utilisateurs</span>
-                </div>
-                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.totalUsers || 0}</p>
-              </div>
-              <div className="rounded-lg border border-border p-4">
-                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span className="text-sm">Comptes admin</span>
-                </div>
-                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.adminUsers || 0}</p>
-              </div>
-              <div className="rounded-lg border border-border p-4">
-                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                  <ClipboardList className="h-4 w-4" />
-                  <span className="text-sm">Total produits</span>
-                </div>
-                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.totalProducts || 0}</p>
-              </div>
-              <div className="rounded-lg border border-border p-4">
-                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                  <Boxes className="h-4 w-4" />
-                  <span className="text-sm">Total catégories</span>
-                </div>
-                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.totalCategories || 0}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-lg border border-border p-4">
-                <p className="text-sm text-muted-foreground">Total unités de mesure</p>
-                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.totalMeasurementUnits || 0}</p>
-              </div>
-              <div className="rounded-lg border border-border p-4">
-                <p className="text-sm text-muted-foreground">Bons d'achat en attente</p>
-                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.pendingPurchaseOrders || 0}</p>
-              </div>
-              <div className="rounded-lg border border-border p-4">
-                <p className="text-sm text-muted-foreground">Inventaires en cours</p>
-                <p className="text-2xl font-semibold">{statsLoading ? "..." : stats?.systemAdminActivity?.inProgressInventories || 0}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 lg:grid-cols-2">
-              <div className="rounded-lg border border-border p-4">
-                <p className="mb-3 text-sm font-medium">Utilisateurs actifs (24h)</p>
-                <div className="space-y-2">
-                  {adminConnectedUsers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Aucun utilisateur actif récent.</p>
-                  ) : (
-                    adminConnectedUsers.map((item: any) => (
-                      <div key={item.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-                        <div>
-                          <p className="text-sm font-medium">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">{roleLabel(item.role)}</p>
-                        </div>
-                        <div className="text-right">
-                          <Badge className="bg-accent/20 text-accent">Actif</Badge>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {new Date(item.lastActivity).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border p-4">
-                <p className="mb-3 text-sm font-medium">Historique création / modification</p>
-                <div className="space-y-2">
-                  {adminChangeHistory.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Aucun historique disponible.</p>
-                  ) : (
-                    adminChangeHistory.map((item: any) => (
-                      <div key={item.id} className="rounded-md border border-border px-3 py-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium">{item.description}</p>
-                          <Badge variant="outline">{item.actionType}</Badge>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {item.userName} ({roleLabel(item.userRole)}) - {new Date(item.date).toLocaleString()}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
-              <p className="text-sm text-muted-foreground">
-                Ajustements de stock sur la période:{" "}
-                <span className="font-semibold text-foreground">
-                  {statsLoading ? "..." : stats?.systemAdminActivity?.stockAdjustmentsInPeriod || 0}
-                </span>
-              </p>
-              <div className="flex gap-2">
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/users">Utilisateurs</Link>
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/notifications">Notifications</Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link href="/settings">Paramétrage</Link>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Recent Transactions */}
       <Card className="border-border/50 shadow-sm">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -400,9 +256,8 @@ export default function DashboardPage() {
               {recentTransactions.map((txn: any) => (
                 <div key={txn.id} className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                      txn.paymentMethod === "cash" ? "bg-green-500/10" : txn.paymentMethod === "credit" ? "bg-blue-500/10" : "bg-muted"
-                    }`}>
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${txn.paymentMethod === "cash" ? "bg-green-500/10" : txn.paymentMethod === "credit" ? "bg-blue-500/10" : "bg-muted"
+                      }`}>
                       {txn.paymentMethod === "cash"
                         ? <Banknote className="h-4 w-4 text-green-600" />
                         : txn.paymentMethod === "credit"
@@ -428,11 +283,10 @@ export default function DashboardPage() {
                     <span className="text-sm font-semibold">{formatCurrency(Number.parseFloat(txn.total))}</span>
                     <Badge
                       variant="outline"
-                      className={`text-[10px] px-1.5 py-0 ${
-                        txn.status === "completed"
+                      className={`text-[10px] px-1.5 py-0 ${txn.status === "completed"
                           ? "border-green-500/30 bg-green-500/10 text-green-700"
                           : "border-amber-500/30 bg-amber-500/10 text-amber-700"
-                      }`}
+                        }`}
                     >
                       {txn.status === "completed" ? "Paid" : txn.status}
                     </Badge>
