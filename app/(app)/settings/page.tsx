@@ -17,10 +17,25 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Store, Tag, Shield, Plus, Trash2, Save, Loader2 } from "lucide-react"
+import { Store, Tag, Shield, Plus, Trash2, Save, Loader2, Search, Pencil } from "lucide-react"
 import { useSettings } from "@/hooks/use-settings"
 import { useCategories } from "@/hooks/use-products"
 import { cn } from "@/lib/utils"
+import { UserManagement } from "@/components/user-management"
+import Swal from "sweetalert2"
+
+type Category = {
+  id: string
+  name: string
+  description?: string
+}
+
+type Unit = {
+  id: string
+  code: string
+  name: string
+  symbol?: string
+}
 
 export default function SettingsPage() {
   const { settings, loading: settingsLoading, updateSettings } = useSettings()
@@ -33,6 +48,76 @@ export default function SettingsPage() {
   const [menuItems, setMenuItems] = useState<any[]>([])
   const [menuLoading, setMenuLoading] = useState(false)
   const [menuSaving, setMenuSaving] = useState(false)
+  const [categorySearch, setCategorySearch] = useState("")
+  const [unitSearch, setUnitSearch] = useState("")
+
+  const handleCategorySearchChange = (value: string) => { setCategorySearch(value); setCategoryPage(1) }
+  const handleUnitSearchChange = (value: string) => { setUnitSearch(value); setUnitPage(1) }
+
+  const [editCategory, setEditCategory] = useState<any>(null)
+  const [showEditCategory, setShowEditCategory] = useState(false)
+  const handleStartEditCategory = (cat: any) => {
+    setEditCategory(cat)
+    setShowEditCategory(true)
+  }
+  const handleUpdateCategory = async () => {
+    if (!editCategory?.name?.trim()) return
+    try {
+      const res = await fetch(`/api/categories/${editCategory.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editCategory.name, description: editCategory.description }),
+      })
+      if (!res.ok) throw new Error("Failed to update")
+      setShowEditCategory(false)
+      setEditCategory(null)
+      window.location.reload()
+    } catch {
+      await Swal.fire({ icon: "error", title: "Failed to update category" })
+    }
+  }
+
+  const [editUnit, setEditUnit] = useState<any>(null)
+  const [showEditUnit, setShowEditUnit] = useState(false)
+  const handleStartEditUnit = (unit: any) => {
+    setEditUnit(unit)
+    setShowEditUnit(true)
+  }
+  const handleUpdateUnit = async () => {
+    if (!editUnit?.code?.trim() || !editUnit?.name?.trim()) return
+    try {
+      const res = await fetch(`/api/units/${editUnit.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: editUnit.code, name: editUnit.name, symbol: editUnit.symbol }),
+      })
+      if (!res.ok) throw new Error("Failed to update")
+      setShowEditUnit(false)
+      setEditUnit(null)
+      window.location.reload()
+    } catch {
+      await Swal.fire({ icon: "error", title: "Failed to update unit" })
+    }
+  }
+
+  const [categoryPageSize, setCategoryPageSize] = useState(10)
+  const [categoryPage, setCategoryPage] = useState(1)
+  const categoryCurrentPage = categoryPage
+  const handleCategoryPageSizeChange = (value: string) => { setCategoryPageSize(Number(value)); setCategoryPage(1) }
+
+  const filteredCategories = categories.filter((c: any) =>
+    !categorySearch || c.name?.toLowerCase().includes(categorySearch.toLowerCase())
+  )
+  const categoryTotalPages = Math.max(1, Math.ceil(filteredCategories.length / categoryPageSize))
+  const paginatedCategories = filteredCategories.slice(
+    (categoryCurrentPage - 1) * categoryPageSize,
+    categoryCurrentPage * categoryPageSize
+  )
+
+  const [unitPageSize, setUnitPageSize] = useState(10)
+  const [unitPage, setUnitPage] = useState(1)
+  const unitCurrentPage = unitPage
+  const handleUnitPageSizeChange = (value: string) => { setUnitPageSize(Number(value)); setUnitPage(1) }
 
   useEffect(() => {
     if (settings) {

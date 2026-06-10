@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "manager" | "cashier" | "waiter"
+export type UserRole = "admin" | "manager" | "cashier" | "waiter" | "cashier_food" | "cashier_bakery" | "supervisor_bakery" | "supervisor_food" | "production_bakery"
 export type ProductType = "drink" | "food" | "ingredient"
 export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled"
 

@@ -2,7 +2,7 @@ import { pgTable, text, integer, timestamp, numeric, uuid, pgEnum, boolean } fro
 import { relations } from "drizzle-orm"
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "cashier", "waiter"])
+export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "cashier", "waiter", "cashier_food", "cashier_bakery", "supervisor_bakery", "supervisor_food", "production_bakery"])
 export const productTypeEnum = pgEnum("product_type", ["drink", "food", "ingredient"])
 export const orderStatusEnum = pgEnum("order_status", ["pending", "preparing", "ready", "served", "paid", "cancelled"])
 export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "purchase", "credit_payment"])
@@ -32,7 +32,7 @@ export const users = pgTable("users", {
     name: text("name").notNull(),
     email: text("email").notNull().unique(),
     phone: text("phone"),
-    role: userRoleEnum("role").notNull().default("cashier_food"),
+    role: userRoleEnum("role").notNull().default("cashier"),
     password: text("password").notNull(),
     avatar: text("avatar"),
 })

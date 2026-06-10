@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Search, Plus, Edit2, Trash2, Loader2, Package, Beer, Utensils, Wheat } from "lucide-react"
 import { useProducts } from "@/hooks/use-products"
+import { useAuth } from "@/lib/auth-context"
 import { ProductFormDialog } from "@/components/inventory/product-form-dialog"
 import { formatCurrency } from "@/lib/mock-data"
 

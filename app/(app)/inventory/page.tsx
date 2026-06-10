@@ -6,16 +6,26 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse, Store } from "lucide-react"
+import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse, Store, Save } from "lucide-react"
 import { useStock } from "@/hooks/use-stock"
 import { useLocations } from "@/hooks/use-locations"
+import { useAuth } from "@/lib/auth-context"
+import { toast } from "sonner"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function InventoryStatusPage() {
+  const { user } = useAuth()
   const [search, setSearch] = useState("")
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
   const [productType, setProductType] = useState<string>("all")
-  const { stockItems, loading } = useStock()
+  const { stockItems, loading, createAdjustment } = useStock()
   const { locations } = useLocations()
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [inventoryForm, setInventoryForm] = useState({ productId: "", physicalQuantity: "" })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isBakeryUser = user?.role === "cashier_bakery" || user?.role === "supervisor_bakery" || user?.role === "admin"
 
   const filteredByLocation = useMemo(() => {
     let items = stockItems
