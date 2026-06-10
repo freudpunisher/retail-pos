@@ -43,7 +43,7 @@ export async function POST(request: Request) {
         const result = await db.transaction(async (tx) => {
             const [newTransfer] = await tx
                 .insert(stockTransfers)
-                .values({ fromLocationId, toLocationId, userId, notes, status: "pending" })
+                .values({ fromLocationId, toLocationId, userId, notes, status: "pending", transferType: "demand" })
                 .returning()
 
             for (const item of items) {

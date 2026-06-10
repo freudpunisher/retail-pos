@@ -28,6 +28,7 @@ import {
   ArrowRightLeft,
   Wallet,
   Loader2,
+  ChefHat,
 } from "lucide-react"
 
 const iconMap: Record<string, any> = {
@@ -35,6 +36,7 @@ const iconMap: Record<string, any> = {
   ArrowLeftRight, Users, UserCog, CreditCard,
   BarChart3, Settings, Truck, RefreshCw,
   ClipboardList, Receipt, ArrowRightLeft, Wallet,
+  ChefHat,
 }
 
 interface MenuItem {

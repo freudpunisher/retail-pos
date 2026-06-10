@@ -14,12 +14,12 @@ import { Plus, Warehouse, BarChart3, Loader2 } from "lucide-react"
 export default function LocationsPage() {
     const { locations, loading, createLocation } = useLocations()
     const [showAdd, setShowAdd] = useState(false)
-    const [form, setForm] = useState({ name: "", type: "secondary" })
+    const [form, setForm] = useState({ name: "", type: "bar" })
 
     const handleAdd = async () => {
         await createLocation(form)
         setShowAdd(false)
-        setForm({ name: "", type: "secondary" })
+        setForm({ name: "", type: "bar" })
     }
 
     if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
@@ -75,7 +75,9 @@ export default function LocationsPage() {
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="principal">Principal Stock (Warehouse)</SelectItem>
-                                    <SelectItem value="secondary">Secondary (Bar/Service)</SelectItem>
+                                    <SelectItem value="transitional">Transitional Stock</SelectItem>
+                                    <SelectItem value="bar">Bar (Service Point)</SelectItem>
+                                    <SelectItem value="kitchen">Kitchen</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -2,7 +2,7 @@ import { pgTable, text, integer, timestamp, numeric, uuid, pgEnum, boolean } fro
 import { relations } from "drizzle-orm"
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "cashier", "waiter"])
+export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "cashier", "waiter", "chef"])
 export const productTypeEnum = pgEnum("product_type", ["drink", "food", "ingredient"])
 export const orderStatusEnum = pgEnum("order_status", ["pending", "preparing", "ready", "served", "paid", "cancelled"])
 export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "purchase", "credit_payment"])
@@ -14,7 +14,7 @@ export const creditStatusEnum = pgEnum("credit_status", ["paid", "partial", "ove
 export const creditPaymentMethodEnum = pgEnum("credit_payment_method", ["cash", "card"])
 export const inventoryAdjustmentTypeEnum = pgEnum("inventory_adjustment_type", ["stock_count", "damage", "loss", "return", "transfer", "correction", "opening_stock"])
 export const inventorySessionStatusEnum = pgEnum("inventory_session_status", ["in_progress", "completed", "reconciled"])
-export const locationTypeEnum = pgEnum("location_type", ["principal", "secondary"])
+export const locationTypeEnum = pgEnum("location_type", ["principal", "transitional", "bar", "kitchen"])
 export const tableStatusEnum = pgEnum("table_status", ["free", "occupied", "reserved"])
 
 // Tables
@@ -49,7 +49,7 @@ export const products = pgTable("products", {
 export const locations = pgTable("locations", {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
-    type: locationTypeEnum("type").notNull().default("secondary"),
+    type: locationTypeEnum("type").notNull().default("bar"),
     isActive: boolean("is_active").notNull().default(true),
 })
 
@@ -65,12 +65,15 @@ export const stock = pgTable("stock", {
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
 
+export const transferTypeEnum = pgEnum("transfer_type", ["demand", "direct"])
+
 export const stockTransfers = pgTable("stock_transfers", {
     id: uuid("id").primaryKey().defaultRandom(),
     productId: uuid("product_id").references(() => products.id),
     fromLocationId: uuid("from_location_id").notNull().references(() => locations.id),
     toLocationId: uuid("to_location_id").notNull().references(() => locations.id),
     quantity: integer("quantity"),
+    transferType: transferTypeEnum("transfer_type").notNull().default("demand"),
     userId: uuid("user_id").notNull().references(() => users.id),
     date: timestamp("date").notNull().defaultNow(),
     notes: text("notes"),
