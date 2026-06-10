@@ -3,14 +3,19 @@ import db from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { asc } from "drizzle-orm"
 import { hashPassword } from "@/lib/password"
+import { requireAdmin } from "@/lib/auth-guard"
 
 export async function GET() {
     try {
+        const authError = await requireAdmin()
+        if (authError) return authError
+
         const allUsers = await db
             .select({
                 id: users.id,
                 name: users.name,
                 email: users.email,
+                phone: users.phone,
                 role: users.role,
                 avatar: users.avatar,
             })
@@ -25,8 +30,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        const authError = await requireAdmin()
+        if (authError) return authError
+
         const body = await request.json()
-        const { name, email, role, avatar, password } = body
+        const { name, email, phone, role, avatar, password } = body
 
         if (!name || !email || !password) {
             return NextResponse.json(
@@ -43,7 +51,8 @@ export async function POST(request: Request) {
             .values({
                 name,
                 email,
-                role: role || "cashier",
+                phone,
+                role: role || "cashier_food",
                 password: hashedPassword,
                 avatar,
             })
@@ -51,6 +60,7 @@ export async function POST(request: Request) {
                 id: users.id,
                 name: users.name,
                 email: users.email,
+                phone: users.phone,
                 role: users.role,
                 avatar: users.avatar,
             })

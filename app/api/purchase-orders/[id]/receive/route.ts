@@ -66,7 +66,7 @@ export async function POST(
                     await tx
                         .update(stock)
                         .set({
-                            quantityOnHand: sql`${stock.quantityOnHand} + ${item.quantity}`,
+                            quantityOnHand: sql`${stock.quantityOnHand} + ${quantity}`,
                             updatedAt: new Date(),
                         })
                         .where(eq(stock.id, stockRecord.id));
@@ -83,7 +83,7 @@ export async function POST(
                     productId: item.productId,
                     productName: item.productName,
                     type: "purchase",
-                    quantity: item.quantity,
+                    quantity,
                     userId,
                     notes: `Received from PO ${id} at ${warehouse.name}`,
                 });

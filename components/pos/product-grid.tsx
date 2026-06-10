@@ -37,6 +37,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useProducts, useCategories } from "@/hooks/use-products"
+import { useAuth } from "@/lib/auth-context"
 
 function getCategoryIcon(category: string, productName: string) {
   // Specific product icons
@@ -78,7 +79,7 @@ export function ProductGrid() {
   const { addItem, items, productStockMap, principalStockMap } = useCart()
   const [stockAlert, setStockAlert] = useState<{ product: any; secondary: number; principal: number } | null>(null)
 
-  const { products, loading: productsLoading } = useProducts(selectedCategoryId || "all", search)
+  const { products, loading: productsLoading, refresh } = useProducts(selectedCategoryId || "all", search)
   const { categories, loading: categoriesLoading } = useCategories()
 
   // Filter: only show drink and food (not ingredients), optionally filter by type
@@ -113,6 +114,14 @@ export function ProductGrid() {
       category: product.categoryName || product.category
     })
   }
+
+  useEffect(() => {
+    const onTransactionCompleted = () => {
+      refresh()
+    }
+    window.addEventListener("pos:transaction-completed", onTransactionCompleted)
+    return () => window.removeEventListener("pos:transaction-completed", onTransactionCompleted)
+  }, [refresh])
 
   return (
     <div className="flex flex-col overflow-hidden h-full">

@@ -38,18 +38,19 @@ export async function POST(
             return NextResponse.json({ error: "Product already in count session" }, { status: 400 })
         }
 
-        // Get current stock from product record
+        // Get current logical stock (stock table first, fallback to product stock)
         const [productRecord] = await db.select().from(products).where(eq(products.id, productId))
-        const quantityInStock = productRecord ? productRecord.stock : 0
+        const [stockRecord] = await db.select().from(stock).where(eq(stock.productId, productId))
+        const quantityInStock = Number(stockRecord?.quantityOnHand ?? productRecord?.stock ?? 0)
 
         const [newItem] = await db
             .insert(inventoryItems)
             .values({
                 inventoryId: id,
                 productId: productId,
-                quantityInStock: quantityInStock,
-                physicalQuantity: 0,
-                variance: -quantityInStock,
+                quantityInStock: quantityInStock.toString(),
+                physicalQuantity: "0",
+                variance: (-quantityInStock).toString(),
             })
             .returning()
 

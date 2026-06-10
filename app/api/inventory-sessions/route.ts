@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { countedBy, notes } = body
+        const { countedBy, notes, initializePhysicalFromLogical } = body
 
         if (!countedBy) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -39,16 +39,26 @@ export async function POST(request: Request) {
                 })
                 .returning()
 
-            // 2. Initialize items for all products from products table
-            const allProducts = await tx.select().from(products)
+            // 2. Initialize items from logical stock (stock table), fallback to products.stock
+            const allProducts = await tx
+                .select({
+                    id: products.id,
+                    productStock: products.stock,
+                    quantityOnHand: stock.quantityOnHand,
+                })
+                .from(products)
+                .leftJoin(stock, eq(products.id, stock.productId))
 
             for (const p of allProducts) {
+                const logicalQty = Number(p.quantityOnHand ?? p.productStock ?? 0)
+                const initialPhysicalQty = initializePhysicalFromLogical ? logicalQty : 0
+                const initialVariance = initialPhysicalQty - logicalQty
                 await tx.insert(inventoryItems).values({
                     inventoryId: session.id,
                     productId: p.id,
-                    quantityInStock: p.stock,
-                    physicalQuantity: 0, // Initial state
-                    variance: -p.stock, // Default variance if physical is 0
+                    quantityInStock: logicalQty.toString(),
+                    physicalQuantity: initialPhysicalQty.toString(),
+                    variance: initialVariance.toString(),
                 })
             }
 

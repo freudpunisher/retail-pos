@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
         total: purchaseOrders.total,
         supplierId: purchaseOrders.supplierId,
         supplierName: suppliers.name,
+        sector: purchaseOrders.sector,
+        purchaseRef: purchaseOrders.purchaseRef,
       })
       .from(purchaseOrders)
       .leftJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id))
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { supplierId, items, total, userId } = body;
+    const { supplierId, items, total, userId, sector } = body;
 
     if (!supplierId || !items?.length) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -65,12 +67,26 @@ export async function POST(request: Request) {
 
     const result = await db.transaction(async (tx) => {
       // 1. Create Purchase Order → pending by default
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const periodStart = new Date(year, now.getMonth(), 1);
+      const periodEnd = new Date(year, now.getMonth() + 1, 1);
+      const [countRow] = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(purchaseOrders)
+        .where(and(gte(purchaseOrders.date, periodStart), lt(purchaseOrders.date, periodEnd)));
+      const seq = String(Number(countRow?.count || 0) + 1).padStart(3, "0");
+      const purchaseRef = `ACH-${year}-${month}-${seq}`;
+
       const [newOrder] = await tx
         .insert(purchaseOrders)
         .values({
           supplierId,
           total: total.toFixed(2),
           status: "pending",
+          sector: sector || "Alimentation",
+          purchaseRef,
         })
         .returning();
 

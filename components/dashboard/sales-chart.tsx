@@ -13,6 +13,7 @@ interface SalesData {
 interface SalesChartProps {
   loading?: boolean
   timePeriod?: "today" | "week" | "month"
+  sector?: string
 }
 
 const CHART_TITLES: Record<string, string> = {
@@ -21,18 +22,22 @@ const CHART_TITLES: Record<string, string> = {
   month: "Sales Overview (This Month)",
 }
 
-export function SalesChart({ loading = false, timePeriod = "week" }: SalesChartProps) {
+export function SalesChart({ loading = false, timePeriod = "week", sector }: SalesChartProps) {
   const [data, setData] = useState<SalesData[]>([])
   const [chartLoading, setChartLoading] = useState(true)
 
   useEffect(() => {
     fetchSalesData()
-  }, [timePeriod])
+  }, [timePeriod, sector])
 
   const fetchSalesData = async () => {
     setChartLoading(true)
     try {
-      const response = await fetch(`/api/dashboard/sales-chart?period=${timePeriod}`)
+      const params = new URLSearchParams({ period: timePeriod })
+      if (sector) {
+        params.set("sector", sector)
+      }
+      const response = await fetch(`/api/dashboard/sales-chart?${params.toString()}`)
       if (response.ok) {
         const chartData = await response.json()
         setData(chartData)

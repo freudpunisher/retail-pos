@@ -85,13 +85,13 @@ export default function CreatePurchaseOrderPage() {
   }
 
   const total = items.reduce((sum, i) => sum + i.quantity * i.cost, 0)
-  const totalUnits = items.reduce((sum, i) => sum + i.quantity, 0)
+  const totalUnits = items.reduce((sum, i) => sum + Number(i.quantity || 0), 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      await createOrder({ supplierId, items, total })
+      await createOrder({ supplierId, items, total, sector: "Alimentation" })
       toast({ title: "Order created", description: "New purchase order saved as pending." })
       router.push("/purchases")
     } catch (err: any) {

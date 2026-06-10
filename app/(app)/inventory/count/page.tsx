@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,33 +16,76 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { ClipboardList, Plus, Calendar, User, Loader2, ArrowRight, CheckCircle2, Clock, History as HistoryIcon } from "lucide-react"
 import { useInventorySessions } from "@/hooks/use-inventory-sessions"
-import { useUsers } from "@/hooks/use-users"
+import { useProducts } from "@/hooks/use-products"
+import { useAuth } from "@/lib/auth-context"
 
 export default function InventoryCountPage() {
     const router = useRouter()
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [isStarting, setIsStarting] = useState(false)
     const [formData, setFormData] = useState({
-        countedBy: "",
         notes: "",
+        initializePhysicalFromLogical: true,
+        initialProductId: "",
+        initialPhysicalQty: "",
     })
 
     const { sessions, loading, startSession } = useInventorySessions()
-    const { users } = useUsers()
+    const { user } = useAuth()
+    const { products } = useProducts()
+    const isBakeryUser = user?.role === "cashier_bakery" || user?.role === "supervisor_bakery" || user?.role === "production_bakery"
+    const selectableProducts = useMemo(() => {
+        if (!isBakeryUser) return products
+        return products.filter((p: any) => String(p.sector || "").toLowerCase() === "boulangerie")
+    }, [products, isBakeryUser])
 
     const handleStartSession = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsStarting(true)
         try {
-            const session = await startSession(formData)
+            if (!user?.id) {
+                throw new Error("Utilisateur non connecté.")
+            }
+            const initialQty = Number.parseFloat(formData.initialPhysicalQty)
+            if (formData.initialProductId && (!Number.isFinite(initialQty) || initialQty < 0)) {
+                throw new Error("Veuillez saisir une quantité physique valide pour le produit sélectionné.")
+            }
+
+            const session = await startSession({
+                ...formData,
+                countedBy: user.id,
+            })
+            if (formData.initialProductId && Number.isFinite(initialQty) && initialQty >= 0) {
+                const response = await fetch(`/api/inventory-sessions/${session.id}/adjust-item`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        productId: formData.initialProductId,
+                        physicalQuantity: initialQty,
+                    }),
+                })
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}))
+                    throw new Error(data?.error || "Failed to apply initial product quantity")
+                }
+            }
+            setFormData({
+                notes: "",
+                initializePhysicalFromLogical: true,
+                initialProductId: "",
+                initialPhysicalQty: "",
+            })
             setIsDialogOpen(false)
             router.push(`/inventory/count/${session.id}`)
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to start session:", error)
+            alert(error?.message || "Échec de création de la session d'inventaire.")
         } finally {
             setIsStarting(false)
         }
@@ -80,26 +123,13 @@ export default function InventoryCountPage() {
                             <DialogHeader>
                                 <DialogTitle>Start Count Session</DialogTitle>
                                 <DialogDescription>
-                                    Select location and assign staff to begin a physical count.
+                                    Session créée avec l'utilisateur connecté.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
-                                <div className="space-y-2">
-                                    <Label>Assign Staff</Label>
-                                    <Select
-                                        value={formData.countedBy}
-                                        onValueChange={(val) => setFormData({ ...formData, countedBy: val })}
-                                        required
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Who is performing the count?" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {users.map(u => (
-                                                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                <div className="rounded-lg border border-border/50 bg-secondary/20 p-3 text-sm">
+                                    <span className="text-muted-foreground">Agent:</span>{" "}
+                                    <span className="font-semibold">{user?.name || "Utilisateur connecté"}</span>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Notes (Optional)</Label>
@@ -110,12 +140,61 @@ export default function InventoryCountPage() {
                                         className="h-24 resize-none"
                                     />
                                 </div>
+                                <div className="rounded-lg border border-border/50 bg-secondary/20 p-3 space-y-3">
+                                    <p className="text-sm font-semibold">Ajout rapide (optionnel)</p>
+                                    <div className="space-y-2">
+                                        <Label>Produit</Label>
+                                        <Select
+                                            value={formData.initialProductId}
+                                            onValueChange={(val) => setFormData({ ...formData, initialProductId: val })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Sélectionner un produit" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {selectableProducts.map((p: any) => (
+                                                    <SelectItem key={p.id} value={p.id}>
+                                                        {p.name} - {p.sku}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Quantité physique</Label>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            step="0.001"
+                                            placeholder="0"
+                                            value={formData.initialPhysicalQty}
+                                            onChange={(e) => setFormData({ ...formData, initialPhysicalQty: e.target.value })}
+                                            disabled={!formData.initialProductId}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="rounded-lg border border-border/50 bg-secondary/20 p-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <Label className="text-sm font-semibold">Initialiser stock physique = stock logique</Label>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Recommandé pour pointer uniquement les écarts (pertes/surplus).
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            checked={formData.initializePhysicalFromLogical}
+                                            onCheckedChange={(checked) =>
+                                                setFormData({ ...formData, initializePhysicalFromLogical: checked })
+                                            }
+                                        />
+                                    </div>
+                                </div>
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={isStarting}>
+                                <Button type="submit" disabled={isStarting || !user?.id}>
                                     {isStarting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Begin Count
                                 </Button>

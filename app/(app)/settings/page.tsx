@@ -51,15 +51,130 @@ export default function SettingsPage() {
 
   const handleAddCategory = async () => {
     if (newCategory.name.trim()) {
-      await createCategory(newCategory)
-      setNewCategory({ name: "", description: "" })
-      setShowAddCategory(false)
+      try {
+        await createCategory(newCategory)
+        setNewCategory({ name: "", description: "" })
+        setShowAddCategory(false)
+        await Swal.fire({
+          icon: "success",
+          title: "Category added",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to add category",
+        })
+      }
     }
   }
 
   const handleDeleteCategory = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this category?")) {
-      await deleteCategory(id)
+    const result = await Swal.fire({
+      title: "Delete category?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+    })
+
+    if (result.isConfirmed) {
+      try {
+        await deleteCategory(id)
+        await Swal.fire({
+          icon: "success",
+          title: "Category deleted",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to delete category",
+        })
+      }
+    }
+  }
+
+  const filteredCategories = categories.filter((category) => {
+    const searchValue = categorySearch.trim().toLowerCase()
+    if (!searchValue) return true
+    const name = category.name?.toLowerCase() ?? ""
+    const description = category.description?.toLowerCase() ?? ""
+    return name.includes(searchValue) || description.includes(searchValue)
+  })
+  const categoryTotalPages = Math.max(1, Math.ceil(filteredCategories.length / categoryPageSize))
+  const categoryCurrentPage = Math.min(categoryPage, categoryTotalPages)
+  const paginatedCategories = filteredCategories.slice(
+    (categoryCurrentPage - 1) * categoryPageSize,
+    categoryCurrentPage * categoryPageSize,
+  )
+
+  const handleCategorySearchChange = (value: string) => {
+    setCategorySearch(value)
+    setCategoryPage(1)
+  }
+
+  const handleCategoryPageSizeChange = (value: string) => {
+    const nextSize = Number(value)
+    setCategoryPageSize(nextSize)
+    setCategoryPage(1)
+  }
+
+  const handleStartEditCategory = (category: any) => {
+    setEditCategory({
+      id: category.id,
+      name: category.name ?? "",
+      description: category.description ?? "",
+    })
+    setShowEditCategory(true)
+  }
+
+  const handleUpdateCategory = async () => {
+    if (!editCategory) return
+    if (editCategory.name.trim()) {
+      try {
+        await updateCategory(editCategory.id, {
+          name: editCategory.name,
+          description: editCategory.description,
+        })
+        setShowEditCategory(false)
+        setEditCategory(null)
+        await Swal.fire({
+          icon: "success",
+          title: "Category updated",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to update category",
+        })
+      }
+    }
+  }
+
+  const handleAddUnit = async () => {
+    if (newUnit.code.trim() && newUnit.name.trim()) {
+      try {
+        await createUnit(newUnit)
+        setNewUnit({ code: "", name: "", symbol: "" })
+        setShowAddUnit(false)
+        await Swal.fire({
+          icon: "success",
+          title: "Unit added",
+          timer: 1500,
+          showConfirmButton: false,
+        })
+      } catch {
+        await Swal.fire({
+          icon: "error",
+          title: "Failed to add unit",
+        })
+      }
     }
   }
 
@@ -224,7 +339,7 @@ export default function SettingsPage() {
         {/* Categories */}
         <TabsContent value="categories" className="mt-4">
           <Card className="border-border bg-card">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Tag className="h-5 w-5" />
@@ -232,44 +347,65 @@ export default function SettingsPage() {
                 </CardTitle>
                 <CardDescription>Manage product categories</CardDescription>
               </div>
-              <Dialog open={showAddCategory} onOpenChange={setShowAddCategory}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Category
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Category</DialogTitle>
-                    <DialogDescription>Create a new product category</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Category Name</Label>
-                      <Input
-                        placeholder="Enter category name"
-                        value={newCategory.name}
-                        onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Description</Label>
-                      <Input
-                        placeholder="Enter description"
-                        value={newCategory.description}
-                        onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowAddCategory(false)}>
-                      Cancel
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search categories..."
+                    value={categorySearch}
+                    onChange={(e) => handleCategorySearchChange(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={String(categoryPageSize)} onValueChange={handleCategoryPageSizeChange}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Rows" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 rows</SelectItem>
+                    <SelectItem value="20">20 rows</SelectItem>
+                    <SelectItem value="50">50 rows</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Dialog open={showAddCategory} onOpenChange={setShowAddCategory}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Category
                     </Button>
-                    <Button onClick={handleAddCategory}>Add Category</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Category</DialogTitle>
+                      <DialogDescription>Create a new product category</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Category Name</Label>
+                        <Input
+                          placeholder="Enter category name"
+                          value={newCategory.name}
+                          onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Input
+                          placeholder="Enter description"
+                          value={newCategory.description}
+                          onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddCategory(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleAddCategory}>Add Category</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <div className="rounded-md border border-border">
@@ -289,20 +425,30 @@ export default function SettingsPage() {
                           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
-                    ) : categories.length === 0 ? (
+                    ) : paginatedCategories.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                           No categories found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      categories.map((category) => (
+                      paginatedCategories.map((category) => (
                         <TableRow key={category.id} className="border-border">
                           <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{category.id}</TableCell>
                           <TableCell className="font-medium">{category.name}</TableCell>
                           <TableCell className="text-muted-foreground">{category.description || "-"}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground"
+                                title="Edit category"
+                                aria-label="Edit category"
+                                onClick={() => handleStartEditCategory(category)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -319,8 +465,77 @@ export default function SettingsPage() {
                   </TableBody>
                 </Table>
               </div>
+              <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Showing {(categoryCurrentPage - 1) * categoryPageSize + 1}-
+                  {Math.min(categoryCurrentPage * categoryPageSize, filteredCategories.length)} of {filteredCategories.length}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCategoryPage((p) => Math.max(1, p - 1))}
+                    disabled={categoryCurrentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-sm text-muted-foreground">
+                    Page {categoryCurrentPage} of {categoryTotalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCategoryPage((p) => Math.min(categoryTotalPages, p + 1))}
+                    disabled={categoryCurrentPage === categoryTotalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
+          <Dialog
+            open={showEditCategory}
+            onOpenChange={(open) => {
+              setShowEditCategory(open)
+              if (!open) setEditCategory(null)
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Category</DialogTitle>
+                <DialogDescription>Update category details</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    placeholder="e.g. Bakery"
+                    value={editCategory?.name ?? ""}
+                    onChange={(e) =>
+                      setEditCategory((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description (optional)</Label>
+                  <Input
+                    placeholder="Category description"
+                    value={editCategory?.description ?? ""}
+                    onChange={(e) =>
+                      setEditCategory((prev) => (prev ? { ...prev, description: e.target.value } : prev))
+                    }
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowEditCategory(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateCategory}>Save Changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* Menu Permissions */}
@@ -402,6 +617,63 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          <Dialog
+            open={showEditUnit}
+            onOpenChange={(open) => {
+              setShowEditUnit(open)
+              if (!open) setEditUnit(null)
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Unit</DialogTitle>
+                <DialogDescription>Update measurement unit details</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Code</Label>
+                  <Input
+                    placeholder="e.g. kg"
+                    value={editUnit?.code ?? ""}
+                    onChange={(e) =>
+                      setEditUnit((prev) => (prev ? { ...prev, code: e.target.value } : prev))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    placeholder="e.g. Kilogramme"
+                    value={editUnit?.name ?? ""}
+                    onChange={(e) =>
+                      setEditUnit((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Symbol (optional)</Label>
+                  <Input
+                    placeholder="e.g. kg"
+                    value={editUnit?.symbol ?? ""}
+                    onChange={(e) =>
+                      setEditUnit((prev) => (prev ? { ...prev, symbol: e.target.value } : prev))
+                    }
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowEditUnit(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateUnit}>Save Changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        {/* Users & Roles */}
+        <TabsContent value="users" className="mt-4">
+          <UserManagement />
         </TabsContent>
 
       </Tabs>

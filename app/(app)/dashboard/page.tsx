@@ -23,15 +23,16 @@ export default function DashboardPage() {
   const { orders, loading: ordersLoading } = useOrders()
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+  const isSystemAdmin = user?.role === "admin"
 
   useEffect(() => {
     if (!autoRefreshEnabled) return
     const interval = setInterval(() => {
-      refreshStats()
+      refreshStats(timePeriod, dashboardSector)
       fetchTransactions()
     }, 30000)
     return () => clearInterval(interval)
-  }, [autoRefreshEnabled, refreshStats, fetchTransactions])
+  }, [autoRefreshEnabled, refreshStats, fetchTransactions, timePeriod, dashboardSector])
 
   useEffect(() => {
     fetchTransactions()
@@ -39,7 +40,7 @@ export default function DashboardPage() {
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true)
-    await Promise.all([refreshStats(), fetchTransactions()])
+    await Promise.all([refreshStats(timePeriod, dashboardSector), fetchTransactions()])
     setIsManualRefreshing(false)
   }
 

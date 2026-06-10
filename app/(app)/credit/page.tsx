@@ -17,9 +17,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { mockCreditRecords, getClientById, formatCurrency } from "@/lib/mock-data"
+import { formatCurrency } from "@/lib/mock-data"
 import type { CreditRecord } from "@/lib/types"
 import { CreditCard, DollarSign, AlertTriangle, CheckCircle, Clock, Banknote, History } from "lucide-react"
+import { useCredits } from "@/hooks/use-credits"
+import { useAuth } from "@/lib/auth-context"
+import { toast } from "sonner"
 
 export default function CreditManagementPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -27,44 +30,65 @@ export default function CreditManagementPage() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [showHistoryDialog, setShowHistoryDialog] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash")
+
+  const { user } = useAuth()
+  const sector = user?.role === "cashier_bakery" ? "Boulangerie" : undefined
+  const { records, loading, recordPayment } = useCredits(undefined, sector)
 
   const filteredRecords = useMemo(() => {
-    return mockCreditRecords.filter((record) => {
-      return statusFilter === "all" || record.status === statusFilter
+    return records.filter((record: any) => {
+      const isOverdue = new Date(record.dueDate) < new Date() && record.status !== "paid"
+      const effectiveStatus = isOverdue ? "overdue" : record.status
+      return statusFilter === "all" || effectiveStatus === statusFilter
     })
-  }, [statusFilter])
+  }, [records, statusFilter])
 
-  const totalOutstanding = mockCreditRecords.reduce((sum, r) => sum + (r.amount - r.paidAmount), 0)
-  const overdueCount = mockCreditRecords.filter((r) => r.status === "overdue").length
-  const paidCount = mockCreditRecords.filter((r) => r.status === "paid").length
-  const pendingCount = mockCreditRecords.filter((r) => r.status === "pending" || r.status === "partial").length
+  const totalOutstanding = records.reduce((sum: number, r: any) => sum + (Number(r.amount) - Number(r.paidAmount)), 0)
+  const overdueCount = records.filter((r: any) => new Date(r.dueDate) < new Date() && r.status !== "paid").length
+  const paidCount = records.filter((r: any) => r.status === "paid").length
+  const pendingCount = records.filter((r: any) => r.status === "pending" || r.status === "partial").length
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "paid":
-        return <Badge className="bg-accent/20 text-accent">Paid</Badge>
+        return <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-none">Paid</Badge>
       case "partial":
-        return <Badge className="bg-primary/20 text-primary">Partial</Badge>
+        return <Badge className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-none">Partial</Badge>
       case "pending":
-        return <Badge className="bg-warning/20 text-warning">Pending</Badge>
+        return <Badge className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border-none">Pending</Badge>
       case "overdue":
-        return <Badge className="bg-destructive/20 text-destructive">Overdue</Badge>
+        return <Badge className="bg-rose-500/20 text-rose-600 dark:text-rose-400 border-none">Overdue</Badge>
       default:
         return null
     }
   }
 
-  const handleRecordPayment = () => {
-    console.log("Recording payment:", paymentAmount, "for record:", selectedRecord?.id)
-    setShowPaymentDialog(false)
-    setPaymentAmount("")
+  const handleRecordPayment = async () => {
+    if (!selectedRecord) return
+    const amount = Number(paymentAmount || 0)
+    if (!amount || amount <= 0) return
+    try {
+      await recordPayment(selectedRecord.id, amount, paymentMethod)
+      toast.success("Payment recorded")
+      setShowPaymentDialog(false)
+      setPaymentAmount("")
+      setPaymentMethod("cash")
+      setSelectedRecord(null)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to record payment")
+    }
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Credit Management</h2>
-        <p className="text-muted-foreground">Track and manage credit sales and payments</p>
+        <h2 className="text-2xl font-bold text-foreground">
+          {sector ? "Payement credit Boulangerie" : "Payement credit"}
+        </h2>
+        <p className="text-muted-foreground">
+          {sector ? "Suivi des payement credit de la boulangerie" : "Track and manage credit sales and payments"}
+        </p>
       </div>
 
       {/* Stats */}
@@ -74,9 +98,9 @@ export default function CreditManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Outstanding</p>
-                <p className="text-2xl font-bold text-warning">{formatCurrency(totalOutstanding)}</p>
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{formatCurrency(totalOutstanding)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-warning" />
+              <DollarSign className="h-8 w-8 text-amber-600 dark:text-amber-400" />
             </div>
           </CardContent>
         </Card>
@@ -85,9 +109,9 @@ export default function CreditManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Pending / Partial</p>
-                <p className="text-2xl font-bold">{pendingCount}</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{pendingCount}</p>
               </div>
-              <Clock className="h-8 w-8 text-primary" />
+              <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             </div>
           </CardContent>
         </Card>
@@ -107,9 +131,9 @@ export default function CreditManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Paid</p>
-                <p className="text-2xl font-bold text-accent">{paidCount}</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{paidCount}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-accent" />
+              <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
             </div>
           </CardContent>
         </Card>
@@ -161,7 +185,13 @@ export default function CreditManagementPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRecords.length === 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                      Loading credit records...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredRecords.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                       No credit records found
@@ -169,44 +199,46 @@ export default function CreditManagementPage() {
                   </TableRow>
                 ) : (
                   filteredRecords.map((record) => {
-                    const client = getClientById(record.clientId)
-                    const remaining = record.amount - record.paidAmount
-                    const progress = (record.paidAmount / record.amount) * 100
+                    const amountValue = Number(record.amount || 0)
+                    const paidValue = Number(record.paidAmount || 0)
+                    const remaining = amountValue - paidValue
+                    const progress = amountValue > 0 ? (paidValue / amountValue) * 100 : 0
                     const isOverdue = new Date(record.dueDate) < new Date() && record.status !== "paid"
+                    const effectiveStatus = isOverdue ? "overdue" : record.status
 
                     return (
                       <TableRow key={record.id} className="border-border">
                         <TableCell className="font-mono text-sm">{record.id}</TableCell>
-                        <TableCell className="font-medium">{client?.name || "Unknown"}</TableCell>
+                        <TableCell className="font-medium">{record.clientName || "Unknown"}</TableCell>
                         <TableCell className="font-mono text-sm text-muted-foreground">
                           {record.transactionId}
                         </TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(record.amount)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right font-medium">{formatCurrency(amountValue)}</TableCell>
+                        <TableCell className="text-right min-w-[140px]">
                           <div>
-                            <span className="font-medium text-accent">{formatCurrency(record.paidAmount)}</span>
+                            <span className="font-semibold text-foreground">{formatCurrency(paidValue)}</span>
                             <Progress value={progress} className="mt-1 h-1.5 w-16" />
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={remaining > 0 ? "font-medium text-warning" : "text-muted-foreground"}>
+                          <span className={remaining > 0 ? "font-medium text-amber-600 dark:text-amber-400" : "text-muted-foreground"}>
                             {formatCurrency(remaining)}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className={isOverdue ? "text-destructive" : ""}>
+                          <span className={isOverdue ? "text-rose-600 dark:text-rose-400" : ""}>
                             {new Date(record.dueDate).toLocaleDateString()}
                           </span>
                         </TableCell>
-                        <TableCell>{getStatusBadge(record.status)}</TableCell>
+                        <TableCell>{getStatusBadge(effectiveStatus)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            {record.status !== "paid" && (
+                            {effectiveStatus !== "paid" && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                  setSelectedRecord(record)
+                                  setSelectedRecord(record as any)
                                   setShowPaymentDialog(true)
                                 }}
                               >
@@ -217,7 +249,7 @@ export default function CreditManagementPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setSelectedRecord(record)
+                                setSelectedRecord(record as any)
                                 setShowHistoryDialog(true)
                               }}
                             >
@@ -248,20 +280,20 @@ export default function CreditManagementPage() {
               <div className="rounded-lg border border-border bg-secondary/30 p-4">
                 <div className="flex justify-between mb-2">
                   <span className="text-muted-foreground">Client</span>
-                  <span className="font-medium">{getClientById(selectedRecord.clientId)?.name}</span>
+                  <span className="font-medium">{(selectedRecord as any).clientName || "Unknown"}</span>
                 </div>
                 <div className="flex justify-between mb-2">
                   <span className="text-muted-foreground">Total Amount</span>
-                  <span className="font-medium">{formatCurrency(selectedRecord.amount)}</span>
+                  <span className="font-medium">{formatCurrency(Number(selectedRecord.amount))}</span>
                 </div>
                 <div className="flex justify-between mb-2">
                   <span className="text-muted-foreground">Already Paid</span>
-                  <span className="font-medium text-accent">{formatCurrency(selectedRecord.paidAmount)}</span>
+                  <span className="font-medium text-accent">{formatCurrency(Number(selectedRecord.paidAmount))}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Remaining</span>
                   <span className="font-bold text-warning">
-                    {formatCurrency(selectedRecord.amount - selectedRecord.paidAmount)}
+                    {formatCurrency(Number(selectedRecord.amount) - Number(selectedRecord.paidAmount))}
                   </span>
                 </div>
               </div>
@@ -276,6 +308,18 @@ export default function CreditManagementPage() {
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="method">Payment Method</Label>
+                <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as "cash" | "card")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
@@ -304,11 +348,11 @@ export default function CreditManagementPage() {
               <div className="rounded-lg border border-border bg-secondary/30 p-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total Amount:</span>
-                  <span className="font-medium">{formatCurrency(selectedRecord.amount)}</span>
+                  <span className="font-medium">{formatCurrency(Number(selectedRecord.amount))}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Paid:</span>
-                  <span className="font-medium text-accent">{formatCurrency(selectedRecord.paidAmount)}</span>
+                  <span className="font-medium text-accent">{formatCurrency(Number(selectedRecord.paidAmount))}</span>
                 </div>
               </div>
 
@@ -320,11 +364,11 @@ export default function CreditManagementPage() {
                       className="flex items-center justify-between rounded-lg border border-border bg-card p-3"
                     >
                       <div>
-                        <p className="font-mono text-sm">{payment.id}</p>
+                        <p className="font-mono text-sm">{payment.paymentRef || payment.id}</p>
                         <p className="text-xs text-muted-foreground">{new Date(payment.date).toLocaleString()}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-accent">{formatCurrency(payment.amount)}</p>
+                        <p className="font-medium text-accent">{formatCurrency(Number(payment.amount))}</p>
                         <Badge variant="outline" className="text-xs">
                           {payment.method}
                         </Badge>

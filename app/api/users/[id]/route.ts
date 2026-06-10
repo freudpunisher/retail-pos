@@ -2,23 +2,42 @@ import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { requireAdmin } from "@/lib/auth-guard"
+import { hashPassword } from "@/lib/password"
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
     try {
+        const authError = await requireAdmin()
+        if (authError) return authError
+
         const body = await request.json()
-        const { name, email, role, avatar } = body
+        const { name, email, phone, role, avatar, password } = body
+
+        const updateData: any = {
+            name,
+            email,
+            phone,
+            role,
+            avatar,
+        }
+
+        if (password && password.trim() !== "") {
+            updateData.password = await hashPassword(password)
+        }
 
         const [updatedUser] = await db
             .update(users)
-            .set({
-                name,
-                email,
-                role,
-                avatar,
-            })
+            .set(updateData)
             .where(eq(users.id, id))
-            .returning()
+            .returning({
+                id: users.id,
+                name: users.name,
+                email: users.email,
+                phone: users.phone,
+                role: users.role,
+                avatar: users.avatar,
+            })
 
         if (!updatedUser) {
             return NextResponse.json({ error: "User not found" }, { status: 404 })
@@ -34,6 +53,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
     try {
+        const authError = await requireAdmin()
+        if (authError) return authError
+
         const [deletedUser] = await db.delete(users).where(eq(users.id, id)).returning()
 
         if (!deletedUser) {

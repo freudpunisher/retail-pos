@@ -21,6 +21,8 @@
       "version": "7",
       "when": 1769500000000,
       "tag": "0002_restobar_tables",
+      "when": 1770736872348,
+      "tag": "0002_add_measurement_units",
       "breakpoints": true
     },
     {
@@ -28,6 +30,8 @@
       "version": "7",
       "when": 1770000000000,
       "tag": "0003_ingredient_type",
+      "when": 1770742053367,
+      "tag": "0003_products_unit_text",
       "breakpoints": true
     },
     {
@@ -49,6 +53,8 @@
       "version": "7",
       "when": 1770600000000,
       "tag": "0006_menu_permissions",
+      "when": 1770792559556,
+      "tag": "0006_add_recipe_grs",
       "breakpoints": true
     },
     {
@@ -56,6 +62,22 @@
       "version": "7",
       "when": 1770700000000,
       "tag": "0007_notifications",
+      "when": 1770795202313,
+      "tag": "0007_add_product_sector",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770802442402,
+      "tag": "0008_add_purchase_orders_sector",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1770803101231,
+      "tag": "0009_add_purchase_order_ref",
       "breakpoints": true
     }
   ]
