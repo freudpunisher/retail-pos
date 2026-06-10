@@ -2,7 +2,11 @@ import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { products, categories, stock } from "@/lib/db/schema"
 import { eq, desc, sql } from "drizzle-orm"
+<<<<<<< HEAD
 import { requireAdmin } from "@/lib/auth-guard"
+=======
+import { resolveWarehouse } from "@/lib/db/location-utils"
+>>>>>>> origin/alimentation
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -15,12 +19,19 @@ export async function GET(request: Request) {
                 id: products.id,
                 sku: products.sku,
                 name: products.name,
+<<<<<<< HEAD
                 type: products.type,
+=======
+                productType: products.productType,
+>>>>>>> origin/alimentation
                 price: products.price,
-                cost: products.cost,
                 stock: products.stock,
                 minStock: products.minStock,
+<<<<<<< HEAD
                 unit: products.unit,
+=======
+                trackStock: products.trackStock,
+>>>>>>> origin/alimentation
                 image: products.image,
                 categoryId: products.categoryId,
                 categoryName: categories.name,
@@ -52,7 +63,11 @@ export async function POST(request: Request) {
         if (authError) return authError
 
         const body = await request.json()
+<<<<<<< HEAD
         const { name, categoryId, price, cost, minStock, unit, image, sector } = body
+=======
+        const { name, categoryId, productType, price, minStock, trackStock, image } = body
+>>>>>>> origin/alimentation
         let { sku } = body
 
         if (!name || price === undefined) {
@@ -73,24 +88,35 @@ export async function POST(request: Request) {
                     sku,
                     name,
                     categoryId,
+<<<<<<< HEAD
                     unit: unit || "unit",
                     sector: sector || "Alimentation",
+=======
+                    productType: productType || "food",
+>>>>>>> origin/alimentation
                     price: price.toString(),
-                    cost: cost ? cost.toString() : null,
                     stock: 0, // Always 0 on creation
                     minStock: minStock || 10,
+                    trackStock: trackStock || false,
                     image,
                 })
                 .returning()
 
-            // Initialize stock record
-            await tx.insert(stock).values({
-                productId: newProduct.id,
-                quantityOnHand: 0,
-                quantityReserved: 0,
-                reorderLevel: minStock || 10,
-                reorderQuantity: 20
-            })
+            // Initialize stock record at the correct warehouse (only for trackable products)
+            const isTrackable = productType === "ingredient" || (productType === "drink" && trackStock)
+
+            if (isTrackable) {
+                const warehouse = await resolveWarehouse(tx, productType || "ingredient")
+
+                await tx.insert(stock).values({
+                    productId: newProduct.id,
+                    locationId: warehouse.id,
+                    quantityOnHand: 0,
+                    quantityReserved: 0,
+                    reorderLevel: minStock || 10,
+                    reorderQuantity: 20
+                })
+            }
 
             return newProduct
         })

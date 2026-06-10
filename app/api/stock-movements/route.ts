@@ -1,17 +1,30 @@
 import { products, stockMovements } from "@/lib/db/schema"
-import { desc, eq, sql } from "drizzle-orm"
+import { desc, eq, sql, gte, lte, and } from "drizzle-orm"
 import db from "@/lib/db/index"
 import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import type { ExtractTablesWithRelations } from "drizzle-orm"
 import type { PgTransaction } from "drizzle-orm/pg-core"
 import type { PostgresJsQueryResultHKT } from "drizzle-orm/postgres-js"
 
 type Transaction = PgTransaction<PostgresJsQueryResultHKT, typeof import("@/lib/db/schema"), ExtractTablesWithRelations<typeof import("@/lib/db/schema")>>
 
-
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        const searchParams = request.nextUrl.searchParams
+        const dateFrom = searchParams.get("dateFrom")
+        const dateTo = searchParams.get("dateTo")
+
+        const conditions: any[] = []
+        if (dateFrom) conditions.push(gte(stockMovements.date, new Date(dateFrom)))
+        if (dateTo) {
+            const end = new Date(dateTo)
+            end.setHours(23, 59, 59, 999)
+            conditions.push(lte(stockMovements.date, end))
+        }
+
         const allMovements = await db.query.stockMovements.findMany({
+            where: conditions.length ? and(...conditions) : undefined,
             orderBy: [desc(stockMovements.date)],
             with: {
                 product: true,

@@ -8,6 +8,7 @@ import {
     stockMovements,
 } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { resolveWarehouse } from "@/lib/db/location-utils";
 
 export async function POST(
     request: Request,
@@ -15,7 +16,7 @@ export async function POST(
 ) {
     const { id } = await params;
     const body = await request.json();
-    const { userId } = body; // required for stock movement
+    const { userId } = body;
 
     if (!userId) {
         return NextResponse.json({ error: "userId is required" }, { status: 400 });
@@ -37,13 +38,27 @@ export async function POST(
                 .where(eq(purchaseOrderItems.purchaseOrderId, id));
 
             for (const item of items) {
+<<<<<<< HEAD
                 const quantity = Number(item.quantity || 0);
                 // Update main products stock & last cost
+=======
+>>>>>>> origin/alimentation
                 const [product] = await tx
-                    .select()
+                    .select({ productType: products.productType })
                     .from(products)
+                    .where(eq(products.id, item.productId))
+                    .limit(1)
+                const warehouse = await resolveWarehouse(tx, product?.productType || "ingredient")
+
+                // Update legacy products.stock
+                await tx
+                    .update(products)
+                    .set({
+                        stock: sql`${products.stock} + ${item.quantity}`,
+                    })
                     .where(eq(products.id, item.productId));
 
+<<<<<<< HEAD
                 if (product) {
                     await tx
                         .update(products)
@@ -55,10 +70,16 @@ export async function POST(
                 }
 
                 // Update separate stock table (if you use it)
+=======
+                // Update warehouse stock
+>>>>>>> origin/alimentation
                 const [stockRecord] = await tx
                     .select()
                     .from(stock)
-                    .where(eq(stock.productId, item.productId));
+                    .where(
+                        sql`${stock.productId} = ${item.productId} AND ${stock.locationId} = ${warehouse.id}`
+                    )
+                    .limit(1);
 
                 if (stockRecord) {
                     await tx
@@ -67,6 +88,7 @@ export async function POST(
                             quantityOnHand: sql`${stock.quantityOnHand} + ${quantity}`,
                             updatedAt: new Date(),
                         })
+<<<<<<< HEAD
                         .where(eq(stock.productId, item.productId));
                 } else {
                     await tx.insert(stock).values({
@@ -76,6 +98,14 @@ export async function POST(
                         reorderLevel: product?.minStock ?? 10,
                         reorderQuantity: 20,
                         updatedAt: new Date(),
+=======
+                        .where(eq(stock.id, stockRecord.id));
+                } else {
+                    await tx.insert(stock).values({
+                        productId: item.productId,
+                        locationId: warehouse.id,
+                        quantityOnHand: item.quantity,
+>>>>>>> origin/alimentation
                     });
                 }
 
@@ -86,7 +116,7 @@ export async function POST(
                     type: "purchase",
                     quantity,
                     userId,
-                    notes: `Received from PO ${id}`,
+                    notes: `Received from PO ${id} at ${warehouse.name}`,
                 });
             }
 

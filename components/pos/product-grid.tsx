@@ -65,12 +65,18 @@ function getCategoryIcon(category: string, productName: string) {
 export function ProductGrid() {
   const [search, setSearch] = useState("")
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+<<<<<<< HEAD
   const { addItem } = useCart()
   const { user } = useAuth()
+=======
+  const [posFilter, setPosFilter] = useState<string>("all")
+  const { addItem, items, productStockMap } = useCart()
+>>>>>>> origin/alimentation
 
   const { products, loading: productsLoading, refresh } = useProducts(selectedCategoryId || "all", search)
   const { categories, loading: categoriesLoading } = useCategories()
 
+<<<<<<< HEAD
   const filteredProducts = useMemo(() => {
     if (user?.role !== "cashier_bakery") return products
     return products.filter((product: any) => product.sector === "Boulangerie" && product.type === "finished_good")
@@ -79,6 +85,21 @@ export function ProductGrid() {
   const getStockStatus = (product: any) => {
     if (product.stock === 0) return "out"
     if (product.stock <= product.minStock) return "low"
+=======
+  // Filter: only show drink and food (not ingredients), optionally filter by type
+  const posProducts = useMemo(() => {
+    return products.filter((p: any) => {
+      if (p.productType === "ingredient") return false
+      if (posFilter === "all") return true
+      return p.productType === posFilter
+    })
+  }, [products, posFilter])
+
+  const getStockStatus = (product: any, effectiveStock: number) => {
+    if (product.productType === "food") return "mto" // made to order
+    if (effectiveStock === 0 && product.productType !== "food") return "out"
+    if (effectiveStock <= product.minStock) return "low"
+>>>>>>> origin/alimentation
     return "in-stock"
   }
 
@@ -87,7 +108,6 @@ export function ProductGrid() {
     addItem({
       ...product,
       price: Number.parseFloat(product.price),
-      cost: Number.parseFloat(product.cost),
       category: product.categoryName || product.category
     })
   }
@@ -115,13 +135,40 @@ export function ProductGrid() {
 
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-2 pb-2">
+            {/* Type filter */}
+            <Button
+              variant={posFilter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPosFilter("all")}
+              className="shrink-0"
+            >
+              All
+            </Button>
+            <Button
+              variant={posFilter === "drink" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPosFilter("drink")}
+              className="shrink-0"
+            >
+              Drinks
+            </Button>
+            <Button
+              variant={posFilter === "food" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPosFilter("food")}
+              className="shrink-0"
+            >
+              Food
+            </Button>
+            <div className="w-px bg-border mx-1" />
+            {/* Category filter */}
             <Button
               variant={selectedCategoryId === null ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCategoryId(null)}
               className="shrink-0"
             >
-              All
+              Categories
             </Button>
             {categories.map((category: any) => (
               <Button
@@ -145,37 +192,53 @@ export function ProductGrid() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
+<<<<<<< HEAD
             {filteredProducts.map((product: any) => {
               const stockStatus = getStockStatus(product)
+=======
+            {posProducts.map((product: any) => {
+              const isTracked = product.productType === "food" || product.trackStock
+              const effectiveStock = isTracked ? (productStockMap[product.id] ?? product.stock) : Infinity
+              const stockStatus = getStockStatus(product, effectiveStock)
+>>>>>>> origin/alimentation
               const isOutOfStock = stockStatus === "out"
+              const isMadeToOrder = stockStatus === "mto"
               const IconComponent = getCategoryIcon(product.categoryName || "", product.name)
+
+              const cartQty = items.filter((i) => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0)
+              const isCartFull = !isMadeToOrder && cartQty >= effectiveStock
 
               return (
                 <Card
                   key={product.id}
                   className={cn(
                     "group cursor-pointer border-border bg-card transition-all hover:border-primary/50",
-                    isOutOfStock && "opacity-60",
+                    (isOutOfStock || isCartFull) && "opacity-60",
                   )}
-                  onClick={() => !isOutOfStock && handleAddItem(product)}
+                  onClick={() => !isOutOfStock && !isCartFull && handleAddItem(product)}
                 >
                   <CardContent className="p-3">
                     <div className="relative mb-3 aspect-square overflow-hidden rounded-lg bg-secondary">
                       <div className="flex h-full items-center justify-center">
                         <IconComponent className="h-12 w-12 text-muted-foreground" />
                       </div>
-                      {stockStatus !== "in-stock" && (
-                        <Badge
-                          className={cn(
-                            "absolute right-1 top-1",
-                            stockStatus === "out" ? "bg-destructive" : "bg-warning",
-                          )}
-                        >
-                          {stockStatus === "out" ? "Out of Stock" : "Low Stock"}
+                      {isMadeToOrder ? (
+                        <Badge className="absolute right-1 top-1 bg-purple-500/80 text-white border-0 text-xs">
+                          MTO
                         </Badge>
-                      )}
+                      ) : isCartFull ? (
+                        <Badge className="absolute right-1 top-1 bg-destructive text-xs">Max</Badge>
+                      ) : stockStatus === "out" ? (
+                        <Badge className="absolute right-1 top-1 bg-destructive text-xs">Out</Badge>
+                      ) : stockStatus === "low" ? (
+                        <Badge className="absolute right-1 top-1 bg-warning text-xs">Low</Badge>
+                      ) : null}
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                        <Plus className="h-8 w-8 text-white" />
+                        {isCartFull || isOutOfStock ? (
+                          <span className="text-xs font-bold text-white uppercase tracking-wider">Max</span>
+                        ) : (
+                          <Plus className="h-8 w-8 text-white" />
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -183,7 +246,9 @@ export function ProductGrid() {
                       <p className="text-xs text-muted-foreground">{product.sku}</p>
                       <div className="flex items-center justify-between">
                         <p className="font-semibold text-primary">{formatCurrency(Number.parseFloat(product.price))}</p>
-                        <span className="text-xs text-muted-foreground">{product.stock} in stock</span>
+                        <span className="text-xs text-muted-foreground">
+                          {isMadeToOrder ? "Made to Order" : !isTracked ? "In Stock" : `${effectiveStock} in stock`}
+                        </span>
                       </div>
                     </div>
                   </CardContent>
@@ -192,7 +257,11 @@ export function ProductGrid() {
             })}
           </div>
         )}
+<<<<<<< HEAD
         {!productsLoading && filteredProducts.length === 0 && (
+=======
+        {!productsLoading && posProducts.length === 0 && (
+>>>>>>> origin/alimentation
           <div className="flex h-40 items-center justify-center text-muted-foreground">
             <p>No products found</p>
           </div>

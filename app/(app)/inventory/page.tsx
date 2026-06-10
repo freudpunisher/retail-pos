@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+<<<<<<< HEAD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse, History, CheckCircle2, Save } from "lucide-react"
 import { useStock } from "@/hooks/use-stock"
@@ -28,13 +29,43 @@ export default function InventoryStatusPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isBakeryUser = user?.role === "cashier_bakery" || user?.role === "supervisor_bakery" || user?.role === "production_bakery"
+=======
+import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse, Store } from "lucide-react"
+import { useStock } from "@/hooks/use-stock"
+import { useLocations } from "@/hooks/use-locations"
+
+export default function InventoryStatusPage() {
+  const [search, setSearch] = useState("")
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
+  const [productType, setProductType] = useState<string>("all")
+  const { stockItems, loading } = useStock()
+  const { locations } = useLocations()
+
+  const filteredByLocation = useMemo(() => {
+    let items = stockItems
+    if (productType === "drink") {
+      items = items.filter(item => item.product.productType === "drink")
+    } else if (productType === "ingredient") {
+      items = items.filter(item => item.product.productType === "ingredient")
+    }
+    if (selectedLocationId) {
+      items = items.filter(item => item.locationId === selectedLocationId)
+    }
+    return items
+  }, [stockItems, selectedLocationId, productType])
+>>>>>>> origin/alimentation
 
   const filteredInventory = useMemo(() => {
-    return stockItems.filter(item =>
+    return filteredByLocation.filter(item =>
       item.product.name.toLowerCase().includes(search.toLowerCase()) ||
       item.product.sku.toLowerCase().includes(search.toLowerCase())
     )
-  }, [stockItems, search])
+  }, [filteredByLocation, search])
+
+  const selectedLocation = locations.find(l => l.id === selectedLocationId)
+  const locationLabel = selectedLocation
+    ? `${selectedLocation.name} (${selectedLocation.type})`
+    : "All Locations"
 
   const bakeryProducts = useMemo(() => {
     return stockItems.filter(item =>
@@ -97,9 +128,68 @@ export default function InventoryStatusPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
+<<<<<<< HEAD
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Statut de l'inventaire</h2>
           <p className="text-muted-foreground">Surveillez les niveaux de stock en temps réel et effectuez des inventaires</p>
+=======
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Stock Status</h2>
+          <p className="text-muted-foreground">Monitor real-time stock levels across locations</p>
+>>>>>>> origin/alimentation
         </div>
+      </div>
+
+      {/* Location filter */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={!selectedLocationId ? "default" : "outline"}
+          size="sm"
+          onClick={() => setSelectedLocationId(null)}
+        >
+          <Warehouse className="h-4 w-4 mr-1" />
+          All Locations
+        </Button>
+        {locations.map((loc) => (
+          <Button
+            key={loc.id}
+            variant={selectedLocationId === loc.id ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedLocationId(loc.id)}
+          >
+            {loc.type === "principal" ? (
+              <Warehouse className="h-4 w-4 mr-1" />
+            ) : (
+              <Store className="h-4 w-4 mr-1" />
+            )}
+            {loc.name}
+          </Button>
+        ))}
+      </div>
+
+      {/* Product type filter */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={productType === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("all")}
+        >
+          All
+        </Button>
+        <Button
+          variant={productType === "drink" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("drink")}
+        >
+          <Package className="h-4 w-4 mr-1" />
+          Drinks
+        </Button>
+        <Button
+          variant={productType === "ingredient" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("ingredient")}
+        >
+          <AlertTriangle className="h-4 w-4 mr-1" />
+          Ingredients
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -109,7 +199,11 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unités totales</p>
                 <p className="text-3xl font-black text-foreground mt-1">
+<<<<<<< HEAD
                   {stockItems.reduce((acc, item) => acc + Number(item.quantityOnHand || 0), 0)}
+=======
+                  {filteredByLocation.reduce((acc, item) => acc + item.quantityOnHand, 0)}
+>>>>>>> origin/alimentation
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -124,7 +218,11 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unités réservées</p>
                 <p className="text-3xl font-black text-warning mt-1">
+<<<<<<< HEAD
                   {stockItems.reduce((acc, item) => acc + Number(item.quantityReserved || 0), 0)}
+=======
+                  {filteredByLocation.reduce((acc, item) => acc + item.quantityReserved, 0)}
+>>>>>>> origin/alimentation
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-warning/10 flex items-center justify-center">
@@ -139,7 +237,7 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Alertes stock bas</p>
                 <p className="text-3xl font-black text-destructive mt-1">
-                  {stockItems.filter(item => item.quantityOnHand <= item.reorderLevel).length}
+                  {filteredByLocation.filter(item => item.quantityOnHand <= item.reorderLevel).length}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -152,9 +250,13 @@ export default function InventoryStatusPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
+<<<<<<< HEAD
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valorisation en direct</p>
+=======
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Products</p>
+>>>>>>> origin/alimentation
                 <p className="text-3xl font-black text-accent mt-1">
-                  {formatCurrency(stockItems.reduce((acc, item) => acc + (item.quantityOnHand * (parseFloat(item.product.cost) || 0)), 0))}
+                  {new Set(filteredByLocation.map(i => i.product.id)).size}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
@@ -169,8 +271,13 @@ export default function InventoryStatusPage() {
         <Card className="border-border/50 shadow-xl">
           <CardHeader className="pb-3 bg-secondary/5 border-b border-border/50">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
+<<<<<<< HEAD
               <CheckCircle2 className="h-5 w-5 text-primary" />
               Inventaire physique (Boulangerie)
+=======
+              <Warehouse className="h-5 w-5 text-primary" />
+              {locationLabel}
+>>>>>>> origin/alimentation
             </CardTitle>
             <CardDescription>
               Saisissez la quantité physique pour mettre à jour le stock
@@ -245,6 +352,7 @@ export default function InventoryStatusPage() {
                 Journal d'état des stocks
               </CardTitle>
             </div>
+<<<<<<< HEAD
           </CardHeader>
           <CardContent className="p-0">
             <div className="p-4 bg-secondary/5 border-b border-border/50 space-y-4">
@@ -416,6 +524,81 @@ export default function InventoryStatusPage() {
           </CardContent>
         </Card>
       </div>
+=======
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-secondary/10 hover:bg-secondary/10 border-border/50">
+                <TableHead className="font-bold">Product</TableHead>
+                <TableHead className="font-bold">SKU</TableHead>
+                <TableHead className="font-bold">Location</TableHead>
+                <TableHead className="text-right font-bold">On Hand</TableHead>
+                <TableHead className="text-right font-bold">Reserved</TableHead>
+                <TableHead className="text-right font-bold">Reorder Level</TableHead>
+                <TableHead className="text-right font-bold">Reorder Qty</TableHead>
+                <TableHead className="font-bold">Status</TableHead>
+                <TableHead className="font-bold">Last Counted</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-32 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <p className="mt-2 text-sm text-muted-foreground">Analyzing inventory...</p>
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && filteredInventory.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-32 text-center text-muted-foreground italic">
+                    No inventory records found.
+                  </TableCell>
+                </TableRow>
+              )}
+              {filteredInventory.map((item) => (
+                <TableRow key={item.id} className="border-border/50 hover:bg-secondary/5 transition-colors group">
+                  <TableCell className="font-bold text-foreground group-hover:text-primary transition-colors">{item.product.name}</TableCell>
+                  <TableCell className="font-mono text-xs">{item.product.sku}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      {item.location?.type === "principal" ? (
+                        <Warehouse className="h-3 w-3" />
+                      ) : (
+                        <Store className="h-3 w-3" />
+                      )}
+                      {item.location?.name || "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-black text-lg">{item.quantityOnHand}</TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{item.quantityReserved}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{item.reorderLevel}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{item.reorderQuantity}</TableCell>
+                  <TableCell>
+                    {item.quantityOnHand <= 0 ? (
+                      <Badge variant="destructive" className="font-bold shadow-sm">Out of Stock</Badge>
+                    ) : item.quantityOnHand <= item.reorderLevel ? (
+                      <Badge className="bg-warning text-warning-foreground font-bold shadow-sm ring-1 ring-warning/30">Low Stock</Badge>
+                    ) : (
+                      <Badge className="bg-accent/20 text-accent font-bold shadow-sm ring-1 ring-accent/30">Healthy</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs font-medium text-muted-foreground">
+                    {item.lastCountedDate ? new Date(item.lastCountedDate).toLocaleDateString() : (
+                      <span className="flex items-center gap-1 opacity-50">
+                        <AlertTriangle className="h-3 w-3" /> Never
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+>>>>>>> origin/alimentation
     </div>
   )
 }

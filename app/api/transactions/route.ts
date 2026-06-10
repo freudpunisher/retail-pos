@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import db from "@/lib/db"
+<<<<<<< HEAD
 import { transactions, transactionItems, products, stock, stockMovements, clients, creditRecords, cashFlow } from "@/lib/db/schema"
 import { and, eq, gte, lt, sql } from "drizzle-orm"
 
@@ -7,12 +9,32 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url)
         const sector = searchParams.get("sector")
+=======
+import { transactions, transactionItems, products, stockMovements, clients } from "@/lib/db/schema"
+import { eq, sql, gte, lte, and, max } from "drizzle-orm"
+
+export async function GET(request: NextRequest) {
+    try {
+        const searchParams = request.nextUrl.searchParams
+        const dateFrom = searchParams.get("dateFrom")
+        const dateTo = searchParams.get("dateTo")
+
+        const conditions = []
+        if (dateFrom) conditions.push(gte(transactions.date, new Date(dateFrom)))
+        if (dateTo) {
+            const end = new Date(dateTo)
+            end.setHours(23, 59, 59, 999)
+            conditions.push(lte(transactions.date, end))
+        }
+>>>>>>> origin/alimentation
 
         const allTransactions = await db.query.transactions.findMany({
+            where: conditions.length ? and(...conditions) : undefined,
             with: {
                 items: true,
                 client: true,
                 user: true,
+                table: true,
             },
             orderBy: (transactions, { desc }) => [desc(transactions.date)],
         })
@@ -85,6 +107,7 @@ export async function POST(request: Request) {
                 }
             }
 
+<<<<<<< HEAD
             // 1. Generate invoice reference (FACT-YYYY-MM-####)
             const now = new Date()
             const year = now.getFullYear()
@@ -97,6 +120,15 @@ export async function POST(request: Request) {
                 .where(and(gte(transactions.date, periodStart), lt(transactions.date, periodEnd)))
             const seq = String(Number(countRow?.count || 0) + 1).padStart(4, "0")
             const invoiceRef = `FACT-${year}-${month}-${seq}`
+=======
+            // 1. Generate sequential reference
+            const [lastRef] = await tx
+                .select({ maxRef: max(transactions.reference) })
+                .from(transactions)
+                .where(sql`${transactions.reference} ~ '^FACT[0-9]+$'`)
+            const lastNum = lastRef?.maxRef ? parseInt(lastRef.maxRef.replace("FACT", ""), 10) : 0
+            const reference = `FACT${String(lastNum + 1).padStart(4, "0")}`
+>>>>>>> origin/alimentation
 
             // 2. Insert Transaction
             const [newTransaction] = await tx
@@ -109,6 +141,7 @@ export async function POST(request: Request) {
                     invoiceRef,
                     clientId: sanitizedClientId,
                     userId: sanitizedUserId,
+                    reference,
                 })
                 .returning()
 

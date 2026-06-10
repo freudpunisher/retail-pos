@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
+<<<<<<< HEAD
 import { expenses, cashFlow, users } from "@/lib/db/schema"
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm"
 
@@ -36,6 +37,18 @@ export async function GET(request: Request) {
         const expensesList = await query.orderBy(desc(expenses.date))
 
         return NextResponse.json(expensesList)
+=======
+import { expenses } from "@/lib/db/schema"
+import { eq, desc } from "drizzle-orm"
+
+export async function GET() {
+    try {
+        const all = await db.query.expenses.findMany({
+            with: { user: { columns: { name: true } } },
+            orderBy: [desc(expenses.date)],
+        })
+        return NextResponse.json(all)
+>>>>>>> origin/alimentation
     } catch (error) {
         console.error("Failed to fetch expenses:", error)
         return NextResponse.json({ error: "Failed to fetch expenses" }, { status: 500 })
@@ -45,6 +58,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
+<<<<<<< HEAD
         const { description, amount, category, userId, recipient, reference } = body
 
         if (!description || !amount || !category || !userId) {
@@ -81,6 +95,21 @@ export async function POST(request: Request) {
         })
 
         return NextResponse.json(result)
+=======
+        const { name, amount, category, description, date, userId } = body
+        if (!name || !amount || !category || !userId) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+        }
+        const [expense] = await db.insert(expenses).values({
+            name,
+            amount: amount.toString(),
+            category,
+            description: description || null,
+            date: date ? new Date(date) : new Date(),
+            userId,
+        }).returning()
+        return NextResponse.json(expense)
+>>>>>>> origin/alimentation
     } catch (error) {
         console.error("Failed to create expense:", error)
         return NextResponse.json({ error: "Failed to create expense" }, { status: 500 })

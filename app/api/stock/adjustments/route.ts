@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { stock, stockAdjustments, products, stockMovements } from "@/lib/db/schema"
-import { eq, desc, sql } from "drizzle-orm"
+import { eq, and, desc, sql } from "drizzle-orm"
+import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function GET() {
     try {
@@ -23,7 +24,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { productId, productName, quantityChange, adjustmentType, reason, notes, userId } = body
+        const { productId, productName, quantityChange, adjustmentType, reason, notes, userId, locationId } = body
 
         if (!productId || quantityChange === undefined || !adjustmentType || !reason) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -40,17 +41,23 @@ export async function POST(request: Request) {
                 notes,
             }).returning()
 
-            // 2. Update the stock table
-            const [existingStock] = await tx.select().from(stock).where(eq(stock.productId, productId))
+            // 2. Update the stock table (specific location if provided, otherwise all)
+            const targetLocationId = locationId || (await resolveWarehouse(tx, "ingredient")).id
+            const [existingStock] = await tx
+                .select()
+                .from(stock)
+                .where(and(eq(stock.productId, productId), eq(stock.locationId, targetLocationId)))
+                .limit(1)
 
             if (existingStock) {
                 await tx.update(stock).set({
                     quantityOnHand: sql`${stock.quantityOnHand} + ${quantityChange}`,
                     updatedAt: new Date(),
-                }).where(eq(stock.productId, productId))
+                }).where(eq(stock.id, existingStock.id))
             } else {
                 await tx.insert(stock).values({
                     productId,
+                    locationId: targetLocationId,
                     quantityOnHand: quantityChange,
                 })
             }

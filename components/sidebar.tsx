@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -14,6 +14,7 @@ import {
   Package,
   Warehouse,
   Users,
+  UserCog,
   CreditCard,
   BarChart3,
   Settings,
@@ -23,200 +24,53 @@ import {
   ClipboardList,
   Receipt,
   LogOut,
-  Factory,
-  Wheat,
+  ArrowRightLeft,
   Wallet,
-  HandCoins,
-  PieChart,
-  Bell,
-  Building2,
-  UserRound,
+  Loader2,
 } from "lucide-react"
 
-const navItems: { href: string; label: string; icon: any; roles: UserRole[] }[] = [
-  {
-    href: "/dashboard",
-    label: "Tableau de bord",
-    icon: LayoutDashboard,
-    roles: [
-      "admin",
-      "cashier_food",
-      "supervisor_food",
-      "cashier_bakery",
-      "supervisor_bakery",
-      "production_bakery",
-      "manager",
-      "investor",
-      "accountant",
-    ],
-  },
-  {
-    href: "/sales",
-    label: "Ventes",
-    icon: ShoppingCart,
-    roles: ["cashier_food", "supervisor_food", "cashier_bakery", "supervisor_bakery"],
-  },
-  {
-    href: "/sales-history",
-    label: "Factures de vente",
-    icon: Receipt,
-    roles: [
-      "cashier_food",
-      "supervisor_food",
-      "cashier_bakery",
-      "supervisor_bakery",
-      "manager",
-      "investor",
-      "accountant",
-    ],
-  },
-  {
-    href: "/credit",
-    label: "Payement credit",
-    icon: CreditCard,
-    roles: [
-      "cashier_food",
-      "supervisor_food",
-      "cashier_bakery",
-      "supervisor_bakery",
-      "manager",
-      "investor",
-      "accountant",
-    ],
-  },
-  {
-    href: "/purchases",
-    label: "Approvisionnement (Alimentation)",
-    icon: Truck,
-    roles: ["cashier_food", "supervisor_food", "manager", "investor"],
-  },
-  {
-    href: "/suppliers",
-    label: "Fournisseurs",
-    icon: Building2,
-    roles: ["supervisor_food", "supervisor_bakery", "cashier_food", "cashier_bakery"],
-  },
-  {
-    href: "/clients",
-    label: "Clients",
-    icon: UserRound,
-    roles: ["supervisor_food", "supervisor_bakery", "cashier_food", "cashier_bakery"],
-  },
-  {
-    href: "/bakery/raw-materials",
-    label: "Matière Première",
-    icon: Wheat,
-    roles: ["cashier_bakery", "supervisor_bakery", "production_bakery", "manager", "investor"],
-  },
-  {
-    href: "/bakery/purchases/create",
-    label: "Achat Matières Premières",
-    icon: Truck,
-    roles: ["supervisor_bakery", "manager", "investor"],
-  },
-  {
-    href: "/bakery/purchases",
-    label: "Liste Achats Boulangerie",
-    icon: ClipboardList,
-    roles: ["supervisor_bakery", "cashier_bakery", "production_bakery", "manager", "investor"],
-  },
-  {
-    href: "/bakery/stock",
-    label: "Stock Boulangerie",
-    icon: Warehouse,
-    roles: ["supervisor_bakery", "cashier_bakery", "production_bakery", "manager", "investor"],
-  },
-  {
-    href: "/inventory",
-    label: "Statut de l'inventaire",
-    icon: Warehouse,
-    roles: [
-      "cashier_food",
-      "supervisor_food",
-      "cashier_bakery",
-      "supervisor_bakery",
-      "production_bakery",
-      "manager",
-      "investor",
-    ],
-  },
-  {
-    href: "/products",
-    label: "Produits",
-    icon: Package,
-    roles: ["cashier_food", "supervisor_food", "supervisor_bakery", "admin"],
-  },
-  {
-    href: "/inventory/count",
-    label: "Sessions d'inventaire",
-    icon: ClipboardList,
-    roles: ["cashier_food", "supervisor_food"],
-  },
-  {
-    href: "/inventory/count",
-    label: "Sessions d'inventaire (Boulangerie)",
-    icon: ClipboardList,
-    roles: ["cashier_bakery", "supervisor_bakery", "production_bakery"],
-  },
-  {
-    href: "/finance/expenses",
-    label: "Dépenses",
-    icon: Wallet,
-    roles: ["cashier_food", "supervisor_food", "supervisor_bakery", "manager", "investor"],
-  },
-  {
-    href: "/finance/payments",
-    label: "Historique paiements",
-    icon: HandCoins,
-    roles: ["admin", "cashier_food", "supervisor_food", "cashier_bakery", "supervisor_bakery", "manager", "investor", "accountant"],
-  },
-  {
-    href: "/bakery/production",
-    label: "Production",
-    icon: Factory,
-    roles: ["production_bakery", "supervisor_bakery"],
-  },
-  {
-    href: "/bakery/production/history",
-    label: "Historique Production",
-    icon: ClipboardList,
-    roles: ["production_bakery", "supervisor_bakery"],
-  },
-  {
-    href: "/reports",
-    label: "Rapports",
-    icon: BarChart3,
-    roles: [
-      "cashier_food",
-      "supervisor_food",
-      "cashier_bakery",
-      "supervisor_bakery",
-      "production_bakery",
-      "accountant",
-    ],
-  },
-  {
-    href: "/finance/reports",
-    label: "Comptabilité",
-    icon: PieChart,
-    roles: ["manager", "investor", "accountant"],
-  },
-  { href: "/users", label: "Utilisateurs", icon: Users, roles: ["admin"] },
-  { href: "/notifications", label: "Notifications", icon: Bell, roles: ["admin"] },
-  { href: "/settings", label: "Paramétrage", icon: Settings, roles: ["admin"] },
-]
+const iconMap: Record<string, any> = {
+  LayoutDashboard, ShoppingCart, Package, Warehouse,
+  ArrowLeftRight, Users, UserCog, CreditCard,
+  BarChart3, Settings, Truck, RefreshCw,
+  ClipboardList, Receipt, ArrowRightLeft, Wallet,
+}
+
+interface MenuItem {
+  id: string
+  href: string
+  label: string
+  icon: string
+  roles: string[]
+  sortOrder: number
+}
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { hasRole, logout, user } = useAuth()
+  const { user, logout } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMenus = async () => {
+      try {
+        const res = await fetch("/api/menus")
+        if (res.ok) {
+          const data = await res.json()
+          setMenuItems(data)
+        }
+      } catch {} finally {
+        setLoading(false)
+      }
+    }
+    fetchMenus()
+  }, [])
 
   const handleLogout = async () => {
     await logout()
     window.location.href = "/login"
   }
-
-  const filteredNavItems = navItems.filter((item) => hasRole(item.roles))
 
   return (
     <aside
@@ -243,30 +97,34 @@ export function Sidebar() {
 
       <ScrollArea className="flex-1 py-4">
         <nav className="space-y-1 px-2">
-          {filteredNavItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (pathname.startsWith(`${item.href}/`) && item.href !== "/bakery/production")
-            return (
-              <Link key={item.href} href={item.href}>
-                <Button
-                  variant={isActive ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full justify-start gap-3",
-                    isActive && "bg-secondary text-foreground",
-                    collapsed && "justify-center px-2",
-                  )}
-                >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
-                </Button>
-              </Link>
-            )
-          })}
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            menuItems.map((item) => {
+              const Icon = iconMap[item.icon]
+              const isActive = pathname === item.href
+              return (
+                <Link key={item.href} href={item.href}>
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start gap-3",
+                      isActive && "bg-secondary text-foreground",
+                      collapsed && "justify-center px-2",
+                    )}
+                  >
+                    {Icon && <Icon className="h-5 w-5 shrink-0" />}
+                    {!collapsed && <span>{item.label}</span>}
+                  </Button>
+                </Link>
+              )
+            })
+          )}
         </nav>
       </ScrollArea>
 
-      {/* User Info & Logout */}
       <div className="border-t border-border p-4">
         {!collapsed && user && (
           <div className="mb-2">

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+<<<<<<< HEAD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Plus, Edit2, Trash2, Loader2, Package } from "lucide-react"
 import { useProducts } from "@/hooks/use-products"
@@ -16,6 +17,22 @@ export default function ProductManagementPage() {
     const [search, setSearch] = useState("")
     const [page, setPage] = useState(1)
     const [pageSize, setPageSize] = useState(10)
+=======
+import { Search, Plus, Edit2, Trash2, Loader2, Package, Beer, Utensils, Wheat } from "lucide-react"
+import { useProducts } from "@/hooks/use-products"
+import { ProductFormDialog } from "@/components/inventory/product-form-dialog"
+import { formatCurrency } from "@/lib/mock-data"
+
+const typeConfig: Record<string, { label: string; icon: any; color: string }> = {
+    drink: { label: "Drink", icon: Beer, color: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
+    food: { label: "Food", icon: Utensils, color: "bg-amber-500/20 text-amber-700 dark:text-amber-400" },
+    ingredient: { label: "Ingredient", icon: Wheat, color: "bg-green-500/20 text-green-700 dark:text-green-400" },
+}
+
+export default function ProductManagementPage() {
+    const [search, setSearch] = useState("")
+    const [typeFilter, setTypeFilter] = useState<string>("all")
+>>>>>>> origin/alimentation
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
 
@@ -29,6 +46,7 @@ export default function ProductManagementPage() {
             ? "Alimentation"
             : null
 
+<<<<<<< HEAD
     const filteredProducts = products
         .filter((product) => (roleSector ? product.sector === roleSector : true))
         .filter((product) =>
@@ -49,6 +67,14 @@ export default function ProductManagementPage() {
         setPageSize(nextSize)
         setPage(1)
     }
+=======
+    const filteredProducts = products.filter((product) => {
+        const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
+            product.sku.toLowerCase().includes(search.toLowerCase())
+        const matchesType = typeFilter === "all" || product.productType === typeFilter
+        return matchesSearch && matchesType
+    })
+>>>>>>> origin/alimentation
 
     const handleEdit = (product: any) => {
         setSelectedProduct(product)
@@ -75,13 +101,28 @@ export default function ProductManagementPage() {
         setIsFormOpen(false)
     }
 
+    const typeFilters = [
+        { key: "all", label: "All", icon: Package },
+        { key: "drink", label: "Drinks", icon: Beer },
+        { key: "food", label: "Food", icon: Utensils },
+        { key: "ingredient", label: "Ingredients", icon: Wheat },
+    ]
+
+    const counts = {
+        all: products.length,
+        drink: products.filter((p) => p.productType === "drink").length,
+        food: products.filter((p) => p.productType === "food").length,
+        ingredient: products.filter((p) => p.productType === "ingredient").length,
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Product Management</h2>
-                    <p className="text-muted-foreground">Catalog and stock overview for your store</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Products</h2>
+                    <p className="text-muted-foreground">Manage drinks, food plates, and ingredients</p>
                 </div>
+<<<<<<< HEAD
                 {canEdit ? (
                     <Button onClick={handleAddNew} className="bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20">
                         <Plus className="mr-2 h-4 w-4" />
@@ -92,15 +133,37 @@ export default function ProductManagementPage() {
                         Lecture seule
                     </Badge>
                 )}
+=======
+                <Button onClick={handleAddNew}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Product
+                </Button>
+>>>>>>> origin/alimentation
             </div>
 
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl">
-                <CardHeader className="pb-3 border-b border-border/50">
+            {/* Type Filter Tabs */}
+            <div className="flex gap-2 flex-wrap">
+                {typeFilters.map(({ key, label, icon: Icon }) => (
+                    <Button
+                        key={key}
+                        variant={typeFilter === key ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setTypeFilter(key)}
+                    >
+                        <Icon className="h-4 w-4 mr-1" />
+                        {label} ({counts[key as keyof typeof counts]})
+                    </Button>
+                ))}
+            </div>
+
+            <Card>
+                <CardHeader className="pb-3 border-b">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-lg font-medium flex items-center gap-2">
                             <Package className="h-5 w-5 text-primary" />
                             Product Catalog
                         </CardTitle>
+<<<<<<< HEAD
                         <div className="flex items-center gap-2">
                             <div className="relative w-72">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -121,10 +184,21 @@ export default function ProductManagementPage() {
                                     <SelectItem value="50">50 rows</SelectItem>
                                 </SelectContent>
                             </Select>
+=======
+                        <div className="relative w-72">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search by name or SKU..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-10"
+                            />
+>>>>>>> origin/alimentation
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
+<<<<<<< HEAD
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
@@ -158,9 +232,48 @@ export default function ProductManagementPage() {
                                 ) : (
                                     paginatedProducts.map((product) => (
                                         <TableRow key={product.id} className="border-border/50 hover:bg-secondary/5 transition-colors">
+=======
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-secondary/10">
+                                <TableHead>SKU</TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Category</TableHead>
+                                <TableHead className="text-right">Price</TableHead>
+                                <TableHead className="text-right">Stock</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="h-32 text-center">
+                                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                                    </TableCell>
+                                </TableRow>
+                            ) : filteredProducts.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground italic">
+                                        No products found
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredProducts.map((product) => {
+                                    const type = typeConfig[product.productType] || typeConfig.drink
+                                    const TypeIcon = type.icon
+                                    const isIngredient = product.productType === "ingredient"
+                                    const isFood = product.productType === "food"
+                                    const isMadeToOrder = isFood || (product.productType === "drink" && Number(product.stock) <= 0)
+
+                                    return (
+                                        <TableRow key={product.id}>
+>>>>>>> origin/alimentation
                                             <TableCell className="font-mono text-xs text-muted-foreground">{product.sku}</TableCell>
-                                            <TableCell className="font-medium text-foreground">{product.name}</TableCell>
+                                            <TableCell className="font-medium">{product.name}</TableCell>
                                             <TableCell>
+<<<<<<< HEAD
                                                 <Badge variant="outline" className="font-normal border-border/50 bg-background/50">
                                                     {product.sector || "—"}
                                                 </Badge>
@@ -168,22 +281,47 @@ export default function ProductManagementPage() {
                                             <TableCell>
                                                 <Badge variant="outline" className="font-normal border-border/50 bg-background/50">
                                                     {product.categoryName || "Uncategorized"}
+=======
+                                                <Badge className={type.color}>
+                                                    <TypeIcon className="h-3 w-3 mr-1" />
+                                                    {type.label}
+>>>>>>> origin/alimentation
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right font-semibold">{parseFloat(product.price).toFixed(0)}FBU</TableCell>
-                                            <TableCell className="text-right">
-                                                <span className={`px-2 py-1 rounded-md text-xs font-bold ${Number(product.stock) <= Number(product.minStock) ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
-                                                    {product.stock}
-                                                </span>
-                                            </TableCell>
                                             <TableCell>
-                                                {Number(product.stock) <= Number(product.minStock) ? (
-                                                    <Badge className="bg-destructive/20 text-destructive border-destructive/30 animate-pulse">Low Stock</Badge>
+                                                <span className="text-xs text-muted-foreground">{product.categoryName || "—"}</span>
+                                            </TableCell>
+                                            <TableCell className="text-right font-semibold">
+                                                {isIngredient ? (
+                                                    <span className="text-muted-foreground text-xs">—</span>
                                                 ) : (
-                                                    <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20">Available</Badge>
+                                                    formatCurrency(Number(product.price))
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right">
+                                                {isMadeToOrder ? (
+                                                    <Badge variant="outline" className="text-xs border-dashed">MTO</Badge>
+                                                ) : (
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${
+                                                        Number(product.stock) <= Number(product.minStock)
+                                                            ? "bg-destructive/10 text-destructive"
+                                                            : "bg-primary/10 text-primary"
+                                                    }`}>
+                                                        {product.stock}
+                                                    </span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {isMadeToOrder ? (
+                                                    <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">Made to Order</Badge>
+                                                ) : Number(product.stock) <= Number(product.minStock) ? (
+                                                    <Badge className="bg-destructive/20 text-destructive">Low Stock</Badge>
+                                                ) : (
+                                                    <Badge className="bg-green-500/15 text-green-700 border-green-500/20">In Stock</Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+<<<<<<< HEAD
                                                 {canEdit ? (
                                                     <div className="flex items-center justify-end gap-1">
                                                         <Button variant="ghost" size="icon" onClick={() => handleEdit(product)} className="h-8 w-8 hover:bg-primary/10 hover:text-primary">
@@ -231,6 +369,23 @@ export default function ProductManagementPage() {
                             </Button>
                         </div>
                     </div>
+=======
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(product)} className="h-8 w-8">
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+>>>>>>> origin/alimentation
                 </CardContent>
             </Card>
 

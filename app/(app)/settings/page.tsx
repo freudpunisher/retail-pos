@@ -7,8 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
 import {
   Dialog,
   DialogContent,
@@ -19,6 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+<<<<<<< HEAD
 import { Store, Tag, Percent, Plus, Trash2, Save, Loader2, Ruler, Pencil, Search } from "lucide-react"
 import Swal from "sweetalert2"
 import { useSettings } from "@/hooks/use-settings"
@@ -43,7 +42,24 @@ export default function SettingsPage() {
   const [editCategory, setEditCategory] = useState<{ id: string; name: string; description: string } | null>(null)
   const [showEditUnit, setShowEditUnit] = useState(false)
   const [editUnit, setEditUnit] = useState<{ id: string; code: string; name: string; symbol: string } | null>(null)
+=======
+import { Store, Tag, Shield, Plus, Trash2, Save, Loader2 } from "lucide-react"
+import { useSettings } from "@/hooks/use-settings"
+import { useCategories } from "@/hooks/use-products"
+import { cn } from "@/lib/utils"
+
+export default function SettingsPage() {
+  const { settings, loading: settingsLoading, updateSettings } = useSettings()
+  const { categories, loading: categoriesLoading, createCategory, deleteCategory } = useCategories()
+
+  const [storeInfo, setStoreInfo] = useState<any>(null)
+  const [newCategory, setNewCategory] = useState({ name: "", description: "" })
+  const [showAddCategory, setShowAddCategory] = useState(false)
+>>>>>>> origin/alimentation
   const [isSaving, setIsSaving] = useState(false)
+  const [menuItems, setMenuItems] = useState<any[]>([])
+  const [menuLoading, setMenuLoading] = useState(false)
+  const [menuSaving, setMenuSaving] = useState(false)
 
   useEffect(() => {
     if (settings) {
@@ -109,6 +125,7 @@ export default function SettingsPage() {
     }
   }
 
+<<<<<<< HEAD
   const filteredCategories = categories.filter((category) => {
     const searchValue = categorySearch.trim().toLowerCase()
     if (!searchValue) return true
@@ -250,8 +267,49 @@ export default function SettingsPage() {
           title: "Failed to update unit",
         })
       }
+=======
+  const fetchMenuItems = async () => {
+    setMenuLoading(true)
+    try {
+      const res = await fetch("/api/menus")
+      if (res.ok) {
+        const data = await res.json()
+        setMenuItems(data)
+      }
+    } catch {} finally {
+      setMenuLoading(false)
     }
   }
+
+  const toggleMenuRole = (menuId: string, role: string) => {
+    setMenuItems(prev => prev.map(m => {
+      if (m.id !== menuId) return m
+      const roles = m.roles || []
+      const idx = roles.indexOf(role)
+      if (idx >= 0) {
+        return { ...m, roles: roles.filter((r: string) => r !== role) }
+      }
+      return { ...m, roles: [...roles, role] }
+    }))
+  }
+
+  const saveMenuPermissions = async () => {
+    setMenuSaving(true)
+    try {
+      await fetch("/api/menus", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updates: menuItems.map(m => ({ id: m.id, roles: m.roles }))
+        }),
+      })
+    } finally {
+      setMenuSaving(false)
+>>>>>>> origin/alimentation
+    }
+  }
+
+  useEffect(() => { fetchMenuItems() }, [])
 
   if (settingsLoading || !storeInfo) {
     return (
@@ -270,12 +328,19 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="store">
+<<<<<<< HEAD
         <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="store">Store Info</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="units">Units</TabsTrigger>
           <TabsTrigger value="tax">Tax & Discounts</TabsTrigger>
           <TabsTrigger value="users">Users & Roles</TabsTrigger>
+=======
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsTrigger value="store">Store Info</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="menus">Menu Permissions</TabsTrigger>
+>>>>>>> origin/alimentation
         </TabsList>
 
         {/* Store Information */}
@@ -319,7 +384,15 @@ export default function SettingsPage() {
                   <Label htmlFor="currency">Currency</Label>
                   <Select
                     value={storeInfo.currency}
-                    onValueChange={(value) => setStoreInfo({ ...storeInfo, currency: value })}
+                    onValueChange={(value) => {
+                      const symbolMap: Record<string, string> = {
+                        USD: "$",
+                        EUR: "€",
+                        GBP: "£",
+                        FBU: "FBU ",
+                      }
+                      setStoreInfo({ ...storeInfo, currency: value, currencySymbol: symbolMap[value] || value })
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -328,6 +401,7 @@ export default function SettingsPage() {
                       <SelectItem value="USD">USD ($)</SelectItem>
                       <SelectItem value="EUR">EUR (€)</SelectItem>
                       <SelectItem value="GBP">GBP (£)</SelectItem>
+                      <SelectItem value="FBU">FBU (FBU)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -339,6 +413,18 @@ export default function SettingsPage() {
                   value={storeInfo.address}
                   onChange={(e) => setStoreInfo({ ...storeInfo, address: e.target.value })}
                 />
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="taxRate">Default Tax Rate (%)</Label>
+                  <Input
+                    id="taxRate"
+                    type="number"
+                    step="0.1"
+                    value={storeInfo.taxRate}
+                    onChange={(e) => setStoreInfo({ ...storeInfo, taxRate: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="flex justify-end">
                 <Button onClick={handleSaveStore} disabled={isSaving}>
@@ -552,35 +638,28 @@ export default function SettingsPage() {
           </Dialog>
         </TabsContent>
 
-        {/* Tax & Discounts */}
-        <TabsContent value="tax" className="mt-4 space-y-4">
+        {/* Menu Permissions */}
+        <TabsContent value="menus" className="mt-4">
           <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Percent className="h-5 w-5" />
-                Tax Settings
-              </CardTitle>
-              <CardDescription>Configure tax rates for your store</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="taxRate">Default Tax Rate (%)</Label>
-                  <Input
-                    id="taxRate"
-                    type="number"
-                    step="0.1"
-                    value={storeInfo.taxRate}
-                    onChange={(e) => setStoreInfo({ ...storeInfo, taxRate: e.target.value })}
-                  />
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Menu Permissions
+                  </CardTitle>
+                  <CardDescription>Control which roles can see each menu item</CardDescription>
                 </div>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={handleSaveStore} disabled={isSaving}>
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  Save Tax Settings
+                <Button
+                  onClick={saveMenuPermissions}
+                  disabled={menuSaving}
+                  className="gap-2"
+                >
+                  {menuSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save Changes
                 </Button>
               </div>
+<<<<<<< HEAD
             </CardContent>
           </Card>
 
@@ -672,12 +751,15 @@ export default function SettingsPage() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+=======
+>>>>>>> origin/alimentation
             </CardHeader>
             <CardContent className="p-0">
               <div className="rounded-md border border-border">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
+<<<<<<< HEAD
                       <TableHead className="text-muted-foreground">Code</TableHead>
                       <TableHead className="text-muted-foreground">Name</TableHead>
                       <TableHead className="text-muted-foreground">Symbol</TableHead>
@@ -686,11 +768,23 @@ export default function SettingsPage() {
                   </TableHeader>
                   <TableBody>
                     {unitsLoading ? (
+=======
+                      <TableHead className="text-muted-foreground">Menu Item</TableHead>
+                      <TableHead className="text-muted-foreground">Admin</TableHead>
+                      <TableHead className="text-muted-foreground">Manager</TableHead>
+                      <TableHead className="text-muted-foreground">Cashier</TableHead>
+                      <TableHead className="text-muted-foreground">Waiter</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {menuLoading ? (
+>>>>>>> origin/alimentation
                       <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
+                        <TableCell colSpan={5} className="h-24 text-center">
                           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
+<<<<<<< HEAD
                     ) : units.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
@@ -727,6 +821,40 @@ export default function SettingsPage() {
                           </TableCell>
                         </TableRow>
                       ))
+=======
+                    ) : menuItems.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                          No menu items found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      menuItems.map((item) => {
+                        const roles: string[] = item.roles || []
+                        return (
+                          <TableRow key={item.id} className="border-border">
+                            <TableCell className="font-medium">{item.label}</TableCell>
+                            {["admin", "manager", "cashier", "waiter"].map((role) => (
+                              <TableCell key={role}>
+                                <Button
+                                  variant={roles.includes(role) ? "default" : "outline"}
+                                  size="sm"
+                                  className={cn(
+                                    "h-7 w-7 p-0",
+                                    roles.includes(role)
+                                      ? "bg-primary text-primary-foreground"
+                                      : "text-muted-foreground border-border"
+                                  )}
+                                  onClick={() => toggleMenuRole(item.id, role)}
+                                >
+                                  {roles.includes(role) ? "✓" : "—"}
+                                </Button>
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        )
+                      })
+>>>>>>> origin/alimentation
                     )}
                   </TableBody>
                 </Table>
@@ -791,6 +919,7 @@ export default function SettingsPage() {
         <TabsContent value="users" className="mt-4">
           <UserManagement />
         </TabsContent>
+
       </Tabs>
     </div>
   )

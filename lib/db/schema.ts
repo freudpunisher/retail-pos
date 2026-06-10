@@ -2,32 +2,20 @@ import { pgTable, text, integer, timestamp, numeric, uuid, pgEnum, boolean } fro
 import { relations } from "drizzle-orm"
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", [
-    "admin",
-    "cashier_food",
-    "supervisor_food",
-    "cashier_bakery",
-    "supervisor_bakery",
-    "production_bakery",
-    "manager",
-    "investor",
-    "accountant",
-])
+export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "cashier", "waiter"])
+export const productTypeEnum = pgEnum("product_type", ["drink", "food", "ingredient"])
+export const orderStatusEnum = pgEnum("order_status", ["pending", "preparing", "ready", "served", "paid", "cancelled"])
 export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "purchase", "credit_payment"])
 export const transactionStatusEnum = pgEnum("transaction_status", ["completed", "pending", "cancelled"])
 export const paymentMethodEnum = pgEnum("payment_method", ["cash", "credit", "card"])
 export const poStatusEnum = pgEnum("po_status", ["pending", "received", "cancelled"])
-export const stockMovementTypeEnum = pgEnum("stock_movement_type", ["sale", "purchase", "adjustment"])
+export const stockMovementTypeEnum = pgEnum("stock_movement_type", ["sale", "purchase", "adjustment", "transfer"])
 export const creditStatusEnum = pgEnum("credit_status", ["paid", "partial", "overdue", "pending"])
 export const creditPaymentMethodEnum = pgEnum("credit_payment_method", ["cash", "card"])
 export const inventoryAdjustmentTypeEnum = pgEnum("inventory_adjustment_type", ["stock_count", "damage", "loss", "return", "transfer", "correction", "opening_stock", "addition", "subtraction"])
 export const inventorySessionStatusEnum = pgEnum("inventory_session_status", ["in_progress", "completed", "reconciled"])
-export const productTypeEnum = pgEnum("product_type", ["raw_material", "finished_good", "service"])
-export const unitEnum = pgEnum("unit", ["kg", "g", "l", "ml", "unit"])
-export const productionStatusEnum = pgEnum("production_status", ["planned", "in_progress", "completed", "cancelled"])
-export const expenseCategoryEnum = pgEnum("expense_category", ["rent", "utilities", "salaries", "raw_materials", "maintenance", "other"])
-export const cashFlowTypeEnum = pgEnum("cash_flow_type", ["inflow", "outflow"])
-export const cashFlowCategoryEnum = pgEnum("cash_flow_category", ["sales", "purchases", "expenses", "other"])
+export const locationTypeEnum = pgEnum("location_type", ["principal", "secondary"])
+export const tableStatusEnum = pgEnum("table_status", ["free", "occupied", "reserved"])
 
 // Tables
 export const users = pgTable("users", {
@@ -51,34 +39,61 @@ export const products = pgTable("products", {
     sku: text("sku").notNull().unique(),
     name: text("name").notNull(),
     categoryId: uuid("category_id").references(() => categories.id),
-    type: productTypeEnum("type").notNull().default("finished_good"),
-    sector: text("sector").notNull().default("Alimentation"),
-    unit: text("unit").notNull().default("unit"),
+    productType: productTypeEnum("product_type").notNull().default("food"),
     price: numeric("price", { precision: 12, scale: 2 }).notNull(),
-    cost: numeric("cost", { precision: 12, scale: 2 }),
     stock: integer("stock").notNull().default(0), // Kept for backward compatibility/simplicity
     minStock: integer("min_stock").notNull().default(0),
+    trackStock: boolean("track_stock").notNull().default(false),
     image: text("image"),
 })
 
-export const measurementUnits = pgTable("measurement_units", {
+export const locations = pgTable("locations", {
     id: uuid("id").primaryKey().defaultRandom(),
-    code: text("code").notNull().unique(), // e.g. kg, g, l, ml, unit
-    name: text("name").notNull(), // e.g. Kilogramme
-    symbol: text("symbol"), // e.g. kg
+    name: text("name").notNull(),
+    type: locationTypeEnum("type").notNull().default("secondary"),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
 })
 
 export const stock = pgTable("stock", {
     id: uuid("id").primaryKey().defaultRandom(),
     productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
-    quantityOnHand: numeric("quantity_on_hand", { precision: 12, scale: 3 }).notNull().default("0"), // Changed to numeric for precise weights
-    quantityReserved: numeric("quantity_reserved", { precision: 12, scale: 3 }).notNull().default("0"),
+    locationId: uuid("location_id").notNull().references(() => locations.id),
+    quantityOnHand: integer("quantity_on_hand").notNull().default(0),
+    quantityReserved: integer("quantity_reserved").notNull().default(0),
     reorderLevel: integer("reorder_level").notNull().default(10),
     reorderQuantity: integer("reorder_quantity").notNull().default(20),
     lastCountedDate: timestamp("last_counted_date"),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const stockTransfers = pgTable("stock_transfers", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id").references(() => products.id),
+    fromLocationId: uuid("from_location_id").notNull().references(() => locations.id),
+    toLocationId: uuid("to_location_id").notNull().references(() => locations.id),
+    quantity: integer("quantity"),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    date: timestamp("date").notNull().defaultNow(),
+    notes: text("notes"),
+    status: text("status").notNull().default("pending"),
+    approvedBy: uuid("approved_by").references(() => users.id),
+    approvedAt: timestamp("approved_at"),
+    receivedAt: timestamp("received_at"),
+})
+
+export const stockTransferItems = pgTable("stock_transfer_items", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    transferId: uuid("transfer_id").notNull().references(() => stockTransfers.id, { onDelete: "cascade" }),
+    productId: uuid("product_id").notNull().references(() => products.id),
+    quantity: integer("quantity").notNull(),
+})
+
+export const tables = pgTable("tables", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    number: integer("number").notNull().unique(),
+    capacity: integer("capacity").notNull().default(4),
+    status: tableStatusEnum("status").notNull().default("free"),
+    section: text("section"),
 })
 
 export const stockAdjustments = pgTable("stock_adjustments", {
@@ -136,14 +151,17 @@ export const suppliers = pgTable("suppliers", {
 
 export const transactions = pgTable("transactions", {
     id: uuid("id").primaryKey().defaultRandom(),
-    type: transactionTypeEnum("type").notNull(),
+    type: transactionTypeEnum("type").notNull().default("sale"),
     date: timestamp("date").notNull().defaultNow(),
-    total: numeric("total", { precision: 12, scale: 2 }).notNull(),
-    status: transactionStatusEnum("status").notNull().default("completed"),
-    paymentMethod: paymentMethodEnum("payment_method").notNull(),
-    invoiceRef: text("invoice_ref"),
+    total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
+    status: transactionStatusEnum("status").notNull().default("pending"),
+    orderStatus: orderStatusEnum("order_status").notNull().default("pending"),
+    paymentMethod: paymentMethodEnum("payment_method"),
     clientId: uuid("client_id").references(() => clients.id),
     userId: uuid("user_id").notNull().references(() => users.id),
+    waiterId: uuid("waiter_id").references(() => users.id),
+    tableId: uuid("table_id").references(() => tables.id),
+    reference: text("reference"),
 })
 
 export const transactionItems = pgTable("transaction_items", {
@@ -274,8 +292,10 @@ export const cashFlow = pgTable("cash_flow", {
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
     transactions: many(transactions),
+    waiterOrders: many(transactions, { relationName: "waiter" }),
     stockMovements: many(stockMovements),
     stockAdjustments: many(stockAdjustments),
+    stockTransfers: many(stockTransfers),
     inventorySessions: many(inventory),
     productionRuns: many(productionRuns),
     expenses: many(expenses),
@@ -290,14 +310,12 @@ export const productsRelations = relations(products, ({ one, many }) => ({
         fields: [products.categoryId],
         references: [categories.id],
     }),
-    stock: one(stock, {
-        fields: [products.id],
-        references: [stock.productId],
-    }),
+    stock: many(stock),
     stockAdjustments: many(stockAdjustments),
     transactionItems: many(transactionItems),
     purchaseOrderItems: many(purchaseOrderItems),
     stockMovements: many(stockMovements),
+    stockTransfers: many(stockTransfers),
     inventoryItems: many(inventoryItems),
     recipes: many(recipes), // Products that are produced via recipes
     ingredientIn: many(recipeIngredients), // Products used as ingredients
@@ -308,6 +326,57 @@ export const stockRelations = relations(stock, ({ one }) => ({
         fields: [stock.productId],
         references: [products.id],
     }),
+    location: one(locations, {
+        fields: [stock.locationId],
+        references: [locations.id],
+    }),
+}))
+
+export const locationsRelations = relations(locations, ({ many }) => ({
+    stock: many(stock),
+    transfersFrom: many(stockTransfers, { relationName: "fromLocation" }),
+    transfersTo: many(stockTransfers, { relationName: "toLocation" }),
+}))
+
+export const stockTransfersRelations = relations(stockTransfers, ({ one, many }) => ({
+    product: one(products, {
+        fields: [stockTransfers.productId],
+        references: [products.id],
+    }),
+    fromLocation: one(locations, {
+        fields: [stockTransfers.fromLocationId],
+        references: [locations.id],
+        relationName: "fromLocation",
+    }),
+    toLocation: one(locations, {
+        fields: [stockTransfers.toLocationId],
+        references: [locations.id],
+        relationName: "toLocation",
+    }),
+    user: one(users, {
+        fields: [stockTransfers.userId],
+        references: [users.id],
+    }),
+    approver: one(users, {
+        fields: [stockTransfers.approvedBy],
+        references: [users.id],
+    }),
+    items: many(stockTransferItems),
+}))
+
+export const stockTransferItemsRelations = relations(stockTransferItems, ({ one }) => ({
+    transfer: one(stockTransfers, {
+        fields: [stockTransferItems.transferId],
+        references: [stockTransfers.id],
+    }),
+    product: one(products, {
+        fields: [stockTransferItems.productId],
+        references: [products.id],
+    }),
+}))
+
+export const tablesRelations = relations(tables, ({ many }) => ({
+    orders: many(transactions),
 }))
 
 export const stockAdjustmentsRelations = relations(stockAdjustments, ({ one }) => ({
@@ -357,6 +426,15 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     user: one(users, {
         fields: [transactions.userId],
         references: [users.id],
+    }),
+    waiter: one(users, {
+        fields: [transactions.waiterId],
+        references: [users.id],
+        relationName: "waiter",
+    }),
+    table: one(tables, {
+        fields: [transactions.tableId],
+        references: [tables.id],
     }),
     items: many(transactionItems),
     creditRecord: one(creditRecords, {
@@ -425,40 +503,40 @@ export const creditPaymentsRelations = relations(creditPayments, ({ one }) => ({
     }),
 }))
 
-export const recipesRelations = relations(recipes, ({ one, many }) => ({
-    product: one(products, {
-        fields: [recipes.productId],
-        references: [products.id],
-    }),
-    ingredients: many(recipeIngredients),
-    productionRuns: many(productionRuns),
-}))
+// Expense category enum
+export const expenseCategoryEnum = pgEnum("expense_category", [
+    "rent", "utilities", "salaries", "supplies", "maintenance",
+    "marketing", "transport", "insurance", "taxes", "other"
+])
 
-export const recipeIngredientsRelations = relations(recipeIngredients, ({ one }) => ({
-    recipe: one(recipes, {
-        fields: [recipeIngredients.recipeId],
-        references: [recipes.id],
-    }),
-    ingredient: one(products, {
-        fields: [recipeIngredients.ingredientId],
-        references: [products.id], // The raw material
-    }),
-}))
+// Expenses table
+export const expenses = pgTable("expenses", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    category: expenseCategoryEnum("category").notNull(),
+    description: text("description"),
+    date: timestamp("date").notNull().defaultNow(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+})
 
-export const productionRunsRelations = relations(productionRuns, ({ one }) => ({
-    recipe: one(recipes, {
-        fields: [productionRuns.recipeId],
-        references: [recipes.id],
-    }),
-    user: one(users, {
-        fields: [productionRuns.producedBy],
-        references: [users.id],
-    }),
-}))
+// Menu permissions (which roles can see which menu items)
+export const menuPermissions = pgTable("menu_permissions", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    href: text("href").notNull().unique(),
+    label: text("label").notNull(),
+    icon: text("icon").notNull(),
+    roles: text("roles").array().notNull().default(["admin"]),
+    sortOrder: integer("sort_order").notNull().default(0),
+})
 
-export const expensesRelations = relations(expenses, ({ one }) => ({
-    user: one(users, {
-        fields: [expenses.paidBy],
-        references: [users.id],
-    }),
-}))
+// Notifications
+export const notifications = pgTable("notifications", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: text("type").notNull(),
+    message: text("message").notNull(),
+    relatedId: text("related_id"),
+    read: boolean("read").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+})

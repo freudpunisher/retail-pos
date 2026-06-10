@@ -17,13 +17,20 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/mock-data"
-import { Minus, Plus, Trash2, ShoppingCart, User, Receipt, CreditCard, Banknote, X, Loader2 } from "lucide-react"
+import { Minus, Plus, Trash2, ShoppingCart, User, Receipt, Banknote, X, Loader2, ClipboardList } from "lucide-react"
 import { useClients } from "@/hooks/use-clients"
 import { useTransactions } from "@/hooks/use-transactions"
 import { useAuth } from "@/lib/auth-context"
+import { useSettings } from "@/hooks/use-settings"
 import { toast } from "sonner"
 
-export function CartPanel() {
+interface CartPanelProps {
+  orderMode: "dinein" | "takeaway" | "counter"
+  onCreateOrder?: () => void
+  creatingOrder?: boolean
+}
+
+export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: CartPanelProps) {
   const {
     items,
     selectedClient,
@@ -41,6 +48,7 @@ export function CartPanel() {
   } = useCart()
 
   const { user } = useAuth()
+  const { settings } = useSettings()
   const { clients, loading: clientsLoading } = useClients()
   const { processTransaction, loading: processing } = useTransactions()
 
@@ -48,6 +56,7 @@ export function CartPanel() {
   const [showReceipt, setShowReceipt] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash")
   const [lastTransactionId, setLastTransactionId] = useState<string | null>(null)
+  const [lastReference, setLastReference] = useState<string | null>(null)
   const receiptRef = useRef<HTMLDivElement>(null)
 
   const isCreditExceeded = !!(selectedClient && paymentMethod === "credit" &&
@@ -80,6 +89,7 @@ export function CartPanel() {
         window.dispatchEvent(new CustomEvent("pos:transaction-completed"))
       }
       setLastTransactionId(result.id)
+      setLastReference(result.reference || null)
       setShowReceipt(true)
       setShowCheckout(false)
 
@@ -102,6 +112,7 @@ export function CartPanel() {
     setShowReceipt(false)
     clearCart()
     setLastTransactionId(null)
+    setLastReference(null)
   }
 
   const handlePrint = () => {
@@ -220,7 +231,17 @@ export function CartPanel() {
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="w-8 text-center font-medium">{item.quantity}</span>
+                        <Input
+                          type="number"
+                          min="1"
+                          max={item.stock}
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0
+                            if (val >= 0) updateQuantity(item.id, val)
+                          }}
+                          className="h-7 w-14 text-center text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
                         <Button
                           variant="outline"
                           size="icon"
@@ -291,14 +312,19 @@ export function CartPanel() {
             </div>
           </div>
 
-          <div className="grid w-full grid-cols-2 gap-2">
-            <Button variant="outline" disabled={items.length === 0} onClick={() => { setPaymentMethod("credit"); setShowCheckout(true); }}>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Credit
-            </Button>
-            <Button disabled={items.length === 0} onClick={() => { setPaymentMethod("cash"); setShowCheckout(true); }}>
-              <Banknote className="mr-2 h-4 w-4" />
-              Cash
+          <div className="grid w-full gap-2">
+            <Button
+              className="w-full"
+              size="lg"
+              disabled={items.length === 0 || creatingOrder}
+              onClick={onCreateOrder}
+            >
+              {creatingOrder ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <ClipboardList className="mr-2 h-4 w-4" />
+              )}
+              {creatingOrder ? "Creating..." : "Create Order"}
             </Button>
           </div>
         </CardFooter>
@@ -388,9 +414,9 @@ export function CartPanel() {
 
           <div id="printable-area" ref={receiptRef} className="rounded-lg border border-border bg-card p-4 font-mono text-sm">
             <div className="text-center mb-4">
-              <p className="text-lg font-bold">SmartPOS Store</p>
-              <p className="text-xs text-muted-foreground">123 Main Street, Downtown</p>
-              <p className="text-xs text-muted-foreground">Tel: +1 555-0000</p>
+              <p className="text-lg font-bold">{settings?.name || "SmartPOS Store"}</p>
+              {settings?.address && <p className="text-xs text-muted-foreground">{settings.address}</p>}
+              {settings?.phone && <p className="text-xs text-muted-foreground">Tel: {settings.phone}</p>}
             </div>
 
             <Separator className="my-3" />
@@ -399,7 +425,7 @@ export function CartPanel() {
               <p className="text-xs">
                 Date: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
               </p>
-              <p className="text-xs">Transaction: {lastTransactionId || "N/A"}</p>
+              <p className="text-xs font-bold tracking-wider">{lastReference || "BL-" + (lastTransactionId || "N/A").slice(0, 8).toUpperCase()}</p>
               {selectedClient && <p className="text-xs">Client: {selectedClient.name}</p>}
               <p className="text-xs">Payment: {paymentMethod.toUpperCase()}</p>
             </div>
