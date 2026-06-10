@@ -143,7 +143,7 @@ export interface Category {
 export interface Location {
   id: string
   name: string
-  type: "principal" | "secondary"
+  type: "principal" | "transitional" | "bar" | "kitchen"
   isActive: boolean
 }
 

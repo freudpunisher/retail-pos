@@ -415,7 +415,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
 
           <div id="printable-area" ref={receiptRef} className="rounded-lg border border-border bg-card p-4 font-mono text-sm">
             <div className="text-center mb-4">
-              <p className="text-lg font-bold">{settings?.name || "SmartPOS Store"}</p>
+              <img src="/assets/icon.png" alt="Logo" className="mx-auto max-h-12 mb-1" />
               {settings?.address && <p className="text-xs text-muted-foreground">{settings.address}</p>}
               {settings?.phone && <p className="text-xs text-muted-foreground">Tel: {settings.phone}</p>}
             </div>

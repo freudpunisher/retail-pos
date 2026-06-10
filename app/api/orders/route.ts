@@ -78,11 +78,11 @@ export async function POST(request: Request) {
                 .set({ stock: sql`${products.stock} - ${item.quantity}` })
                 .where(eq(products.id, item.productId))
 
-            // Deduct per-location stock from secondary location only
+            // Deduct per-location stock from bar location only
             let [saleLocation] = await db
                 .select()
                 .from(locations)
-                .where(eq(locations.type, "secondary"))
+                .where(eq(locations.type, "bar"))
                 .limit(1)
             if (!saleLocation) continue
             const [existingStock] = await db

@@ -55,7 +55,7 @@ export function printThermal(data: ReceiptData): void {
     }
     .center { text-align: center; }
     .header { text-align: center; margin-bottom: 2mm; padding-bottom: 2mm; }
-    .header .name { font-size: 18px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+    .header .logo { max-width: 60mm; max-height: 20mm; margin-bottom: 1mm; }
     .header .sub { font-size: 9px; color: #555; margin-top: 0.5mm; }
     .header .tax { font-size: 9px; color: #555; }
     .divider { border: none; border-top: 1px dashed #333; margin: 1.5mm 0; }
@@ -80,7 +80,7 @@ export function printThermal(data: ReceiptData): void {
 
   <!-- Store Header -->
   <div class="header">
-    <div class="name">${data.header.name}</div>
+    <img src="/assets/icon.png" alt="Logo" class="logo" />
     ${data.header.address ? `<div class="sub">${data.header.address}</div>` : ""}
     ${data.header.phone ? `<div class="sub">Tel: ${data.header.phone}</div>` : ""}
     ${data.header.taxId ? `<div class="tax">NIF: ${data.header.taxId}</div>` : ""}

@@ -35,9 +35,9 @@ export default function SalesPage() {
   const { items, selectedClient, total, clearCart, setProductStocks, setPrincipalStocks } = useCart()
 
   const { locations } = useLocations()
-  const secondaryLocation = useMemo(() => locations.find(l => l.type === "secondary"), [locations])
+  const barLocation = useMemo(() => locations.find(l => l.type === "bar"), [locations])
   const principalLocation = useMemo(() => locations.find(l => l.type === "principal"), [locations])
-  const { stockItems } = useStock(secondaryLocation?.id)
+  const { stockItems } = useStock(barLocation?.id)
   const { stockItems: principalStock } = useStock(principalLocation?.id)
 
   useEffect(() => {

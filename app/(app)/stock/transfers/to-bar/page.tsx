@@ -14,10 +14,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
 import {
     ArrowRightLeft, Loader2, Plus, Trash2, Package,
-    Warehouse, Store, FileText, Send, AlertCircle, ChevronLeft, ShoppingCart
+    Warehouse, Store, FileText, Send, AlertCircle, ChevronLeft, ShoppingCart, Beer
 } from "lucide-react"
 
 interface LineItem {
@@ -26,7 +25,7 @@ interface LineItem {
     quantity: string
 }
 
-export default function NewTransferPage() {
+export default function TransferToBarPage() {
     const router = useRouter()
     const { products } = useProducts()
     const { locations } = useLocations()
@@ -45,6 +44,9 @@ export default function NewTransferPage() {
 
     const currentUserId = users[0]?.id || ""
 
+    const transitionalLocations = useMemo(() => locations.filter((l: any) => l.type === "transitional"), [locations])
+    const barLocations = useMemo(() => locations.filter((l: any) => l.type === "bar"), [locations])
+
     useEffect(() => {
         if (!fromLocationId) { setStockByLocation([]); return }
         setLoadingStock(true)
@@ -57,10 +59,7 @@ export default function NewTransferPage() {
 
     const availableProducts = useMemo(() =>
         stockByLocation
-            .filter((s: any) =>
-                s.product?.productType === "ingredient" ||
-                (s.product?.productType === "drink" && s.product?.trackStock)
-            )
+            .filter((s: any) => s.product?.productType === "drink" && s.product?.trackStock)
             .map((s: any) => ({ ...s.product, availableQty: s.quantityOnHand })),
         [stockByLocation]
     )
@@ -94,11 +93,6 @@ export default function NewTransferPage() {
         return true
     }, [fromLocationId, toLocationId, lineItems, totalRequestedByProduct])
 
-    const principalLocations = locations.filter((l: any) => l.type === "principal")
-    const transitionalLocations = locations.filter((l: any) => l.type === "transitional")
-    const barLocations = locations.filter((l: any) => l.type === "bar")
-    const kitchenLocations = locations.filter((l: any) => l.type === "kitchen")
-
     const addLineItem = () => setLineItems([...lineItems, { key: crypto.randomUUID(), productId: "", quantity: "" }])
     const removeLineItem = (key: string) => lineItems.length > 1 && setLineItems(lineItems.filter((i) => i.key !== key))
     const updateLineItem = (key: string, field: keyof LineItem, value: string) =>
@@ -117,65 +111,55 @@ export default function NewTransferPage() {
 
     return (
         <div className="max-w-3xl mx-auto space-y-6">
-            {/* Header */}
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" asChild>
-                    <Link href="/stock/transfers">
-                        <ChevronLeft className="h-5 w-5" />
-                    </Link>
+                    <Link href="/stock/transfers"><ChevronLeft className="h-5 w-5" /></Link>
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">New Transfer Request</h1>
-                    <p className="text-muted-foreground text-sm">Move stock between locations</p>
+                    <h1 className="text-2xl font-bold tracking-tight">Stock Request — Bar</h1>
+                    <p className="text-muted-foreground text-sm">Request drinks from transitional stock to the bar</p>
                 </div>
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }} className="space-y-6">
-                {/* Route Selection */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                             <ArrowRightLeft className="h-4 w-4" /> Route
                         </CardTitle>
-                        <CardDescription>Choose where stock is coming from and where it's going</CardDescription>
+                        <CardDescription>Transitional stock &rarr; Bar location</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-[1fr,auto,1fr] items-end gap-4">
                             <div className="space-y-1.5">
                                 <Label className="text-sm font-medium flex items-center gap-1.5">
-                                    <Warehouse className="h-4 w-4 text-muted-foreground" /> Source Warehouse
+                                    <Store className="h-4 w-4 text-muted-foreground" /> From (Transitional)
                                 </Label>
                                 <Select value={fromLocationId} onValueChange={(v) => {
                                     setFromLocationId(v)
                                     setLineItems(lineItems.map((i) => ({ ...i, productId: "" })))
                                 }}>
-                                    <SelectTrigger className="h-10"><SelectValue placeholder="Select warehouse..." /></SelectTrigger>
+                                    <SelectTrigger className="h-10"><SelectValue placeholder="Select transitional..." /></SelectTrigger>
                                     <SelectContent>
-                                        {principalLocations.map((l: any) => (
+                                        {transitionalLocations.map((l: any) => (
                                             <SelectItem key={l.id} value={l.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <Warehouse className="h-4 w-4" /> {l.name}
-                                                </div>
+                                                <div className="flex items-center gap-2"><Store className="h-4 w-4" /> {l.name}</div>
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="pb-2">
-                                <ArrowRightLeft className="h-6 w-6 text-muted-foreground" />
-                            </div>
+                            <div className="pb-2"><ArrowRightLeft className="h-6 w-6 text-muted-foreground" /></div>
                             <div className="space-y-1.5">
                                 <Label className="text-sm font-medium flex items-center gap-1.5">
-                                    <Store className="h-4 w-4 text-muted-foreground" /> Destination
+                                    <Beer className="h-4 w-4 text-muted-foreground" /> To (Bar)
                                 </Label>
                                 <Select value={toLocationId} onValueChange={setToLocationId}>
-                                    <SelectTrigger className="h-10"><SelectValue placeholder="Select destination..." /></SelectTrigger>
+                                    <SelectTrigger className="h-10"><SelectValue placeholder="Select bar..." /></SelectTrigger>
                                     <SelectContent>
-                                        {[...transitionalLocations, ...barLocations, ...kitchenLocations].map((l: any) => (
+                                        {barLocations.map((l: any) => (
                                             <SelectItem key={l.id} value={l.id}>
-                                                <div className="flex items-center gap-2">
-                                                    <Store className="h-4 w-4" /> {l.name}
-                                                </div>
+                                                <div className="flex items-center gap-2"><Beer className="h-4 w-4" /> {l.name}</div>
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -185,14 +169,11 @@ export default function NewTransferPage() {
                     </CardContent>
                 </Card>
 
-                {/* Products */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
-                            <CardTitle className="text-base flex items-center gap-2">
-                                <ShoppingCart className="h-4 w-4" /> Products
-                            </CardTitle>
-                            <CardDescription>Select products and quantities to transfer</CardDescription>
+                            <CardTitle className="text-base flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Drinks</CardTitle>
+                            <CardDescription>Select drink products to request for the bar</CardDescription>
                         </div>
                         <Button type="button" variant="outline" size="sm" onClick={addLineItem} disabled={!fromLocationId}>
                             <Plus className="h-4 w-4 mr-1" /> Add Item
@@ -205,14 +186,14 @@ export default function NewTransferPage() {
                             </div>
                         ) : !fromLocationId ? (
                             <div className="border-2 border-dashed rounded-lg py-12 text-center">
-                                <Warehouse className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-                                <p className="text-sm text-muted-foreground">Select a source warehouse to see available products</p>
+                                <Store className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+                                <p className="text-sm text-muted-foreground">Select a transitional location to see available products</p>
                             </div>
                         ) : availableProducts.length === 0 ? (
                             <div className="border-2 border-dashed rounded-lg py-12 text-center">
                                 <AlertCircle className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-                                <p className="text-sm font-medium text-muted-foreground">No stock available</p>
-                                <p className="text-xs text-muted-foreground mt-1">This warehouse has no trackable products in stock</p>
+                                <p className="text-sm font-medium text-muted-foreground">No drinks available</p>
+                                <p className="text-xs text-muted-foreground mt-1">This transitional location has no drink stock</p>
                             </div>
                         ) : (
                             <div className="border rounded-lg overflow-hidden">
@@ -243,21 +224,13 @@ export default function NewTransferPage() {
                                                     </SelectContent>
                                                 </Select>
                                                 <div className="space-y-0.5">
-                                                    <Input
-                                                        type="number"
-                                                        min={1}
-                                                        max={item.productId ? getProductQty(item.productId) : undefined}
-                                                        value={item.quantity}
-                                                        onChange={(e) => updateLineItem(item.key, "quantity", e.target.value)}
-                                                        placeholder="0"
-                                                        className={`h-9 text-center ${error ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                                                    />
+                                                    <Input type="number" min={1} max={item.productId ? getProductQty(item.productId) : undefined}
+                                                        value={item.quantity} onChange={(e) => updateLineItem(item.key, "quantity", e.target.value)}
+                                                        placeholder="0" className={`h-9 text-center ${error ? "border-destructive" : ""}`} />
                                                     {error && <p className="text-xs text-destructive text-center">{error}</p>}
                                                 </div>
                                                 <div className="text-sm text-muted-foreground text-right pt-2">
-                                                    {item.productId ? (
-                                                        <Badge variant="secondary" className="text-xs font-mono">{getProductQty(item.productId)}</Badge>
-                                                    ) : "—"}
+                                                    {item.productId ? <Badge variant="secondary" className="text-xs font-mono">{getProductQty(item.productId)}</Badge> : "—"}
                                                 </div>
                                                 <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" disabled={lineItems.length <= 1} onClick={() => removeLineItem(item.key)}>
                                                     <Trash2 className="h-4 w-4 text-destructive/70" />
@@ -269,56 +242,32 @@ export default function NewTransferPage() {
                             </div>
                         )}
 
-                        {/* Summary bar */}
                         {lineItems.some((i) => i.productId && i.quantity) && (
                             <div className="flex items-center justify-between text-sm bg-muted/30 rounded-lg px-4 py-2.5">
-                                <span className="text-muted-foreground">
-                                    {lineItems.filter((i) => i.productId && i.quantity).length} product(s)
-                                </span>
-                                <span className="font-medium">
-                                    Total: {lineItems.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0)} units
-                                </span>
+                                <span className="text-muted-foreground">{lineItems.filter((i) => i.productId && i.quantity).length} product(s)</span>
+                                <span className="font-medium">Total: {lineItems.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0)} units</span>
                             </div>
                         )}
                     </CardContent>
                 </Card>
 
-                {/* Notes */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <FileText className="h-4 w-4" /> Notes
-                        </CardTitle>
-                        <CardDescription>Optional notes for this transfer</CardDescription>
+                        <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Notes</CardTitle>
+                        <CardDescription>Optional notes for this request</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-                            placeholder="e.g. Restock the bar for weekend service"
-                            rows={3} className="resize-none" />
+                            placeholder="e.g. Need more stock for the weekend" rows={3} className="resize-none" />
                     </CardContent>
                 </Card>
 
-                {/* Actions */}
                 <div className="flex items-center justify-between gap-4">
-                    <Button variant="outline" asChild>
-                        <Link href="/stock/transfers">Cancel</Link>
+                    <Button variant="outline" asChild><Link href="/stock/transfers">Cancel</Link></Button>
+                    <Button type="submit" disabled={submitting || !canSubmit} size="lg" className="min-w-[160px]">
+                        {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                        Submit Request
                     </Button>
-                    <div className="flex items-center gap-2">
-                        <Button type="button" variant="ghost" onClick={() => {
-                            setFromLocationId(""); setToLocationId(""); setNotes("")
-                            setLineItems([{ key: crypto.randomUUID(), productId: "", quantity: "" }])
-                        }}>
-                            Reset
-                        </Button>
-                        <Button type="submit" disabled={submitting || !canSubmit} size="lg" className="min-w-[160px]">
-                            {submitting ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                                <Send className="h-4 w-4 mr-2" />
-                            )}
-                            Submit Request
-                        </Button>
-                    </div>
                 </div>
             </form>
         </div>

@@ -73,5 +73,26 @@ export function useStockTransfers() {
         return updated
     }
 
-    return { transfers, loading, refresh: fetchTransfers, createTransfer, approveTransfer, receiveTransfer }
+    const createDirectTransfer = async (data: {
+        fromLocationId: string
+        toLocationId: string
+        userId: string
+        notes?: string
+        items: TransferItem[]
+    }) => {
+        const res = await fetch("/api/stock/transfers/direct", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        })
+        if (!res.ok) {
+            const err = await res.json()
+            throw new Error(err.error || "Failed to create direct transfer")
+        }
+        const transfer = await res.json()
+        setTransfers((prev) => [transfer, ...prev])
+        return transfer
+    }
+
+    return { transfers, loading, refresh: fetchTransfers, createTransfer, createDirectTransfer, approveTransfer, receiveTransfer }
 }

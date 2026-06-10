@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useMemo } from "react"
 import { useStockTransfers } from "@/hooks/use-stock-transfers"
 import { useUsers } from "@/hooks/use-users"
+import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,13 +12,16 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import {
     ArrowRightLeft, Loader2, Plus, CheckCircle, Package,
     Warehouse, Store, Clock, User, FileText, XCircle,
-    ChevronRight, Hash, CalendarDays
+    ChevronRight, Hash, CalendarDays, Beer, UtensilsCrossed,
+    Layers, ListChecks
 } from "lucide-react"
 
 export default function StockTransfersPage() {
     const { transfers, loading, approveTransfer, receiveTransfer } = useStockTransfers()
     const { users } = useUsers()
-    const currentUserId = users[0]?.id || ""
+    const { user } = useAuth()
+    const currentUserId = user?.id || users[0]?.id || ""
+    const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin"
 
     const counts = useMemo(() => ({
         pending: transfers.filter((t: any) => t.status === "pending").length,
@@ -55,11 +59,27 @@ export default function StockTransfersPage() {
                         Request &rarr; Approve &rarr; Receive workflow
                     </p>
                 </div>
-                <Button size="lg" asChild>
-                    <Link href="/stock/transfers/new">
-                        <Plus className="h-5 w-5 mr-2" /> New Request
-                    </Link>
-                </Button>
+                <div className="flex items-center gap-2">
+                    {isManagerOrAdmin && (
+                        <Button size="sm" variant="outline" asChild>
+                            <Link href="/stock/transfers/to-transitional">
+                                <Layers className="h-4 w-4 mr-1.5" /> Restock Transitional
+                            </Link>
+                        </Button>
+                    )}
+                    <Button size="sm" variant="outline" asChild>
+                        <Link href="/stock/transfers/to-bar">
+                            <Beer className="h-4 w-4 mr-1.5" /> Request to Bar
+                        </Link>
+                    </Button>
+                    {isManagerOrAdmin && (
+                        <Button size="sm" variant="outline" asChild>
+                            <Link href="/stock/transfers/to-kitchen">
+                                <UtensilsCrossed className="h-4 w-4 mr-1.5" /> Transfer to Kitchen
+                            </Link>
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* Summary Cards */}
@@ -153,6 +173,10 @@ export default function StockTransfersPage() {
                                                             </span>
                                                             <span className="text-xs text-muted-foreground">•</span>
                                                             <span className="text-xs font-medium">{totalQty} units</span>
+                                                            <span className="text-xs text-muted-foreground">•</span>
+                                                            <Badge variant={t.transferType === "direct" ? "secondary" : "outline"} className="text-xs">
+                                                                {t.transferType === "direct" ? "Direct" : "Demand"}
+                                                            </Badge>
                                                         </div>
 
                                                         {/* Items */}
