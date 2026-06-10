@@ -81,6 +81,7 @@ export function ProductGrid() {
 
   const { products, loading: productsLoading, refresh } = useProducts(selectedCategoryId || "all", search)
   const { categories, loading: categoriesLoading } = useCategories()
+  const { user } = useAuth()
 
   // Filter: only show drink and food (not ingredients), optionally filter by type
   const posProducts = useMemo(() => {

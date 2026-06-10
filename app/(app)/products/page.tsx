@@ -11,6 +11,7 @@ import { useProducts } from "@/hooks/use-products"
 import { useAuth } from "@/lib/auth-context"
 import { ProductFormDialog } from "@/components/inventory/product-form-dialog"
 import { formatCurrency } from "@/lib/mock-data"
+import Swal from "sweetalert2"
 
 const typeConfig: Record<string, { label: string; icon: any; color: string }> = {
     drink: { label: "Drink", icon: Beer, color: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
@@ -28,9 +29,9 @@ export default function ProductManagementPage() {
     const { user } = useAuth()
     const canEdit = user?.role === "admin"
     const roleSector =
-        user?.role === "cashier_bakery" || user?.role === "supervisor_bakery" || user?.role === "production_bakery"
+        (user?.role as string) === "cashier_bakery" || (user?.role as string) === "supervisor_bakery" || (user?.role as string) === "production_bakery"
             ? "Boulangerie"
-            : user?.role === "cashier_food" || user?.role === "supervisor_food"
+            : (user?.role as string) === "cashier_food" || (user?.role as string) === "supervisor_food"
             ? "Alimentation"
             : null
 
@@ -52,18 +53,62 @@ export default function ProductManagementPage() {
     }
 
     const handleDelete = async (id: string) => {
-        if (window.confirm("Are you sure you want to delete this product?")) {
-            await deleteProduct(id)
+        const result = await Swal.fire({
+            title: "Supprimer ce produit ?",
+            text: "Cette action est irréversible et supprimera le produit de l'inventaire.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Supprimer",
+            cancelButtonText: "Annuler",
+            confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#6b7280",
+        })
+        if (result.isConfirmed) {
+            try {
+                await deleteProduct(id)
+                await Swal.fire({
+                    icon: "success",
+                    title: "Produit supprimé",
+                    timer: 1500,
+                    showConfirmButton: false,
+                })
+            } catch (error) {
+                await Swal.fire({
+                    icon: "error",
+                    title: "Erreur",
+                    text: "Impossible de supprimer le produit.",
+                })
+            }
         }
     }
 
     const handleFormSubmit = async (data: any) => {
-        if (selectedProduct) {
-            await updateProduct(selectedProduct.id, data)
-        } else {
-            await createProduct(data)
+        try {
+            if (selectedProduct) {
+                await updateProduct(selectedProduct.id, data)
+                await Swal.fire({
+                    icon: "success",
+                    title: "Produit modifié",
+                    timer: 1500,
+                    showConfirmButton: false,
+                })
+            } else {
+                await createProduct(data)
+                await Swal.fire({
+                    icon: "success",
+                    title: "Produit créé",
+                    timer: 1500,
+                    showConfirmButton: false,
+                })
+            }
+            setIsFormOpen(false)
+        } catch (error: any) {
+            await Swal.fire({
+                icon: "error",
+                title: "Erreur",
+                text: error.message || "Une erreur est survenue.",
+            })
         }
-        setIsFormOpen(false)
     }
 
     const typeFilters = [

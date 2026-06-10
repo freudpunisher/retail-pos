@@ -25,6 +25,16 @@ interface LineItem {
     quantity: string
 }
 
+function uuid(): string {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID()
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16)
+    })
+}
+
 export default function TransferToBarPage() {
     const router = useRouter()
     const { products } = useProducts()
@@ -37,7 +47,7 @@ export default function TransferToBarPage() {
     const [toLocationId, setToLocationId] = useState("")
     const [notes, setNotes] = useState("")
     const [lineItems, setLineItems] = useState<LineItem[]>([
-        { key: crypto.randomUUID(), productId: "", quantity: "" },
+        { key: uuid(), productId: "", quantity: "" },
     ])
     const [stockByLocation, setStockByLocation] = useState<any[]>([])
     const [loadingStock, setLoadingStock] = useState(false)
@@ -93,7 +103,7 @@ export default function TransferToBarPage() {
         return true
     }, [fromLocationId, toLocationId, lineItems, totalRequestedByProduct])
 
-    const addLineItem = () => setLineItems([...lineItems, { key: crypto.randomUUID(), productId: "", quantity: "" }])
+    const addLineItem = () => setLineItems([...lineItems, { key: uuid(), productId: "", quantity: "" }])
     const removeLineItem = (key: string) => lineItems.length > 1 && setLineItems(lineItems.filter((i) => i.key !== key))
     const updateLineItem = (key: string, field: keyof LineItem, value: string) =>
         setLineItems(lineItems.map((i) => (i.key === key ? { ...i, [field]: value } : i)))

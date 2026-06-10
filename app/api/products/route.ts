@@ -25,6 +25,7 @@ export async function GET(request: Request) {
                 categoryId: products.categoryId,
                 categoryName: categories.name,
                 sector: products.sector,
+                quantityPerBox: products.quantityPerBox,
             })
             .from(products)
             .leftJoin(categories, eq(products.categoryId, categories.id))
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
         if (authError) return authError
 
         const body = await request.json()
-        const { name, categoryId, productType, price, cost, minStock, unit, trackStock, image, sector } = body
+        const { name, categoryId, productType, price, cost, minStock, unit, trackStock, image, sector, quantityPerBox } = body
         let { sku } = body
 
         if (!name || price === undefined) {
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
                     trackStock: trackStock || false,
                     image,
                     sector,
+                    quantityPerBox: quantityPerBox || 1,
                 })
                 .returning()
 

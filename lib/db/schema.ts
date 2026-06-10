@@ -57,6 +57,7 @@ export const products = pgTable("products", {
     minStock: integer("min_stock").notNull().default(0),
     trackStock: boolean("track_stock").notNull().default(false),
     image: text("image"),
+    quantityPerBox: integer("quantity_per_box").default(1),
 })
 
 export const locations = pgTable("locations", {
@@ -185,7 +186,6 @@ export const transactions = pgTable("transactions", {
     waiterId: uuid("waiter_id").references(() => users.id),
     tableId: uuid("table_id").references(() => tables.id),
     reference: text("reference"),
-    invoiceRef: text("invoice_ref"),
 })
 
 export const transactionItems = pgTable("transaction_items", {

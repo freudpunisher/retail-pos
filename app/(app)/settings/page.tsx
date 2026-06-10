@@ -17,10 +17,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Store, Tag, Shield, Plus, Trash2, Save, Loader2, Search, Pencil, Ruler } from "lucide-react"
+import { Store, Tag, Shield, Plus, Trash2, Save, Loader2, Search, Pencil, Ruler, MapPin } from "lucide-react"
 import { useSettings } from "@/hooks/use-settings"
 import { useCategories } from "@/hooks/use-products"
 import { useUnits } from "@/hooks/use-units"
+import { useLocations } from "@/hooks/use-locations"
 import { cn } from "@/lib/utils"
 import { UserManagement } from "@/components/user-management"
 import Swal from "sweetalert2"
@@ -38,10 +39,14 @@ type Unit = {
   symbol?: string
 }
 
+const LOCATION_TYPES = ["principal", "transitional", "bar", "kitchen"] as const
+type LocationType = typeof LOCATION_TYPES[number]
+
 export default function SettingsPage() {
   const { settings, loading: settingsLoading, updateSettings } = useSettings()
   const { categories, loading: categoriesLoading, createCategory, updateCategory, deleteCategory } = useCategories()
   const { units, loading: unitsLoading, createUnit, updateUnit, deleteUnit } = useUnits()
+  const { locations, loading: locationsLoading, createLocation, updateLocation, deleteLocation } = useLocations()
 
   const [storeInfo, setStoreInfo] = useState<any>(null)
   const [newCategory, setNewCategory] = useState({ name: "", description: "" })
@@ -57,6 +62,13 @@ export default function SettingsPage() {
   const [categoryPageSize, setCategoryPageSize] = useState(10)
   const [categoryPage, setCategoryPage] = useState(1)
   const [unitPageSize, setUnitPageSize] = useState(10)
+
+  // Locations state
+  const [locationSearch, setLocationSearch] = useState("")
+  const [newLocation, setNewLocation] = useState({ name: "", type: "bar" as LocationType })
+  const [showAddLocation, setShowAddLocation] = useState(false)
+  const [editLocation, setEditLocation] = useState<any>(null)
+  const [showEditLocation, setShowEditLocation] = useState(false)
   const [unitPage, setUnitPage] = useState(1)
 
   const handleUnitSearchChange = (value: string) => { setUnitSearch(value); setUnitPage(1) }
@@ -266,6 +278,62 @@ export default function SettingsPage() {
     }
   }
 
+  // ----- Location handlers -----
+  const handleAddLocation = async () => {
+    if (!newLocation.name.trim()) return
+    try {
+      await createLocation(newLocation)
+      setNewLocation({ name: "", type: "bar" })
+      setShowAddLocation(false)
+      await Swal.fire({ icon: "success", title: "Location added", timer: 1500, showConfirmButton: false })
+    } catch {
+      await Swal.fire({ icon: "error", title: "Failed to add location" })
+    }
+  }
+
+  const handleUpdateLocation = async () => {
+    if (!editLocation?.name?.trim()) return
+    try {
+      await updateLocation(editLocation.id, {
+        name: editLocation.name,
+        type: editLocation.type,
+        isActive: editLocation.isActive,
+      })
+      setShowEditLocation(false)
+      setEditLocation(null)
+      await Swal.fire({ icon: "success", title: "Location updated", timer: 1500, showConfirmButton: false })
+    } catch {
+      await Swal.fire({ icon: "error", title: "Failed to update location" })
+    }
+  }
+
+  const handleDeleteLocation = async (id: string) => {
+    const result = await Swal.fire({
+      title: "Delete location?",
+      text: "This may affect stock records linked to this location.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+    })
+    if (result.isConfirmed) {
+      try {
+        await deleteLocation(id)
+        await Swal.fire({ icon: "success", title: "Location deleted", timer: 1500, showConfirmButton: false })
+      } catch {
+        await Swal.fire({ icon: "error", title: "Failed to delete location" })
+      }
+    }
+  }
+
+  const filteredLocations = locations.filter((loc) => {
+    const s = locationSearch.trim().toLowerCase()
+    if (!s) return true
+    return loc.name?.toLowerCase().includes(s) || loc.type?.toLowerCase().includes(s)
+  })
+
+  // ----- / Location handlers -----
+
   const handleAddUnit = async () => {
     if (newUnit.code.trim() && newUnit.name.trim()) {
       try {
@@ -346,10 +414,11 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="store">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
           <TabsTrigger value="store">Store Info</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="units">Units</TabsTrigger>
+          <TabsTrigger value="locations">Locations</TabsTrigger>
           <TabsTrigger value="menus">Menu Permissions</TabsTrigger>
           <TabsTrigger value="users">Users & Roles</TabsTrigger>
         </TabsList>
@@ -947,6 +1016,199 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Locations */}
+        <TabsContent value="locations" className="mt-4">
+          <Card className="border-border bg-card">
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Locations
+                </CardTitle>
+                <CardDescription>Manage warehouses, bars, kitchens and transit points</CardDescription>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative w-56">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search locations..."
+                    value={locationSearch}
+                    onChange={(e) => { setLocationSearch(e.target.value) }}
+                    className="pl-10"
+                  />
+                </div>
+                <Dialog open={showAddLocation} onOpenChange={setShowAddLocation}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Location
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Location</DialogTitle>
+                      <DialogDescription>Create a new stock location</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Name</Label>
+                        <Input
+                          placeholder="e.g. Main Warehouse"
+                          value={newLocation.name}
+                          onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Type</Label>
+                        <Select
+                          value={newLocation.type}
+                          onValueChange={(v) => setNewLocation({ ...newLocation, type: v as LocationType })}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {LOCATION_TYPES.map((t) => (
+                              <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddLocation(false)}>Cancel</Button>
+                      <Button onClick={handleAddLocation} disabled={!newLocation.name.trim()}>Add Location</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="rounded-md border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-border">
+                      <TableHead className="text-muted-foreground">Name</TableHead>
+                      <TableHead className="text-muted-foreground">Type</TableHead>
+                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {locationsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredLocations.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                          No locations found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredLocations.map((loc) => (
+                        <TableRow key={loc.id} className="border-border">
+                          <TableCell className="font-medium">{loc.name}</TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize bg-muted text-muted-foreground">
+                              {loc.type}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className={cn(
+                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                              loc.isActive
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                : "bg-muted text-muted-foreground"
+                            )}>
+                              {loc.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost" size="icon"
+                                className="h-8 w-8 text-muted-foreground"
+                                title="Edit location"
+                                onClick={() => { setEditLocation({ ...loc }); setShowEditLocation(true) }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost" size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => handleDeleteLocation(loc.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Edit Location Dialog */}
+          <Dialog open={showEditLocation} onOpenChange={(open) => { setShowEditLocation(open); if (!open) setEditLocation(null) }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Location</DialogTitle>
+                <DialogDescription>Update location details</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    placeholder="e.g. Main Warehouse"
+                    value={editLocation?.name ?? ""}
+                    onChange={(e) => setEditLocation((prev: any) => prev ? { ...prev, name: e.target.value } : prev)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Type</Label>
+                  <Select
+                    value={editLocation?.type ?? "bar"}
+                    onValueChange={(v) => setEditLocation((prev: any) => prev ? { ...prev, type: v } : prev)}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {LOCATION_TYPES.map((t) => (
+                        <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label>Active</Label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={editLocation?.isActive ?? true}
+                    onClick={() => setEditLocation((prev: any) => prev ? { ...prev, isActive: !prev.isActive } : prev)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                      editLocation?.isActive ? "bg-primary" : "bg-muted"
+                    )}
+                  >
+                    <span className={cn(
+                      "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
+                      editLocation?.isActive ? "translate-x-6" : "translate-x-1"
+                    )} />
+                  </button>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowEditLocation(false)}>Cancel</Button>
+                <Button onClick={handleUpdateLocation}>Save Changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* Users & Roles */}

@@ -26,6 +26,8 @@ interface POItem {
   productName: string
   quantity: number
   cost: number
+  boxes?: number
+  quantityPerBox?: number
 }
 
 export default function EditPurchaseOrderPage() {
@@ -76,6 +78,31 @@ export default function EditPurchaseOrderPage() {
     if (orderId) fetchOrder()
   }, [orderId, router])
 
+  // Enrich items with boxes and quantityPerBox from products once loaded
+  useEffect(() => {
+    if (products.length > 0 && items.length > 0) {
+      const needsUpdate = items.some((item) => item.boxes === undefined)
+      if (needsUpdate) {
+        setItems((prev) =>
+          prev.map((item) => {
+            if (item.boxes !== undefined) return item
+            const product = products.find((p) => p.id === item.productId)
+            const qpb = product?.quantityPerBox || 1
+            const qty = Number(item.quantity) || 0
+            const cost = Number(item.cost) || 0
+            return {
+              ...item,
+              quantity: qty,
+              cost: cost,
+              quantityPerBox: qpb,
+              boxes: qty / qpb,
+            }
+          })
+        )
+      }
+    }
+  }, [products, items])
+
   const isEditable = order?.status === "pending"
 
   const addProduct = () => {
@@ -86,17 +113,29 @@ export default function EditPurchaseOrderPage() {
     const existing = items.find((i) => i.productId === selectedProductId)
     if (existing) {
       setItems((prev) =>
-        prev.map((i) =>
-          i.productId === selectedProductId ? { ...i, quantity: i.quantity + 1 } : i
-        )
+        prev.map((i) => {
+          if (i.productId === selectedProductId) {
+            const nextBoxes = (i.boxes || 1) + 1
+            const qpb = i.quantityPerBox || 1
+            return {
+              ...i,
+              boxes: nextBoxes,
+              quantity: nextBoxes * qpb,
+            }
+          }
+          return i
+        })
       )
     } else {
+      const qpb = product.quantityPerBox || 1
       setItems((prev) => [
         ...prev,
         {
           productId: product.id,
           productName: product.name,
-          quantity: 1,
+          boxes: 1,
+          quantityPerBox: qpb,
+          quantity: qpb,
           cost: 0,
         },
       ])
@@ -104,20 +143,37 @@ export default function EditPurchaseOrderPage() {
     setSelectedProductId("")
   }
 
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    const qty = Math.max(0, newQuantity)
-    if (qty === 0) {
+  const updateBoxes = (productId: string, newBoxes: number) => {
+    const bxs = Math.max(0, newBoxes)
+    if (bxs === 0) {
       setItems((prev) => prev.filter((i) => i.productId !== productId))
     } else {
       setItems((prev) =>
-        prev.map((i) => (i.productId === productId ? { ...i, quantity: qty } : i))
+        prev.map((i) =>
+          i.productId === productId
+            ? { ...i, boxes: bxs, quantity: bxs * (i.quantityPerBox || 1) }
+            : i
+        )
       )
     }
   }
 
-  const updateCost = (productId: string, cost: string) => {
+  const updateUnitCost = (productId: string, cost: string) => {
     const numericCost = parseFloat(cost) || 0
     setItems((prev) => prev.map((i) => (i.productId === productId ? { ...i, cost: numericCost } : i)))
+  }
+
+  const updateBoxCost = (productId: string, boxCost: string) => {
+    const numericBoxCost = parseFloat(boxCost) || 0
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.productId === productId) {
+          const qpb = i.quantityPerBox || 1
+          return { ...i, cost: numericBoxCost / qpb }
+        }
+        return i
+      })
+    )
   }
 
   const removeItem = (productId: string) => {
@@ -126,6 +182,7 @@ export default function EditPurchaseOrderPage() {
 
   const total = items.reduce((sum, i) => sum + i.quantity * i.cost, 0)
   const totalUnits = items.reduce((sum, i) => sum + Number(i.quantity || 0), 0)
+  const totalBoxes = items.reduce((sum, i) => sum + Number(i.boxes || 0), 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -235,7 +292,7 @@ export default function EditPurchaseOrderPage() {
                 <span className="font-bold text-lg">{items.length}</span> products
               </div>
               <div>
-                <span className="font-bold text-lg">{totalUnits}</span> total units
+                <span className="font-bold text-lg">{totalBoxes}</span> boxes / <span className="font-bold text-lg">{totalUnits}</span> total units
               </div>
               <Badge variant="outline" className="mt-2">
                 {order.status === "pending"
@@ -329,9 +386,9 @@ export default function EditPurchaseOrderPage() {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead>Product</TableHead>
-                      <TableHead className="text-right">Unit Cost</TableHead>
-                      <TableHead className="text-center">Quantity</TableHead>
-                      <TableHead className="text-right">Subtotal</TableHead>
+                      <TableHead className="text-right w-44">Cost</TableHead>
+                      <TableHead className="text-center w-56">Quantity</TableHead>
+                      <TableHead className="text-right w-32">Subtotal</TableHead>
                       {isEditable && <TableHead className="w-12"></TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -341,29 +398,67 @@ export default function EditPurchaseOrderPage() {
                         <TableCell className="font-medium">{item.productName}</TableCell>
                         <TableCell className="text-right">
                           {isEditable ? (
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={item.cost}
-                              onChange={(e) => updateCost(item.productId, e.target.value)}
-                              className="w-28 text-right mx-auto"
-                            />
+                            <div className="flex flex-col gap-1 items-end">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Unit:</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={item.cost}
+                                  onChange={(e) => updateUnitCost(item.productId, e.target.value)}
+                                  className="w-24 text-right h-8"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Box:</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={(item.cost * (item.quantityPerBox || 1)).toFixed(2)}
+                                  onChange={(e) => updateBoxCost(item.productId, e.target.value)}
+                                  className="w-24 text-right h-8"
+                                />
+                              </div>
+                            </div>
                           ) : (
-                            formatCurrency(item.cost)
+                            <div className="flex flex-col items-end">
+                              <span className="font-semibold">{formatCurrency(item.cost)}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatCurrency(item.cost * (item.quantityPerBox || 1))} / box
+                              </span>
+                            </div>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
                           {isEditable ? (
-                            <Input
-                              type="number"
-                              min="0"
-                              value={item.quantity}
-                              onChange={(e) => updateQuantity(item.productId, Number(e.target.value))}
-                              className="w-20 text-center mx-auto"
-                            />
+                            <div className="flex flex-col gap-1 items-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={item.boxes || 0}
+                                  onChange={(e) => updateBoxes(item.productId, Number(e.target.value))}
+                                  className="w-20 text-center h-8"
+                                />
+                                <span className="text-sm font-medium">Boxes</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground flex gap-1.5 items-center mt-0.5">
+                                <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                                  {item.quantityPerBox || 1} units/box
+                                </Badge>
+                                <span>=</span>
+                                <span className="font-semibold text-foreground">{item.quantity} total units</span>
+                              </div>
+                            </div>
                           ) : (
-                            item.quantity
+                            <div className="flex flex-col items-center">
+                              <span className="font-semibold">{item.boxes || 0} boxes</span>
+                              <span className="text-xs text-muted-foreground">
+                                {item.quantityPerBox || 1} units/box • {item.quantity} total units
+                              </span>
+                            </div>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium">

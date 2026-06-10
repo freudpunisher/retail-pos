@@ -62,11 +62,11 @@ export async function POST(
                     )
                     .limit(1);
 
-                if (stockRecord) {
+                 if (stockRecord) {
                     await tx
                         .update(stock)
                         .set({
-                            quantityOnHand: sql`${stock.quantityOnHand} + ${quantity}`,
+                            quantityOnHand: sql`${stock.quantityOnHand} + ${item.quantity}`,
                             updatedAt: new Date(),
                         })
                         .where(eq(stock.id, stockRecord.id));
@@ -74,7 +74,7 @@ export async function POST(
                     await tx.insert(stock).values({
                         productId: item.productId,
                         locationId: warehouse.id,
-                        quantityOnHand: item.quantity,
+                        quantityOnHand: Math.round(Number(item.quantity) || 0),
                     });
                 }
 
@@ -83,7 +83,7 @@ export async function POST(
                     productId: item.productId,
                     productName: item.productName,
                     type: "purchase",
-                    quantity,
+                    quantity: item.quantity,
                     userId,
                     notes: `Received from PO ${id} at ${warehouse.name}`,
                 });
