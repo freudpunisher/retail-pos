@@ -215,8 +215,11 @@ export default function OrdersPage() {
                 <CardContent>
                   <div className="space-y-1 mb-4">
                     {items.slice(0, 5).map((item: any) => (
-                      <div key={item.id} className="flex justify-between text-sm">
-                        <span className="truncate mr-2">{item.quantity}x {item.productName}</span>
+                      <div key={item.id} className="flex items-center justify-between text-sm">
+                        <span className="truncate mr-2 flex-1">{item.quantity}x {item.productName}</span>
+                        <span className="text-xs text-muted-foreground shrink-0 mr-2">
+                          @{formatCurrency(Number(item.price))}
+                        </span>
                         <span className="text-muted-foreground shrink-0">{formatCurrency(Number(item.price) * item.quantity)}</span>
                       </div>
                     ))}

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { Suspense, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -15,7 +15,7 @@ function LayoutSkeleton() {
       <div className="w-64 border-r border-border bg-card animate-pulse" />
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="h-16 border-b border-border bg-card animate-pulse" />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-hidden">
           <div className="h-8 w-48 bg-muted rounded animate-pulse mb-4" />
           <div className="h-96 bg-muted rounded animate-pulse" />
         </main>
@@ -27,6 +27,8 @@ function LayoutSkeleton() {
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const isSalesPage = pathname === "/sales"
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -36,6 +38,20 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return null
+  }
+
+  if (isSalesPage) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-hidden">
+            {children}
+          </main>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -24,7 +24,8 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { productId, productName, quantityChange, adjustmentType, reason, notes, userId, locationId } = body
+        const { productId, productName, quantityChange, adjustmentType, reason, notes, userId, createdBy, locationId } = body
+        const effectiveUserId = userId || createdBy
 
         if (!productId || quantityChange === undefined || !adjustmentType || !reason) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
                 quantityChange,
                 adjustmentType,
                 reason,
-                createdBy: userId,
+                createdBy: effectiveUserId,
                 notes,
             }).returning()
 
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
                 productName: productName || product?.name || "Unknown",
                 type: "adjustment",
                 quantity: quantityChange,
-                userId,
+                userId: effectiveUserId,
                 notes: `Adjustment: ${reason}`,
             })
 

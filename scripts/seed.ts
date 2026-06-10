@@ -8,7 +8,8 @@ import { execSync } from "child_process"
 const scripts = [
   { name: "Admin User", script: "seed-admin.ts" },
   { name: "Categories", script: "seed-categories.ts" },
-  { name: "Products", script: "seed-products.ts" }
+  { name: "Products", script: "seed-products.ts" },
+  { name: "Menu Permissions", script: "seed-menu-permissions.ts" }
 ]
 
 async function runSeeds() {

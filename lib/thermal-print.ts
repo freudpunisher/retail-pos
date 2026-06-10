@@ -27,7 +27,8 @@ export function printThermal(data: ReceiptData): void {
         `<tr>
           <td style="text-align:left;width:8mm;padding:0.5mm 0;">${i.quantity}x</td>
           <td style="text-align:left;padding:0.5mm 0 0.5mm 1mm;">${i.name}</td>
-          <td style="text-align:right;width:28mm;padding:0.5mm 0;">${fmt(i.total)}</td>
+          <td style="text-align:right;padding:0.5mm 0;width:12mm;">${fmt(i.price)}</td>
+          <td style="text-align:right;padding:0.5mm 0;width:12mm;">${fmt(i.total)}</td>
         </tr>`,
     )
     .join("")
@@ -102,7 +103,8 @@ export function printThermal(data: ReceiptData): void {
     <tr class="items-header">
       <td style="width:8mm;">QTY</td>
       <td style="padding:0 1mm;">DESCRIPTION</td>
-      <td style="text-align:right;width:28mm;">TOTAL</td>
+      <td style="text-align:right;width:14mm;">PRICE</td>
+      <td style="text-align:right;width:14mm;">TOTAL</td>
     </tr>
     ${itemsHtml}
   </table>
