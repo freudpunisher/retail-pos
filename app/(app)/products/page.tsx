@@ -10,6 +10,7 @@ import { Search, Plus, Edit2, Trash2, Loader2, Package, Beer, Utensils, Wheat } 
 import { useProducts } from "@/hooks/use-products"
 import { ProductFormDialog } from "@/components/inventory/product-form-dialog"
 import { formatCurrency } from "@/lib/mock-data"
+import { useAuth } from "@/lib/auth-context"
 
 const typeConfig: Record<string, { label: string; icon: any; color: string }> = {
     drink: { label: "Drink", icon: Beer, color: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
@@ -30,8 +31,8 @@ export default function ProductManagementPage() {
         user?.role === "cashier_bakery" || user?.role === "supervisor_bakery" || user?.role === "production_bakery"
             ? "Boulangerie"
             : user?.role === "cashier_food" || user?.role === "supervisor_food"
-            ? "Alimentation"
-            : null
+                ? "Alimentation"
+                : null
 
     const filteredProducts = products.filter((product) => {
         const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -184,11 +185,10 @@ export default function ProductManagementPage() {
                                                 {isMadeToOrder ? (
                                                     <Badge variant="outline" className="text-xs border-dashed">MTO</Badge>
                                                 ) : (
-                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${
-                                                        Number(product.stock) <= Number(product.minStock)
-                                                            ? "bg-destructive/10 text-destructive"
-                                                            : "bg-primary/10 text-primary"
-                                                    }`}>
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${Number(product.stock) <= Number(product.minStock)
+                                                        ? "bg-destructive/10 text-destructive"
+                                                        : "bg-primary/10 text-primary"
+                                                        }`}>
                                                         {product.stock}
                                                     </span>
                                                 )}

@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "manager" | "cashier" | "waiter"
+export type UserRole = "admin" | "manager" | "cashier" | "waiter" | "chef" | "cashier_bakery" | "supervisor_bakery" | "production_bakery" | "cashier_food" | "supervisor_food"
 export type ProductType = "drink" | "food" | "ingredient"
 export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled"
 
@@ -143,7 +143,7 @@ export interface Category {
 export interface Location {
   id: string
   name: string
-  type: "principal" | "transitional" | "bar" | "kitchen"
+  type: "principal" | "transitional" | "bar" | "kitchen" | "bakery" | "restaurant" | "stock"
   isActive: boolean
 }
 
