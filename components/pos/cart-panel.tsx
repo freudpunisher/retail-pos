@@ -86,11 +86,24 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
       }
 
       const result = await processTransaction(transactionData)
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("pos:transaction-completed"))
+      }
       setLastTransactionId(result.id)
       setLastReference(result.reference || null)
       setShowReceipt(true)
       setShowCheckout(false)
-      toast.success("Transaction completed successfully")
+
+      const isCashLike = ["cash", "card"].includes(paymentMethod)
+      if (isCashLike && result?.paymentCreated) {
+        toast.success(`Transaction ${result.invoiceRef} validée et ligne de paiement créée (${paymentMethod})`)
+      } else if (isCashLike && !result?.paymentCreated) {
+        toast.error(
+          `Transaction créée, mais ligne de paiement absente (${result?.debug?.normalizedType || "sale"}/${result?.debug?.normalizedPaymentMethod || paymentMethod})`
+        )
+      } else {
+        toast.success(`Transaction ${result.invoiceRef || "completed"} avec succès`)
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to process transaction")
     }
@@ -397,6 +410,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
               <Receipt className="h-5 w-5" />
               Receipt
             </DialogTitle>
+            <DialogDescription>Transaction receipt details and printable summary.</DialogDescription>
           </DialogHeader>
 
           <div id="printable-area" ref={receiptRef} className="rounded-lg border border-border bg-card p-4 font-mono text-sm">

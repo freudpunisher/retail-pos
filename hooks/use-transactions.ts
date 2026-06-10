@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 
-export function useTransactions() {
+export function useTransactions(sector?: string) {
     const [transactions, setTransactions] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -23,7 +23,7 @@ export function useTransactions() {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [sector])
 
     const processTransaction = useCallback(async (transactionData: any) => {
         setLoading(true)

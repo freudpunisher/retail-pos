@@ -48,6 +48,11 @@ export async function PATCH(
 
         await db.transaction(async (tx) => {
             for (const item of items) {
+                const physicalQty = Number(item.physicalQuantity ?? 0)
+                if (!Number.isFinite(physicalQty) || physicalQty < 0) {
+                    throw new Error("Invalid physical quantity")
+                }
+
                 // Fetch current stock to calculate variance again (for safety)
                 const [invItem] = await tx
                     .select()
@@ -55,11 +60,13 @@ export async function PATCH(
                     .where(sql`${inventoryItems.inventoryId} = ${id} AND ${inventoryItems.productId} = ${item.productId}`)
 
                 if (invItem) {
+                    const qtyInStock = Number(invItem.quantityInStock ?? 0)
+                    const variance = physicalQty - qtyInStock
                     await tx
                         .update(inventoryItems)
                         .set({
-                            physicalQuantity: item.physicalQuantity,
-                            variance: item.physicalQuantity - invItem.quantityInStock
+                            physicalQuantity: physicalQty.toString(),
+                            variance: variance.toString(),
                         })
                         .where(eq(inventoryItems.id, invItem.id))
                 }
@@ -69,8 +76,10 @@ export async function PATCH(
         })
 
         return NextResponse.json({ message: "Items updated successfully" })
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to update count session items:", error)
-        return NextResponse.json({ error: "Failed to update count session items" }, { status: 500 })
+        const message = error?.message || "Failed to update count session items"
+        const status = message === "Invalid physical quantity" ? 400 : 500
+        return NextResponse.json({ error: message }, { status })
     }
 }

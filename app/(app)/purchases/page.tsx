@@ -28,9 +28,10 @@ export default function PurchasesPage() {
     toggleSupplierStatus
   } = useSuppliers()
 
-  const pendingCount = orders.filter((po) => po.status === "pending").length
-  const receivedCount = orders.filter((po) => po.status === "received").length
-  const totalValue = orders.reduce((sum, po) => sum + (parseFloat(po.total) || 0), 0)
+  const sectorOrders = orders.filter((po) => po.sector === "Alimentation")
+  const pendingCount = sectorOrders.filter((po) => po.status === "pending").length
+  const receivedCount = sectorOrders.filter((po) => po.status === "received").length
+  const totalValue = sectorOrders.reduce((sum, po) => sum + (parseFloat(po.total) || 0), 0)
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -179,7 +180,7 @@ export default function PurchasesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Order ID</TableHead>
+                      <TableHead>Référence</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Supplier</TableHead>
                       <TableHead>Items</TableHead>
@@ -188,14 +189,14 @@ export default function PurchasesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders.map((order) => (
+                    {sectorOrders.map((order) => (
                       <TableRow
                         key={order.id}
                         className="cursor-pointer hover:bg-muted/50 transition-colors"
                         onClick={() => router.push(`/purchases/${order.id}`)}
                       >
                         <TableCell className="font-mono text-xs text-muted-foreground">
-                          {order.id.slice(0, 8)}…
+                          {order.purchaseRef || order.id.slice(0, 8) + "…"}
                         </TableCell>
                         <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
                         <TableCell className="font-medium">{order.supplierName || "—"}</TableCell>

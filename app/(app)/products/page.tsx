@@ -24,6 +24,14 @@ export default function ProductManagementPage() {
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
 
     const { products, loading, deleteProduct, createProduct, updateProduct } = useProducts()
+    const { user } = useAuth()
+    const canEdit = user?.role === "admin"
+    const roleSector =
+        user?.role === "cashier_bakery" || user?.role === "supervisor_bakery" || user?.role === "production_bakery"
+            ? "Boulangerie"
+            : user?.role === "cashier_food" || user?.role === "supervisor_food"
+            ? "Alimentation"
+            : null
 
     const filteredProducts = products.filter((product) => {
         const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||

@@ -48,6 +48,9 @@ export default function CountSessionPage() {
     const [search, setSearch] = useState("")
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [selectedProductId, setSelectedProductId] = useState("")
+    const [quickProductId, setQuickProductId] = useState("")
+    const [quickPhysicalQty, setQuickPhysicalQty] = useState("")
+    const [isQuickSaving, setIsQuickSaving] = useState(false)
 
     const { getSession, updateSessionItems, reconcileSession, addItemToSession } = useInventorySessions()
     const { products } = useProducts()
@@ -60,7 +63,7 @@ export default function CountSessionPage() {
             // Initialize local counts from session items
             const counts: Record<string, number> = {}
             data.items.forEach((item: any) => {
-                counts[item.productId] = item.physicalQuantity
+                counts[item.productId] = Number(item.physicalQuantity ?? 0)
             })
             setLocalCounts(counts)
         }
@@ -76,16 +79,31 @@ export default function CountSessionPage() {
     }, [session, search])
 
     const handleCountChange = (productId: string, value: string) => {
-        const num = parseInt(value) || 0
+        const parsed = value === "" ? 0 : Number.parseFloat(value)
+        const num = Number.isFinite(parsed) ? parsed : 0
         setLocalCounts(prev => ({ ...prev, [productId]: num }))
     }
+
+    const totals = useMemo(() => {
+        if (!session) return { loss: 0, surplus: 0, variance: 0 }
+        return session.items.reduce((acc: any, item: any) => {
+            const localValue = localCounts[item.productId]
+            const phyCount = Number.isFinite(localValue) ? localValue : Number(item.physicalQuantity ?? 0)
+            const systemQty = Number(item.quantityInStock ?? 0)
+            const variance = phyCount - systemQty
+            if (variance < 0) acc.loss += Math.abs(variance)
+            if (variance > 0) acc.surplus += variance
+            acc.variance += variance
+            return acc
+        }, { loss: 0, surplus: 0, variance: 0 })
+    }, [session, localCounts])
 
     const handleSaveProgress = async () => {
         setIsSaving(true)
         try {
             const itemsToUpdate = Object.entries(localCounts).map(([productId, physicalQuantity]) => ({
                 productId,
-                physicalQuantity
+                physicalQuantity: Number.isFinite(physicalQuantity) ? physicalQuantity : 0
             }))
             await updateSessionItems(id, itemsToUpdate)
             // Refresh session data
@@ -106,7 +124,7 @@ export default function CountSessionPage() {
             // First save progress to ensure items are up to date in DB
             const itemsToUpdate = Object.entries(localCounts).map(([productId, physicalQuantity]) => ({
                 productId,
-                physicalQuantity
+                physicalQuantity: Number.isFinite(physicalQuantity) ? physicalQuantity : 0
             }))
             await updateSessionItems(id, itemsToUpdate)
 
@@ -129,16 +147,65 @@ export default function CountSessionPage() {
             const data = await getSession(id)
             setSession(data)
             // Update local counts
-            setLocalCounts(prev => ({
-                ...prev,
-                [selectedProductId]: 0
-            }))
+            setLocalCounts(prev => {
+                const next = { ...prev }
+                delete next[selectedProductId]
+                return next
+            })
             setIsAddDialogOpen(false)
             setSelectedProductId("")
         } catch (error: any) {
             alert(error.message)
         } finally {
             setIsAddingItem(false)
+        }
+    }
+
+    const quickSelectedItem = useMemo(() => {
+        if (!session || !quickProductId) return null
+        return session.items.find((item: any) => item.productId === quickProductId) || null
+    }, [session, quickProductId])
+
+    useEffect(() => {
+        if (!quickSelectedItem) return
+        const localValue = localCounts[quickSelectedItem.productId]
+        const initialQty = Number.isFinite(localValue) ? localValue : Number(quickSelectedItem.physicalQuantity ?? 0)
+        setQuickPhysicalQty(initialQty.toString())
+    }, [quickSelectedItem, localCounts])
+
+    const quickLogicalQty = Number(quickSelectedItem?.quantityInStock ?? 0)
+    const quickPhysicalQtyNum = Number.parseFloat(quickPhysicalQty || "0") || 0
+    const quickVariance = quickPhysicalQtyNum - quickLogicalQty
+    const quickLoss = quickVariance < 0 ? Math.abs(quickVariance) : 0
+
+    const handleQuickSave = async () => {
+        if (!quickSelectedItem) return
+        if (!Number.isFinite(quickPhysicalQtyNum) || quickPhysicalQtyNum < 0) {
+            alert("Quantite physique invalide")
+            return
+        }
+
+        setIsQuickSaving(true)
+        try {
+            const response = await fetch(`/api/inventory-sessions/${id}/adjust-item`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    productId: quickSelectedItem.productId,
+                    physicalQuantity: quickPhysicalQtyNum,
+                }),
+            })
+            const result = await response.json()
+            if (!response.ok) {
+                throw new Error(result?.error || "Echec de l'ajustement")
+            }
+            const refreshedSession = await getSession(id)
+            setSession(refreshedSession)
+            setQuickPhysicalQty("")
+        } catch (error: any) {
+            alert(error.message || "Echec de l'enregistrement")
+        } finally {
+            setIsQuickSaving(false)
         }
     }
 
@@ -176,6 +243,16 @@ export default function CountSessionPage() {
                             <span className="flex items-center gap-1 font-medium"><User className="h-3 w-3 text-primary" /> {session.user?.name}</span>
                             <span className="font-mono text-xs opacity-50">ID: {session.id}</span>
                         </p>
+                    </div>
+                </div>
+                <div className="hidden md:flex items-center gap-4 rounded-lg border border-border/50 bg-secondary/10 px-4 py-2">
+                    <div className="text-right">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Perte Totale</p>
+                        <p className="font-black text-destructive">{totals.loss.toFixed(3)}</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Surplus Total</p>
+                        <p className="font-black text-accent">{totals.surplus.toFixed(3)}</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -234,6 +311,67 @@ export default function CountSessionPage() {
                 </div>
             </div>
 
+            {!isReconciled && (
+                <Card className="border-border/50 shadow-xl">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base font-bold">Formulaire inventaire (produit + stock physique)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div className="md:col-span-2 space-y-2">
+                                <Label>Produit</Label>
+                                <Select value={quickProductId} onValueChange={setQuickProductId}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selectionner un produit" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {session.items.map((item: any) => (
+                                            <SelectItem key={item.productId} value={item.productId}>
+                                                {item.product.name} - {item.product.sku}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Quantite physique</Label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.001"
+                                    value={quickPhysicalQty}
+                                    onChange={(e) => setQuickPhysicalQty(e.target.value)}
+                                    placeholder="0"
+                                />
+                            </div>
+                            <div className="flex items-end">
+                                <Button className="w-full" onClick={handleQuickSave} disabled={!quickProductId || isQuickSaving}>
+                                    {isQuickSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Ajuster stock
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                            <div className="rounded-md border border-border/50 px-3 py-2">
+                                <p className="text-muted-foreground">Stock logique</p>
+                                <p className="font-bold">{quickLogicalQty.toFixed(3)}</p>
+                            </div>
+                            <div className="rounded-md border border-border/50 px-3 py-2">
+                                <p className="text-muted-foreground">Difference</p>
+                                <p className={`font-bold ${quickVariance < 0 ? "text-destructive" : quickVariance > 0 ? "text-accent" : ""}`}>
+                                    {quickVariance > 0 ? "+" : ""}
+                                    {quickVariance.toFixed(3)}
+                                </p>
+                            </div>
+                            <div className="rounded-md border border-border/50 px-3 py-2">
+                                <p className="text-muted-foreground">Perte</p>
+                                <p className="font-bold text-destructive">{quickLoss.toFixed(3)}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             <Card className="border-border/50 shadow-xl overflow-hidden">
                 <CardHeader className="bg-secondary/10 border-b border-border/50 py-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -257,16 +395,19 @@ export default function CountSessionPage() {
                         <TableHeader>
                             <TableRow className="bg-secondary/5 border-border/50">
                                 <TableHead className="py-4 px-6 font-bold">Product</TableHead>
-                                <TableHead className="py-4 px-6 font-bold text-right">System Qty</TableHead>
+                                <TableHead className="py-4 px-6 font-bold text-right">Stock logique</TableHead>
                                 <TableHead className="py-4 px-6 font-bold text-center w-40">Physical Count</TableHead>
                                 <TableHead className="py-4 px-6 font-bold text-right">Variance</TableHead>
+                                <TableHead className="py-4 px-6 font-bold text-right">Perte</TableHead>
                                 <TableHead className="py-4 px-6 font-bold text-center">Impact</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredItems.map((item: any) => {
-                                const phyCount = localCounts[item.productId] ?? 0
-                                const variance = phyCount - item.quantityInStock
+                                const localValue = localCounts[item.productId]
+                                const phyCount = Number.isFinite(localValue) ? localValue : Number(item.physicalQuantity ?? 0)
+                                const variance = phyCount - Number(item.quantityInStock ?? 0)
+                                const loss = variance < 0 ? Math.abs(variance) : 0
 
                                 return (
                                     <TableRow key={item.id} className="border-border/50 hover:bg-secondary/5 group transition-colors">
@@ -282,6 +423,8 @@ export default function CountSessionPage() {
                                         <TableCell className="py-2 px-6">
                                             <Input
                                                 type="number"
+                                                step="0.001"
+                                                min="0"
                                                 className="text-center font-bold text-lg h-10 border-border/50 focus:border-primary focus:ring-1 focus:ring-primary/20"
                                                 value={phyCount}
                                                 onChange={(e) => handleCountChange(item.productId, e.target.value)}
@@ -289,7 +432,10 @@ export default function CountSessionPage() {
                                             />
                                         </TableCell>
                                         <TableCell className={`text-right py-4 px-6 font-black text-lg ${variance === 0 ? 'text-muted-foreground' : variance > 0 ? 'text-accent' : 'text-destructive'}`}>
-                                            {variance > 0 ? '+' : ''}{variance}
+                                            {variance > 0 ? '+' : ''}{variance.toFixed(3)}
+                                        </TableCell>
+                                        <TableCell className="text-right py-4 px-6 font-black text-destructive">
+                                            {loss.toFixed(3)}
                                         </TableCell>
                                         <TableCell className="text-center py-4 px-6">
                                             {variance === 0 ? (
@@ -297,7 +443,7 @@ export default function CountSessionPage() {
                                             ) : variance > 0 ? (
                                                 <Badge className="bg-accent/20 text-accent font-bold ring-1 ring-accent/30 lowercase">Surplus</Badge>
                                             ) : (
-                                                <Badge className="bg-destructive/20 text-destructive font-bold ring-1 ring-destructive/30 lowercase">Deficit</Badge>
+                                                <Badge className="bg-destructive/20 text-destructive font-bold ring-1 ring-destructive/30 lowercase">Loss</Badge>
                                             )}
                                         </TableCell>
                                     </TableRow>
@@ -311,7 +457,7 @@ export default function CountSessionPage() {
             {!isReconciled && (
                 <div className="flex items-center gap-2 p-4 rounded-lg bg-warning/10 border border-warning/30 text-warning text-sm font-medium">
                     <AlertTriangle className="h-5 w-5" />
-                    Finalizing the count will update your system stock levels to match the physical counts. This action is irreversible.
+                    Finalizing will align logical stock with physical stock and record losses/surpluses permanently.
                 </div>
             )}
         </div>

@@ -12,7 +12,7 @@ export const poStatusEnum = pgEnum("po_status", ["pending", "received", "cancell
 export const stockMovementTypeEnum = pgEnum("stock_movement_type", ["sale", "purchase", "adjustment", "transfer"])
 export const creditStatusEnum = pgEnum("credit_status", ["paid", "partial", "overdue", "pending"])
 export const creditPaymentMethodEnum = pgEnum("credit_payment_method", ["cash", "card"])
-export const inventoryAdjustmentTypeEnum = pgEnum("inventory_adjustment_type", ["stock_count", "damage", "loss", "return", "transfer", "correction", "opening_stock"])
+export const inventoryAdjustmentTypeEnum = pgEnum("inventory_adjustment_type", ["stock_count", "damage", "loss", "return", "transfer", "correction", "opening_stock", "addition", "subtraction"])
 export const inventorySessionStatusEnum = pgEnum("inventory_session_status", ["in_progress", "completed", "reconciled"])
 export const locationTypeEnum = pgEnum("location_type", ["principal", "transitional", "bar", "kitchen"])
 export const tableStatusEnum = pgEnum("table_status", ["free", "occupied", "reserved"])
@@ -22,7 +22,8 @@ export const users = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     email: text("email").notNull().unique(),
-    role: userRoleEnum("role").notNull().default("cashier"),
+    phone: text("phone"),
+    role: userRoleEnum("role").notNull().default("cashier_food"),
     password: text("password").notNull(),
     avatar: text("avatar"),
 })
@@ -51,6 +52,13 @@ export const locations = pgTable("locations", {
     name: text("name").notNull(),
     type: locationTypeEnum("type").notNull().default("bar"),
     isActive: boolean("is_active").notNull().default(true),
+export const measurementUnits = pgTable("measurement_units", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    code: text("code").notNull().unique(), // e.g. kg, g, l, ml, unit
+    name: text("name").notNull(), // e.g. Kilogramme
+    symbol: text("symbol"), // e.g. kg
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
 })
 
 export const stock = pgTable("stock", {
@@ -101,7 +109,7 @@ export const tables = pgTable("tables", {
 export const stockAdjustments = pgTable("stock_adjustments", {
     id: uuid("id").primaryKey().defaultRandom(),
     productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
-    quantityChange: integer("quantity_change").notNull(),
+    quantityChange: numeric("quantity_change", { precision: 12, scale: 3 }).notNull(),
     adjustmentType: inventoryAdjustmentTypeEnum("adjustment_type").notNull(),
     reason: text("reason").notNull(),
     referenceNumber: text("reference_number"),
@@ -124,9 +132,9 @@ export const inventoryItems = pgTable("inventory_items", {
     id: uuid("id").primaryKey().defaultRandom(),
     inventoryId: uuid("inventory_id").notNull().references(() => inventory.id, { onDelete: "cascade" }),
     productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
-    quantityInStock: integer("quantity_in_stock").notNull().default(0),
-    physicalQuantity: integer("physical_quantity").notNull(),
-    variance: integer("variance").notNull(),
+    quantityInStock: numeric("quantity_in_stock", { precision: 12, scale: 3 }).notNull().default("0"),
+    physicalQuantity: numeric("physical_quantity", { precision: 12, scale: 3 }).notNull(),
+    variance: numeric("variance", { precision: 12, scale: 3 }).notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -159,6 +167,10 @@ export const transactions = pgTable("transactions", {
     status: transactionStatusEnum("status").notNull().default("pending"),
     orderStatus: orderStatusEnum("order_status").notNull().default("pending"),
     paymentMethod: paymentMethodEnum("payment_method"),
+    total: numeric("total", { precision: 12, scale: 2 }).notNull(),
+    status: transactionStatusEnum("status").notNull().default("completed"),
+    paymentMethod: paymentMethodEnum("payment_method").notNull(),
+    invoiceRef: text("invoice_ref"),
     clientId: uuid("client_id").references(() => clients.id),
     userId: uuid("user_id").notNull().references(() => users.id),
     waiterId: uuid("waiter_id").references(() => users.id),
@@ -171,7 +183,7 @@ export const transactionItems = pgTable("transaction_items", {
     transactionId: uuid("transaction_id").notNull().references(() => transactions.id),
     productId: uuid("product_id").notNull().references(() => products.id),
     productName: text("product_name").notNull(), // Denormalized for records
-    quantity: integer("quantity").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(), // Supports weighted items
     price: numeric("price", { precision: 12, scale: 2 }).notNull(),
     discount: numeric("discount", { precision: 12, scale: 2 }).notNull().default("0"),
 })
@@ -182,6 +194,8 @@ export const purchaseOrders = pgTable("purchase_orders", {
     date: timestamp("date").notNull().defaultNow(),
     status: poStatusEnum("status").notNull().default("pending"),
     total: numeric("total", { precision: 12, scale: 2 }).notNull(),
+    sector: text("sector").notNull().default("Alimentation"),
+    purchaseRef: text("purchase_ref"),
 })
 
 export const purchaseOrderItems = pgTable("purchase_order_items", {
@@ -189,7 +203,7 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
     purchaseOrderId: uuid("purchase_order_id").notNull().references(() => purchaseOrders.id),
     productId: uuid("product_id").notNull().references(() => products.id),
     productName: text("product_name").notNull(), // Denormalized
-    quantity: integer("quantity").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
     cost: numeric("cost", { precision: 12, scale: 2 }).notNull(),
 })
 
@@ -198,7 +212,7 @@ export const stockMovements = pgTable("stock_movements", {
     productId: uuid("product_id").notNull().references(() => products.id),
     productName: text("product_name").notNull(), // Denormalized
     type: stockMovementTypeEnum("type").notNull(),
-    quantity: integer("quantity").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
     date: timestamp("date").notNull().defaultNow(),
     userId: uuid("user_id").notNull().references(() => users.id),
     notes: text("notes"),
@@ -220,6 +234,7 @@ export const creditPayments = pgTable("credit_payments", {
     amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
     date: timestamp("date").notNull().defaultNow(),
     method: creditPaymentMethodEnum("method").notNull(),
+    paymentRef: text("payment_ref"),
 })
 
 export const storeSettings = pgTable("store_settings", {
@@ -233,6 +248,61 @@ export const storeSettings = pgTable("store_settings", {
     currencySymbol: text("currency_symbol").notNull(),
 })
 
+// Bakery & Production Tables
+export const recipes = pgTable("recipes", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id").notNull().references(() => products.id), // The finished product
+    name: text("name").notNull(),
+    description: text("description"),
+    grs: numeric("grs", { precision: 12, scale: 3 }),
+    yieldQuantity: numeric("yield_quantity", { precision: 12, scale: 3 }).notNull().default("1"), // How many units this recipe produces
+    instructions: text("instructions"),
+    isActive: boolean("is_active").notNull().default(true),
+})
+
+export const recipeIngredients = pgTable("recipe_ingredients", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipeId: uuid("recipe_id").notNull().references(() => recipes.id, { onDelete: "cascade" }),
+    ingredientId: uuid("ingredient_id").notNull().references(() => products.id), // The raw material
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(), // Quantity needed per yield
+})
+
+export const productionRuns = pgTable("production_runs", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipeId: uuid("recipe_id").notNull().references(() => recipes.id),
+    batchNumber: text("batch_number"),
+    plannedQuantity: numeric("planned_quantity", { precision: 12, scale: 3 }).notNull(),
+    actualQuantity: numeric("actual_quantity", { precision: 12, scale: 3 }),
+    productionCost: numeric("production_cost", { precision: 12, scale: 2 }),
+    status: productionStatusEnum("status").notNull().default("planned"),
+    startDate: timestamp("start_date").notNull().defaultNow(),
+    endDate: timestamp("end_date"),
+    producedBy: uuid("produced_by").notNull().references(() => users.id),
+    notes: text("notes"),
+})
+
+export const expenses = pgTable("expenses", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    description: text("description").notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    category: expenseCategoryEnum("category").notNull(),
+    date: timestamp("date").notNull().defaultNow(),
+    paidBy: uuid("paid_by").references(() => users.id),
+    recipient: text("recipient"), // Who was paid (supplier, landlord, etc.)
+    reference: text("reference"), // Invoice number, receipt ID
+})
+
+export const cashFlow = pgTable("cash_flow", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    date: timestamp("date").notNull().defaultNow(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    type: cashFlowTypeEnum("type").notNull(), // Inflow (+) or Outflow (-)
+    category: cashFlowCategoryEnum("category").notNull(),
+    description: text("description").notNull(),
+    referenceId: uuid("reference_id"), // ID of transaction, expense, or purchase_order
+    referenceType: text("reference_type"), // 'transaction', 'expense', 'purchase_order'
+})
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
     transactions: many(transactions),
@@ -241,6 +311,8 @@ export const usersRelations = relations(users, ({ many }) => ({
     stockAdjustments: many(stockAdjustments),
     stockTransfers: many(stockTransfers),
     inventorySessions: many(inventory),
+    productionRuns: many(productionRuns),
+    expenses: many(expenses),
 }))
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
@@ -259,6 +331,8 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     stockMovements: many(stockMovements),
     stockTransfers: many(stockTransfers),
     inventoryItems: many(inventoryItems),
+    recipes: many(recipes), // Products that are produced via recipes
+    ingredientIn: many(recipeIngredients), // Products used as ingredients
 }))
 
 export const stockRelations = relations(stock, ({ one }) => ({

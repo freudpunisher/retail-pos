@@ -37,7 +37,8 @@ export const mockUsers: User[] = [
     id: "00000000-0000-0000-0000-000000000003",
     name: "Mike Cashier",
     email: "cashier@smartpos.com",
-    role: "cashier",
+    phone: "+1 555-0103",
+    role: "cashier_food",
     avatar: "/cashier-avatar.jpg",
   },
 ]

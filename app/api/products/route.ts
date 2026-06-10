@@ -23,6 +23,7 @@ export async function GET(request: Request) {
                 image: products.image,
                 categoryId: products.categoryId,
                 categoryName: categories.name,
+                sector: products.sector,
             })
             .from(products)
             .leftJoin(categories, eq(products.categoryId, categories.id))
@@ -46,6 +47,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        const authError = await requireAdmin()
+        if (authError) return authError
+
         const body = await request.json()
         const { name, categoryId, productType, price, minStock, trackStock, image } = body
         let { sku } = body

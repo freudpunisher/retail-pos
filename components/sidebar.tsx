@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAuth } from "@/lib/auth-context"
+import type { UserRole } from "@/lib/types"
 import {
   LayoutDashboard,
   ShoppingCart,
   Package,
   Warehouse,
-  ArrowLeftRight,
   Users,
   UserCog,
   CreditCard,
@@ -21,7 +21,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Truck,
-  RefreshCw,
   ClipboardList,
   Receipt,
   LogOut,
