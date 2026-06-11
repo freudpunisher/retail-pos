@@ -100,6 +100,13 @@
       "when": 1771000000000,
       "tag": "0010_add_inventory_location_id",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772000000000,
+      "tag": "0011_stock_movements_enhanced",
+      "breakpoints": true
     }
   ]
 }

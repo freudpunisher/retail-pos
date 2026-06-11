@@ -104,9 +104,12 @@ export async function POST(
                     await tx.insert(stockMovements).values({
                         productId: item.productId,
                         productName: item.product.name,
-                        type: "adjustment",
+                        type: "inventory",
                         quantity: variance.toString(),
                         userId: session.countedBy,
+                        locationId: session.locationId,
+                        referenceId: session.id,
+                        referenceType: "inventory_session",
                         notes: `Inventory Count Reconciliation (Session ${session.id})`,
                     })
 

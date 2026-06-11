@@ -83,9 +83,12 @@ export async function POST(
                 await tx.insert(stockMovements).values({
                     productId: item.productId,
                     productName: item.productName,
-                    type: "purchase",
+                    type: "in",
                     quantity: item.quantity,
                     userId,
+                    locationId: warehouse.id,
+                    referenceId: id,
+                    referenceType: "purchase_order",
                     notes: `Received from PO ${id} at ${warehouse.name}`,
                 });
             }

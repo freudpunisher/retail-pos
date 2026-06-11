@@ -30,6 +30,7 @@ import {
   ChefHat,
   ArrowLeftRight,
   RefreshCw,
+  Store,
 } from "lucide-react"
 
 const iconMap: Record<string, any> = {
@@ -110,14 +111,14 @@ export function Sidebar() {
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Warehouse className="h-5 w-5 text-primary-foreground" />
+              <Store className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-lg font-semibold text-foreground">SmartPOS</span>
           </Link>
         )}
         {collapsed && (
           <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Warehouse className="h-5 w-5 text-primary-foreground" />
+            <Store className="h-5 w-5 text-primary-foreground" />
           </div>
         )}
       </div>

@@ -17,10 +17,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Search, ArrowDownCircle, ArrowUpCircle, RefreshCw, Filter, Loader2, Plus } from "lucide-react"
+import { Search, ArrowDownCircle, ArrowUpCircle, RefreshCw, ClipboardList, Filter, Loader2, Plus, Warehouse } from "lucide-react"
 import { useStockMovements } from "@/hooks/use-stock-movements"
 import { useProducts } from "@/hooks/use-products"
 import { useUsers } from "@/hooks/use-users"
+import { useLocations } from "@/hooks/use-locations"
 
 export default function StockMovementsPage() {
   const [search, setSearch] = useState("")
@@ -31,6 +32,7 @@ export default function StockMovementsPage() {
   const { movements, loading, createMovement } = useStockMovements()
   const { products, loading: productsLoading } = useProducts()
   const { users } = useUsers()
+  const { locations } = useLocations()
 
   const [formData, setFormData] = useState({
     productId: "",
@@ -38,6 +40,7 @@ export default function StockMovementsPage() {
     quantity: "",
     notes: "",
     userId: "",
+    locationId: "",
   })
 
   // Set default user if available
@@ -71,6 +74,7 @@ export default function StockMovementsPage() {
         quantity: "",
         notes: "",
         userId: users[0]?.id || "",
+        locationId: "",
       })
     } catch (error) {
       console.error("Failed to add movement:", error)
@@ -81,33 +85,41 @@ export default function StockMovementsPage() {
 
   const getMovementIcon = (type: string) => {
     switch (type) {
-      case "purchase":
+      case "in":
         return <ArrowDownCircle className="h-4 w-4 text-accent" />
-      case "sale":
+      case "out":
         return <ArrowUpCircle className="h-4 w-4 text-destructive" />
       case "adjustment":
         return <RefreshCw className="h-4 w-4 text-warning" />
+      case "transfer":
+        return <ArrowUpCircle className="h-4 w-4 text-blue-500" />
+      case "inventory":
+        return <ClipboardList className="h-4 w-4 text-purple-500" />
       default:
-        return null
+        return <RefreshCw className="h-4 w-4 text-muted-foreground" />
     }
   }
 
   const getMovementBadge = (type: string) => {
     switch (type) {
-      case "purchase":
-        return <Badge className="bg-accent/20 text-accent">Purchase</Badge>
-      case "sale":
-        return <Badge className="bg-primary/20 text-primary">Sale</Badge>
+      case "in":
+        return <Badge className="bg-accent/20 text-accent">IN</Badge>
+      case "out":
+        return <Badge className="bg-primary/20 text-primary">OUT</Badge>
       case "adjustment":
         return <Badge className="bg-warning/20 text-warning">Adjustment</Badge>
+      case "transfer":
+        return <Badge className="bg-blue-500/20 text-blue-600">Transfer</Badge>
+      case "inventory":
+        return <Badge className="bg-purple-500/20 text-purple-600">Inventory</Badge>
       default:
-        return null
+        return <Badge variant="outline">{type}</Badge>
     }
   }
 
-  const inboundCount = movements.filter((m) => m.quantity > 0).length
-  const outboundCount = movements.filter((m) => m.quantity < 0).length
-  const adjustmentCount = movements.filter((m) => m.type === "adjustment").length
+  const inboundCount = movements.filter((m) => m.type === "in").length
+  const outboundCount = movements.filter((m) => m.type === "out").length
+  const adjustmentCount = movements.filter((m) => m.type === "adjustment" || m.type === "inventory").length
 
   return (
     <div className="space-y-6">
@@ -160,8 +172,11 @@ export default function StockMovementsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="in">IN (Purchase)</SelectItem>
+                        <SelectItem value="out">OUT (Sale)</SelectItem>
                         <SelectItem value="adjustment">Adjustment</SelectItem>
-                        <SelectItem value="purchase">Purchase (Inbound)</SelectItem>
+                        <SelectItem value="transfer">Transfer</SelectItem>
+                        <SelectItem value="inventory">Inventory</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -175,6 +190,24 @@ export default function StockMovementsPage() {
                       required
                     />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Warehouse / Location</Label>
+                  <Select
+                    value={formData.locationId}
+                    onValueChange={(val) => setFormData({ ...formData, locationId: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((loc: any) => (
+                        <SelectItem key={loc.id} value={loc.id}>
+                          {loc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>User</Label>
@@ -280,9 +313,11 @@ export default function StockMovementsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="sale">Sales</SelectItem>
-                <SelectItem value="purchase">Purchases</SelectItem>
+                <SelectItem value="in">IN (Purchases)</SelectItem>
+                <SelectItem value="out">OUT (Sales)</SelectItem>
                 <SelectItem value="adjustment">Adjustments</SelectItem>
+                <SelectItem value="transfer">Transfers</SelectItem>
+                <SelectItem value="inventory">Inventory Count</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -301,6 +336,7 @@ export default function StockMovementsPage() {
                   <TableHead className="text-muted-foreground">Product</TableHead>
                   <TableHead className="text-muted-foreground">Type</TableHead>
                   <TableHead className="text-muted-foreground text-right">Quantity</TableHead>
+                  <TableHead className="text-muted-foreground">Location</TableHead>
                   <TableHead className="text-muted-foreground">User</TableHead>
                   <TableHead className="text-muted-foreground">Notes</TableHead>
                 </TableRow>
@@ -308,7 +344,7 @@ export default function StockMovementsPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
+                    <TableCell colSpan={8} className="h-24 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
                         <span>Loading movements...</span>
@@ -317,14 +353,14 @@ export default function StockMovementsPage() {
                   </TableRow>
                 ) : filteredMovements.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                       No movements found
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredMovements.map((movement: any) => (
                     <TableRow key={movement.id} className="border-border">
-                      <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{movement.id}</TableCell>
+                      <TableCell><span className="font-mono text-xs text-muted-foreground">#{movement.id.slice(0, 8)}</span></TableCell>
                       <TableCell>
                         <div>
                           <p className="text-sm">{new Date(movement.date).toLocaleDateString()}</p>
@@ -345,6 +381,12 @@ export default function StockMovementsPage() {
                           {movement.quantity > 0 ? "+" : ""}
                           {movement.quantity}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Warehouse className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">{movement.location?.name || movement.locationId?.slice(0, 8) || "-"}</span>
+                        </div>
                       </TableCell>
                       <TableCell>{movement.user?.name || "Unknown"}</TableCell>
                       <TableCell className="max-w-[200px]">

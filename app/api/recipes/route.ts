@@ -103,12 +103,16 @@ export async function POST(request: Request) {
                     .where(eq(products.id, ing.ingredientId))
 
                 if (userId) {
+                    const [ingredientStock] = await tx.select().from(stock).where(eq(stock.productId, ing.ingredientId)).limit(1)
                     await tx.insert(stockMovements).values({
                         productId: ing.ingredientId,
                         productName: product?.name || "Ingrédient",
-                        type: "sale",
-                        quantity: requiredQty,
+                        type: "out",
+                        quantity: String(requiredQty),
                         userId,
+                        locationId: ingredientStock?.locationId || null,
+                        referenceId: newRecipe.id,
+                        referenceType: "recipe",
                         notes: `Consumed for recipe ${newRecipe.id}`,
                     })
                 }

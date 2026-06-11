@@ -85,8 +85,11 @@ export async function PATCH(
                     productId,
                     productName: product?.name || "Unknown",
                     type: "transfer",
-                    quantity: -quantity,
+                    quantity: String(-quantity),
                     userId,
+                    locationId: fromLocationId,
+                    referenceId: id,
+                    referenceType: "stock_transfer",
                     notes: `Transfer completed: ${transfer.notes || `to ${toLocationId}`}`,
                 })
             }

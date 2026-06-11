@@ -9,7 +9,7 @@ export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "purchase
 export const transactionStatusEnum = pgEnum("transaction_status", ["completed", "pending", "cancelled"])
 export const paymentMethodEnum = pgEnum("payment_method", ["cash", "credit", "card"])
 export const poStatusEnum = pgEnum("po_status", ["pending", "received", "cancelled"])
-export const stockMovementTypeEnum = pgEnum("stock_movement_type", ["sale", "purchase", "adjustment", "transfer"])
+export const stockMovementTypeEnum = pgEnum("stock_movement_type", ["in", "out", "adjustment", "transfer", "inventory"])
 export const creditStatusEnum = pgEnum("credit_status", ["paid", "partial", "overdue", "pending"])
 export const creditPaymentMethodEnum = pgEnum("credit_payment_method", ["cash", "card"])
 export const inventoryAdjustmentTypeEnum = pgEnum("inventory_adjustment_type", ["stock_count", "damage", "loss", "return", "transfer", "correction", "opening_stock", "addition", "subtraction"])
@@ -226,6 +226,9 @@ export const stockMovements = pgTable("stock_movements", {
     quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
     date: timestamp("date").notNull().defaultNow(),
     userId: uuid("user_id").notNull().references(() => users.id),
+    locationId: uuid("location_id").references(() => locations.id),
+    referenceId: uuid("reference_id"),
+    referenceType: text("reference_type"),
     notes: text("notes"),
 })
 
@@ -376,6 +379,7 @@ export const locationsRelations = relations(locations, ({ many }) => ({
     stock: many(stock),
     transfersFrom: many(stockTransfers, { relationName: "fromLocation" }),
     transfersTo: many(stockTransfers, { relationName: "toLocation" }),
+    stockMovements: many(stockMovements),
 }))
 
 export const stockTransfersRelations = relations(stockTransfers, ({ one, many }) => ({
@@ -526,6 +530,10 @@ export const stockMovementsRelations = relations(stockMovements, ({ one }) => ({
     user: one(users, {
         fields: [stockMovements.userId],
         references: [users.id],
+    }),
+    location: one(locations, {
+        fields: [stockMovements.locationId],
+        references: [locations.id],
     }),
 }))
 
