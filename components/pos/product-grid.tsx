@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Dialog,
   DialogContent,
@@ -139,8 +138,8 @@ export function ProductGrid() {
           />
         </div>
 
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-1.5 pb-1">
+        <div className="w-full overflow-x-auto">
+          <div className="flex gap-1.5 pb-1 min-w-min">
             <Button
               variant={posFilter === "all" ? "default" : "outline"}
               size="sm"
@@ -165,7 +164,7 @@ export function ProductGrid() {
             >
               Food
             </Button>
-            <div className="w-px bg-border mx-1" />
+            <div className="w-px bg-border mx-1 shrink-0" />
             <Button
               variant={selectedCategoryId === null ? "default" : "outline"}
               size="sm"
@@ -186,7 +185,7 @@ export function ProductGrid() {
               </Button>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       </div>
 
       {/* Product grid - scrollable */}
@@ -217,11 +216,19 @@ export function ProductGrid() {
                   )}
                   onClick={() => !isOutOfStock && !isCartFull && handleAddItem(product)}
                 >
-                  <CardContent className="p-3">
-                    <div className="relative mb-2 aspect-square overflow-hidden rounded-lg bg-secondary">
-                      <div className="flex h-full items-center justify-center">
-                        <IconComponent className="h-14 w-14 text-muted-foreground" />
-                      </div>
+                    <CardContent className="p-3">
+                        <div className="relative mb-2 aspect-square overflow-hidden rounded-lg bg-secondary">
+                            <div className="flex h-full items-center justify-center">
+                                {product.image ? (
+                                    <img
+                                        src={product.image}
+                                        alt={product.name}
+                                        className="h-full w-full object-cover"
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).parentElement!.querySelector(".fallback-icon")?.classList.remove("hidden") }}
+                                    />
+                                ) : null}
+                                <IconComponent className={`h-14 w-14 text-muted-foreground ${product.image ? "hidden fallback-icon" : ""}`} />
+                            </div>
                       {isMadeToOrder ? (
                         <Badge className="absolute right-1 top-1 bg-purple-500/80 text-white border-0 text-xs">
                           MTO

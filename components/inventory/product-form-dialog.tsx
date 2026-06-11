@@ -38,6 +38,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
         minStock: "10",
         trackStock: false,
         quantityPerBox: "1",
+        image: "",
     })
 
     useEffect(() => {
@@ -47,10 +48,11 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 categoryId: product.categoryId || "",
                 productType: product.productType || "drink",
                 price: product.price?.toString() || "",
-                unit: product.unit || "unit",
+                unit: product.unit || "kg",
                 minStock: product.minStock?.toString() || "10",
-                trackStock: product.productType === "ingredient" || Number(product.stock) > 0,
+                trackStock: product.trackStock ?? (product.productType === "ingredient" || Number(product.stock) > 0),
                 quantityPerBox: product.quantityPerBox?.toString() || "1",
+                image: product.image || "",
             })
         } else {
             setFormData({
@@ -62,9 +64,19 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 minStock: "10",
                 trackStock: false,
                 quantityPerBox: "1",
+                image: "",
             })
         }
     }, [product, open])
+
+    useEffect(() => {
+        if (units.length > 0 && formData.unit) {
+            const unitExists = units.some((u) => u.code === formData.unit)
+            if (!unitExists) {
+                setFormData((prev) => ({ ...prev, unit: units[0].code }))
+            }
+        }
+    }, [units])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -83,6 +95,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 categoryId: formData.categoryId,
                 productType: formData.productType,
                 unit: formData.unit,
+                image: formData.image || null,
             }
 
             if (formData.productType === "ingredient") {
@@ -203,6 +216,50 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                 />
                             </div>
                         )}
+
+                        {/* Image Upload */}
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label htmlFor="image" className="text-right pt-2">Image</Label>
+                            <div className="col-span-3 space-y-2">
+                                <input
+                                    id="image"
+                                    type="file"
+                                    accept="image/*"
+                                    key={product?.id || "new"}
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0]
+                                        if (file) {
+                                            const reader = new FileReader()
+                                            reader.onload = (ev) => {
+                                                setFormData({ ...formData, image: ev.target?.result as string })
+                                            }
+                                            reader.readAsDataURL(file)
+                                        }
+                                    }}
+                                    className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                />
+                                {formData.image && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative h-20 w-20 rounded-lg overflow-hidden border">
+                                            <img
+                                                src={formData.image}
+                                                alt="Preview"
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setFormData({ ...formData, image: "" })}
+                                            className="text-destructive"
+                                        >
+                                            Supprimer
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
                         {/* Track Stock Toggle (drinks only) */}
                         {isDrink && (
