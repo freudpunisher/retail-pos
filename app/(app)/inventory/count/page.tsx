@@ -20,9 +20,10 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { ClipboardList, Plus, Calendar, User, Loader2, ArrowRight, CheckCircle2, Clock, History as HistoryIcon } from "lucide-react"
+import { ClipboardList, Plus, Calendar, User, Loader2, ArrowRight, CheckCircle2, Clock, History as HistoryIcon, Warehouse } from "lucide-react"
 import { useInventorySessions } from "@/hooks/use-inventory-sessions"
 import { useProducts } from "@/hooks/use-products"
+import { useLocations } from "@/hooks/use-locations"
 import { useAuth } from "@/lib/auth-context"
 
 export default function InventoryCountPage() {
@@ -31,6 +32,7 @@ export default function InventoryCountPage() {
     const [isStarting, setIsStarting] = useState(false)
     const [formData, setFormData] = useState({
         notes: "",
+        locationId: "",
         initializePhysicalFromLogical: true,
         initialProductId: "",
         initialPhysicalQty: "",
@@ -39,6 +41,7 @@ export default function InventoryCountPage() {
     const { sessions, loading, startSession } = useInventorySessions()
     const { user } = useAuth()
     const { products } = useProducts()
+    const { locations } = useLocations()
     const isBakeryUser = user?.role === "cashier_bakery" || user?.role === "supervisor_bakery" || user?.role === "production_bakery"
     const selectableProducts = useMemo(() => {
         if (!isBakeryUser) return products
@@ -77,6 +80,7 @@ export default function InventoryCountPage() {
             }
             setFormData({
                 notes: "",
+                locationId: "",
                 initializePhysicalFromLogical: true,
                 initialProductId: "",
                 initialPhysicalQty: "",
@@ -139,6 +143,30 @@ export default function InventoryCountPage() {
                                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                                         className="h-24 resize-none"
                                     />
+                                </div>
+                                <div className="rounded-lg border border-border/50 bg-secondary/20 p-3 space-y-3">
+                                    <p className="text-sm font-semibold">Emplacement de l'inventaire</p>
+                                    <Select
+                                        value={formData.locationId}
+                                        onValueChange={(val) => setFormData({ ...formData, locationId: val })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Sélectionner un emplacement (optionnel)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {locations.map((loc: any) => (
+                                                <SelectItem key={loc.id} value={loc.id}>
+                                                    <div className="flex items-center gap-2">
+                                                        <Warehouse className="h-4 w-4" />
+                                                        {loc.name}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Limite l'inventaire aux produits de cet emplacement. Laissez vide pour inventorier tous les produits.
+                                    </p>
                                 </div>
                                 <div className="rounded-lg border border-border/50 bg-secondary/20 p-3 space-y-3">
                                     <p className="text-sm font-semibold">Ajout rapide (optionnel)</p>
@@ -217,6 +245,7 @@ export default function InventoryCountPage() {
                             <TableRow className="bg-secondary/5 border-border/50">
                                 <TableHead className="py-4 px-6 font-bold">Session ID</TableHead>
                                 <TableHead className="py-4 px-6 font-bold">Date</TableHead>
+                                <TableHead className="py-4 px-6 font-bold">Location</TableHead>
                                 <TableHead className="py-4 px-6 font-bold">Staff</TableHead>
                                 <TableHead className="py-4 px-6 font-bold">Items</TableHead>
                                 <TableHead className="py-4 px-6 font-bold">Status</TableHead>
@@ -226,7 +255,7 @@ export default function InventoryCountPage() {
                         <TableBody>
                             {loading && (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-32 text-center">
+                                    <TableCell colSpan={8} className="h-32 text-center">
                                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                                         <p className="mt-2 text-sm text-muted-foreground">Fetching sessions...</p>
                                     </TableCell>
@@ -234,7 +263,7 @@ export default function InventoryCountPage() {
                             )}
                             {!loading && sessions.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground italic">
+                                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground italic">
                                         No count sessions recorded yet.
                                     </TableCell>
                                 </TableRow>
@@ -248,6 +277,12 @@ export default function InventoryCountPage() {
                                         <div className="flex items-center gap-2 text-sm font-medium">
                                             <Calendar className="h-3 w-3 text-primary" />
                                             {new Date(session.countDate).toLocaleDateString()}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="py-4 px-6">
+                                        <div className="flex items-center gap-2 text-sm font-medium">
+                                            <Warehouse className="h-3 w-3 text-muted-foreground" />
+                                            {session.location?.name || "Tous"}
                                         </div>
                                     </TableCell>
                                     <TableCell className="py-4 px-6">

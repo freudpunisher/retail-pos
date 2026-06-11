@@ -135,6 +135,7 @@ export const inventory = pgTable("inventory", {
     id: uuid("id").primaryKey().defaultRandom(),
     countDate: timestamp("count_date").notNull().defaultNow(),
     countedBy: uuid("counted_by").notNull().references(() => users.id),
+    locationId: uuid("location_id").references(() => locations.id),
     status: inventorySessionStatusEnum("status").notNull().default("in_progress"),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -325,10 +326,23 @@ export const usersRelations = relations(users, ({ many }) => ({
     inventorySessions: many(inventory),
     productionRuns: many(productionRuns),
     expenses: many(expenses),
+    expensesPaid: many(expenses, { relationName: "paidBy" }),
 }))
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
     products: many(products),
+}))
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+    user: one(users, {
+        fields: [expenses.userId],
+        references: [users.id],
+    }),
+    paidByUser: one(users, {
+        fields: [expenses.paidBy],
+        references: [users.id],
+        relationName: "paidBy",
+    }),
 }))
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -421,6 +435,10 @@ export const inventoryRelations = relations(inventory, ({ one, many }) => ({
     user: one(users, {
         fields: [inventory.countedBy],
         references: [users.id],
+    }),
+    location: one(locations, {
+        fields: [inventory.locationId],
+        references: [locations.id],
     }),
     items: many(inventoryItems),
 }))

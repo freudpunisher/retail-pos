@@ -3,8 +3,11 @@ import db from "@/lib/db"
 import { transactions, transactionItems, products } from "@/lib/db/schema"
 import { eq, and, desc, inArray, ne, not, sql } from "drizzle-orm"
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        const { searchParams } = new URL(request.url)
+        const filter = searchParams.get("filter") || "current"
+
         const foodProductIds = db
             .select({ id: products.id })
             .from(products)
@@ -15,15 +18,29 @@ export async function GET() {
             .from(transactionItems)
             .where(inArray(transactionItems.productId, foodProductIds))
 
-        const orders = await db.query.transactions.findMany({
-            where: and(
-                eq(transactions.type, "sale"),
-                inArray(transactions.id, foodItemTransactionIds),
+        const whereConditions = [
+            eq(transactions.type, "sale"),
+            inArray(transactions.id, foodItemTransactionIds),
+        ]
+
+        if (filter === "current") {
+            whereConditions.push(
                 ne(transactions.orderStatus, "served"),
                 ne(transactions.orderStatus, "paid"),
                 ne(transactions.orderStatus, "cancelled"),
-            ),
+            )
+        } else if (filter === "history") {
+            whereConditions.push(
+                ne(transactions.orderStatus, "pending"),
+                ne(transactions.orderStatus, "preparing"),
+                ne(transactions.orderStatus, "ready"),
+            )
+        }
+
+        const orders = await db.query.transactions.findMany({
+            where: and(...whereConditions),
             orderBy: [desc(transactions.date)],
+            limit: filter === "history" ? 50 : undefined,
             with: {
                 items: {
                     with: {

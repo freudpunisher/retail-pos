@@ -28,7 +28,10 @@ export function useInventorySessions() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(sessionData),
             })
-            if (!response.ok) throw new Error("Failed to start session")
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}))
+                throw new Error(data?.error || "Failed to start session")
+            }
             const newSession = await response.json()
             setSessions((prev) => [newSession, ...prev])
             return newSession

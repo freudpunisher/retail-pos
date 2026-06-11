@@ -39,6 +39,8 @@ export default function SalesHistoryPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [tableFilter, setTableFilter] = useState<string>("all")
   const [waiterFilter, setWaiterFilter] = useState<string>("all")
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; order: any | null }>({ open: false, order: null })
 
   useEffect(() => {
@@ -90,6 +92,7 @@ export default function SalesHistoryPage() {
       const q = search.toLowerCase()
       filtered = filtered.filter((t: any) =>
         t.id.toLowerCase().includes(q) ||
+        (t.reference || "").toLowerCase().includes(q) ||
         t.client?.name?.toLowerCase().includes(q) ||
         t.user?.name?.toLowerCase().includes(q) ||
         String(t.table?.number || "").includes(q)
@@ -110,6 +113,16 @@ export default function SalesHistoryPage() {
 
     return filtered
   }, [salesTransactions, search, startDate, endDate, statusFilter, tableFilter, waiterFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize))
+  const paginatedTransactions = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filteredTransactions.slice(start, start + pageSize)
+  }, [filteredTransactions, page, pageSize])
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, startDate, endDate, statusFilter, tableFilter, waiterFilter])
 
   const stats = useMemo(() => {
     const completed = salesTransactions.filter((t: any) => t.status === "completed")
@@ -392,10 +405,10 @@ export default function SalesHistoryPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredTransactions.map((txn: any) => (
+                      paginatedTransactions.map((txn: any) => (
                         <TableRow key={txn.id} className="border-border hover:bg-muted/30 transition-colors">
                           <TableCell>
-                            <span className="font-mono text-xs text-muted-foreground">#{txn.id.slice(0, 8)}</span>
+                            <span className="font-mono text-xs text-muted-foreground">{txn.reference || `#${txn.id.slice(0, 8)}`}</span>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -484,6 +497,36 @@ export default function SalesHistoryPage() {
                   </TableBody>
                 </Table>
               </div>
+              {filteredTransactions.length > 0 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Rows per page:</span>
+                    <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1) }}>
+                      <SelectTrigger className="h-8 w-16">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="ml-auto">
+                      {Math.min((page - 1) * pageSize + 1, filteredTransactions.length)}–{Math.min(page * pageSize, filteredTransactions.length)} of {filteredTransactions.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                      <ChevronDown className="h-4 w-4 rotate-90" />
+                    </Button>
+                    <span className="text-sm font-medium mx-2 min-w-[4rem] text-center">{page} / {totalPages}</span>
+                    <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+                      <ChevronDown className="h-4 w-4 -rotate-90" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -504,8 +547,8 @@ export default function SalesHistoryPage() {
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Transaction ID</p>
-                  <p className="font-mono text-xs mt-0.5">{selectedTransaction.id}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Reference</p>
+                  <p className="font-mono text-xs mt-0.5">{selectedTransaction.reference || selectedTransaction.id}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Date</p>
@@ -627,15 +670,18 @@ export default function SalesHistoryPage() {
 
       {/* Report Preview Dialog */}
       <Dialog open={showReport} onOpenChange={setShowReport}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Sales Report</DialogTitle>
             <DialogDescription>Review and print the sales report</DialogDescription>
           </DialogHeader>
 
           <div id="printable-report" className="space-y-6 p-6">
-            <div className="text-center border-b pb-4">
-              <h2 className="text-xl font-bold tracking-tight">SALES ACTIVITY REPORT</h2>
+            {/* Header */}
+            <div className="text-center border-b border-double border-gray-400 pb-4 mb-2">
+              <h1 className="text-2xl font-black tracking-tight uppercase">{settings?.name || "SmartPOS"}</h1>
+              <p className="text-xs text-muted-foreground">{settings?.address || ""}{settings?.address && settings?.phone ? " · " : ""}{settings?.phone || ""}</p>
+              <h2 className="text-lg font-bold tracking-tight mt-3">SALES ACTIVITY REPORT</h2>
               <p className="text-sm text-muted-foreground">Generated {new Date().toLocaleString()}</p>
               {(startDate || endDate) && (
                 <p className="text-sm font-medium mt-1">
@@ -644,53 +690,147 @@ export default function SalesHistoryPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-4 gap-4 text-center">
-              {[
-                { label: "Total Transactions", value: filteredTransactions.length },
-                { label: "Revenue", value: formatCurrency(filteredTransactions.reduce((a: number, t: any) => a + Number.parseFloat(t.total), 0)), highlight: true },
-                { label: "Cash", value: filteredTransactions.filter((t: any) => t.paymentMethod === "cash").length },
-                { label: "Credit", value: filteredTransactions.filter((t: any) => t.paymentMethod === "credit").length },
-              ].map((s) => (
-                <div key={s.label} className="rounded-lg bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{s.label}</p>
-                  <p className={`text-lg font-bold mt-1 ${s.highlight ? "text-primary" : ""}`}>{s.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Transactions</h3>
-              {filteredTransactions.map((txn: any) => (
-                <div key={txn.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-mono text-sm font-semibold">#{txn.id.slice(0, 8)}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(txn.date).toLocaleString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-sm">{formatCurrency(Number.parseFloat(txn.total))}</p>
-                      <Badge variant="outline" className="text-xs mt-1">{txn.status}</Badge>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    {txn.client?.name || "Walk-in"} &middot; {txn.user?.name || "—"} &middot; {txn.table ? `T${txn.table.number}` : "—"} &middot; {txn.paymentMethod || "Unpaid"}
-                  </p>
-                  <div className="border-l-2 border-muted pl-3 space-y-1">
-                    {txn.items?.map((item: any, i: number) => (
-                      <div key={i} className="flex justify-between text-xs">
-                        <span><span className="text-muted-foreground">{item.quantity}x</span> {item.productName}</span>
-                        <span>{formatCurrency(Number.parseFloat(item.price) * item.quantity)}</span>
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {filteredTransactions.length > 0 && (() => {
+                const completed = filteredTransactions.filter((t: any) => t.status === "completed")
+                const totalRevenue = completed.reduce((a: number, t: any) => a + Number.parseFloat(t.total), 0)
+                const cashTxns = completed.filter((t: any) => t.paymentMethod === "cash")
+                const creditTxns = completed.filter((t: any) => t.paymentMethod === "credit")
+                const cashTotal = cashTxns.reduce((a: number, t: any) => a + Number.parseFloat(t.total), 0)
+                const creditTotal = creditTxns.reduce((a: number, t: any) => a + Number.parseFloat(t.total), 0)
+                const totalItems = completed.reduce((a: number, t: any) => a + (t.items?.length || 0), 0)
+                const stats = [
+                  { label: "Transactions", value: String(filteredTransactions.length), sub: `${completed.length} completed`, hl: false },
+                  { label: "Total Revenue", value: formatCurrency(totalRevenue), sub: `Avg ${formatCurrency(completed.length ? totalRevenue / completed.length : 0)}`, hl: true },
+                  { label: "Cash", value: `${cashTxns.length} txns`, sub: formatCurrency(cashTotal), hl: false },
+                  { label: "Credit", value: `${creditTxns.length} txns`, sub: formatCurrency(creditTotal), hl: false },
+                  { label: "Items Sold", value: String(totalItems), sub: `Across ${completed.length} orders`, hl: false },
+                  { label: "Pending", value: String(filteredTransactions.filter((t: any) => t.status !== "completed" && t.status !== "cancelled").length), sub: "", hl: false },
+                  { label: "Cancelled", value: String(filteredTransactions.filter((t: any) => t.status === "cancelled").length), sub: "", hl: false },
+                  { label: "Waiters Active", value: String(new Set(completed.filter((t: any) => t.user?.name).map((t: any) => t.user.name)).size), sub: `${new Set(completed.filter((t: any) => t.table?.number).map((t: any) => t.table.number)).size} tables`, hl: false },
+                ]
+                return (
+                  <>
+                    {stats.map((s) => (
+                      <div key={s.label} className="rounded-lg bg-muted/30 p-3 text-center print:bg-gray-100">
+                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{s.label}</p>
+                        <p className={`text-lg font-bold mt-1 ${s.hl ? "text-primary" : ""}`}>{s.value}</p>
+                        {s.sub && <p className="text-xs text-muted-foreground mt-0.5">{s.sub}</p>}
                       </div>
                     ))}
-                  </div>
+                  </>
+                )
+              })()}
+            </div>
+
+            {/* Payment Summary Table */}
+            {(() => {
+              const completed = filteredTransactions.filter((t: any) => t.status === "completed")
+              const methods = ["cash", "credit", "credit_card", "mobile_money", "other"]
+              const methodLabels: Record<string, string> = { cash: "Cash", credit: "Credit", credit_card: "Credit Card", mobile_money: "Mobile Money", other: "Other" }
+              return (
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Payment Method Breakdown</h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left">
+                        <th className="py-1.5 font-medium text-muted-foreground">Method</th>
+                        <th className="py-1.5 font-medium text-muted-foreground text-right">Count</th>
+                        <th className="py-1.5 font-medium text-muted-foreground text-right">Total</th>
+                        <th className="py-1.5 font-medium text-muted-foreground text-right">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {methods.filter((m) => completed.some((t: any) => t.paymentMethod === m)).map((method) => {
+                        const txns = completed.filter((t: any) => t.paymentMethod === method)
+                        const total = txns.reduce((a: number, t: any) => a + Number.parseFloat(t.total), 0)
+                        const grandTotal = completed.reduce((a: number, t: any) => a + Number.parseFloat(t.total), 0)
+                        return (
+                          <tr key={method} className="border-b border-border/50">
+                            <td className="py-1.5 capitalize">{methodLabels[method] || method}</td>
+                            <td className="py-1.5 text-right">{txns.length}</td>
+                            <td className="py-1.5 text-right font-medium">{formatCurrency(total)}</td>
+                            <td className="py-1.5 text-right text-muted-foreground">{grandTotal > 0 ? ((total / grandTotal) * 100).toFixed(1) + "%" : "—"}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
+              )
+            })()}
+
+            {/* Transactions Table */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Transactions List
+                <span className="font-normal text-xs ml-2">({filteredTransactions.length} total)</span>
+              </h3>
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-muted/50 print:bg-gray-200 border-b border-border">
+                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Ref</th>
+                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
+                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Client</th>
+                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Cashier</th>
+                    <th className="text-center py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Table</th>
+                    <th className="text-center py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Items</th>
+                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Payment</th>
+                    <th className="text-right py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
+                    <th className="text-center py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTransactions.map((txn: any) => (
+                    <tr key={txn.id} className="border-b border-border/50">
+                      <td className="py-1.5 px-2 font-mono font-medium">{txn.reference || `#${txn.id.slice(0, 8)}`}</td>
+                      <td className="py-1.5 px-2 whitespace-nowrap">{new Date(txn.date).toLocaleDateString()} {new Date(txn.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
+                      <td className="py-1.5 px-2">{txn.client?.name || "Walk-in"}</td>
+                      <td className="py-1.5 px-2">{txn.user?.name || "—"}</td>
+                      <td className="py-1.5 px-2 text-center">{txn.table ? `T${txn.table.number}` : "—"}</td>
+                      <td className="py-1.5 px-2 text-center">{txn.items?.length || 0}</td>
+                      <td className="py-1.5 px-2 capitalize">{txn.paymentMethod || "Unpaid"}</td>
+                      <td className="py-1.5 px-2 text-right font-medium">{formatCurrency(Number.parseFloat(txn.total))}</td>
+                      <td className="py-1.5 px-2 text-center">
+                        <span className={
+                          txn.status === "completed" ? "text-green-700 font-semibold" :
+                          txn.status === "cancelled" ? "text-red-600 font-semibold" :
+                          "text-amber-600 font-semibold"
+                        }>
+                          {txn.status === "completed" ? "Paid" : txn.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer */}
+            <div className="text-center text-xs text-muted-foreground border-t border-double border-gray-400 pt-3 mt-4">
+              <p>{settings?.name || "SmartPOS"} — End of Report — Page 1</p>
+              <p className="mt-0.5">Generated automatically. This report is a summary of sales transactions.</p>
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={() => setShowReport(false)}>Close</Button>
-            <Button onClick={() => window.print()}>
+            <Button onClick={() => {
+              const w = window.open("", "_blank")
+              if (!w) return
+              const reportEl = document.getElementById("printable-report")
+              if (!reportEl) return
+              const styles = Array.from(document.styleSheets).map((s) => {
+                try {
+                  return Array.from(s.cssRules || []).map((r) => r.cssText).join("\n")
+                } catch { return "" }
+              }).join("\n")
+              w.document.write(`<!DOCTYPE html><html><head><title>Sales Report</title><style>body{margin:0;padding:20px;font-family:system-ui,-apple-system,sans-serif;color:#1a1a2e}table{width:100%;border-collapse:collapse;font-size:11px}th{text-align:left;padding:6px 8px;border-bottom:2px solid #d1d5db;font-size:10px;text-transform:uppercase;color:#6b7280;font-weight:600}td{padding:5px 8px;border-bottom:1px solid #e5e7eb}tr:last-child td{border-bottom:none}.text-right{text-align:right}.text-center{text-align:center}.font-mono{font-family:'Courier New',monospace}.font-bold{font-weight:700}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.tracking-wider{letter-spacing:0.05em}.text-muted{color:#6b7280}.text-xs{font-size:11px}.text-sm{font-size:12px}.text-lg{font-size:16px}.text-2xl{font-size:22px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.p-3{padding:12px}.p-4{padding:16px}.p-6{padding:24px}.rounded-lg{border-radius:8px}.border{border:1px solid #e5e7eb}.border-b{border-bottom:1px solid #e5e7eb}.border-t{border-top:1px solid #e5e7eb}.border-double{border-style:double}.border-gray-400{border-color:#9ca3af}.gap-3{gap:12px}.gap-4{gap:16px}.grid{display:grid}.grid-cols-2{grid-template-columns:1fr 1fr}.bg-muted{background-color:#f3f4f6}.bg-gray-100{background-color:#f3f4f6}.text-primary{color:#2563eb}.text-green-700{color:#15803d}.text-red-600{color:#dc2626}.text-amber-600{color:#d97706}.capitalize{text-transform:capitalize}.whitespace-nowrap{white-space:nowrap}.space-y-6>*+*{margin-top:24px}.space-y-4>*+*{margin-top:16px}.space-y-3>*+*{margin-top:12px}@media print{body{padding:0}table{page-break-inside:avoid}tr{page-break-inside:avoid}}</style></head><body>${reportEl.innerHTML}</body></html>`)
+              w.document.close()
+              w.focus()
+              setTimeout(() => { w.print(); w.close() }, 300)
+            }}>
               <Printer className="h-4 w-4 mr-2" />
               Print
             </Button>

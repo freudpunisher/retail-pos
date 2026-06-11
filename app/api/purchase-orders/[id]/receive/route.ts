@@ -38,6 +38,7 @@ export async function POST(
                 .where(eq(purchaseOrderItems.purchaseOrderId, id));
 
             for (const item of items) {
+                const qty = Math.round(Number(item.quantity) || 0)
                 const [product] = await tx
                     .select({ productType: products.productType })
                     .from(products)
@@ -49,7 +50,7 @@ export async function POST(
                 await tx
                     .update(products)
                     .set({
-                        stock: sql`${products.stock} + ${item.quantity}`,
+                        stock: sql`${products.stock} + ${qty}`,
                     })
                     .where(eq(products.id, item.productId));
 
@@ -66,7 +67,7 @@ export async function POST(
                     await tx
                         .update(stock)
                         .set({
-                            quantityOnHand: sql`${stock.quantityOnHand} + ${item.quantity}`,
+                            quantityOnHand: sql`${stock.quantityOnHand} + ${qty}`,
                             updatedAt: new Date(),
                         })
                         .where(eq(stock.id, stockRecord.id));
@@ -74,7 +75,7 @@ export async function POST(
                     await tx.insert(stock).values({
                         productId: item.productId,
                         locationId: warehouse.id,
-                        quantityOnHand: Math.round(Number(item.quantity) || 0),
+                        quantityOnHand: qty,
                     });
                 }
 
