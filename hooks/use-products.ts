@@ -39,7 +39,10 @@ export function useProducts(categoryId?: string, search?: string) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(productData),
             })
-            if (!response.ok) throw new Error("Failed to create product")
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}))
+                throw new Error(errData.error || "Failed to create product")
+            }
             const newProduct = await response.json()
             await fetchProducts()
             return newProduct
@@ -56,7 +59,10 @@ export function useProducts(categoryId?: string, search?: string) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(productData),
             })
-            if (!response.ok) throw new Error("Failed to update product")
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}))
+                throw new Error(errData.error || "Failed to update product")
+            }
             const updatedProduct = await response.json()
             await fetchProducts()
             return updatedProduct
@@ -71,7 +77,10 @@ export function useProducts(categoryId?: string, search?: string) {
             const response = await fetch(`/api/products/${id}`, {
                 method: "DELETE",
             })
-            if (!response.ok) throw new Error("Failed to delete product")
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}))
+                throw new Error(errData.error || "Failed to delete product")
+            }
             setProducts((prev) => prev.filter((p) => p.id !== id))
         } catch (err: any) {
             setError(err.message)

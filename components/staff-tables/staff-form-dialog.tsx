@@ -16,14 +16,14 @@ interface StaffFormDialogProps {
 }
 
 export function StaffFormDialog({ staff, open, onOpenChange, onSubmit }: StaffFormDialogProps) {
-  const [form, setForm] = useState({ name: "", email: "", role: "waiter", password: "", avatar: "" })
+  const [form, setForm] = useState({ name: "", email: "", phone: "", role: "waiter", password: "", avatar: "" })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (staff) {
-      setForm({ name: staff.name || "", email: staff.email || "", role: staff.role || "waiter", password: "", avatar: staff.avatar || "" })
+      setForm({ name: staff.name || "", email: staff.email || "", phone: staff.phone || "", role: staff.role || "waiter", password: "", avatar: staff.avatar || "" })
     } else {
-      setForm({ name: "", email: "", role: "waiter", password: "", avatar: "" })
+      setForm({ name: "", email: "", phone: "", role: "waiter", password: "", avatar: "" })
     }
   }, [staff, open])
 
@@ -31,7 +31,7 @@ export function StaffFormDialog({ staff, open, onOpenChange, onSubmit }: StaffFo
     if (!form.name || !form.email) return
     setSaving(true)
     try {
-      const data: any = { name: form.name, email: form.email, role: form.role, avatar: form.avatar || undefined }
+      const data: any = { name: form.name, email: form.email, phone: form.phone || undefined, role: form.role, avatar: form.avatar || undefined }
       if (!staff && form.password) data.password = form.password
       await onSubmit(data)
       onOpenChange(false)
@@ -54,6 +54,10 @@ export function StaffFormDialog({ staff, open, onOpenChange, onSubmit }: StaffFo
           <div className="space-y-2">
             <Label>Email</Label>
             <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" />
+          </div>
+          <div className="space-y-2">
+            <Label>Phone</Label>
+            <Input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+257 XX XX XX XX" />
           </div>
           <div className="space-y-2">
             <Label>Role</Label>

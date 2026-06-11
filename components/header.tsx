@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {

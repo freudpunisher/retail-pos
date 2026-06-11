@@ -7,13 +7,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const { id } = await params
     try {
         const body = await request.json()
-        const { name, description } = body
+        const { name, description, groupId } = body
 
         const [updatedCategory] = await db
             .update(categories)
             .set({
                 name,
                 description,
+                groupId: groupId || null,
             })
             .where(eq(categories.id, id))
             .returning()

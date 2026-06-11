@@ -395,19 +395,17 @@ export default function CountSessionPage() {
                         <TableHeader>
                             <TableRow className="bg-secondary/5 border-border/50">
                                 <TableHead className="py-4 px-6 font-bold">Product</TableHead>
-                                <TableHead className="py-4 px-6 font-bold text-right">Stock logique</TableHead>
-                                <TableHead className="py-4 px-6 font-bold text-center w-40">Physical Count</TableHead>
-                                <TableHead className="py-4 px-6 font-bold text-right">Variance</TableHead>
+                                <TableHead className="py-4 px-6 font-bold text-right">Stock ancien</TableHead>
+                                <TableHead className="py-4 px-6 font-bold text-center w-40">Stock physique</TableHead>
                                 <TableHead className="py-4 px-6 font-bold text-right">Perte</TableHead>
-                                <TableHead className="py-4 px-6 font-bold text-center">Impact</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredItems.map((item: any) => {
                                 const localValue = localCounts[item.productId]
                                 const phyCount = Number.isFinite(localValue) ? localValue : Number(item.physicalQuantity ?? 0)
-                                const variance = phyCount - Number(item.quantityInStock ?? 0)
-                                const loss = variance < 0 ? Math.abs(variance) : 0
+                                const oldStock = Number(item.quantityInStock ?? 0)
+                                const loss = oldStock - phyCount
 
                                 return (
                                     <TableRow key={item.id} className="border-border/50 hover:bg-secondary/5 group transition-colors">
@@ -418,7 +416,7 @@ export default function CountSessionPage() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right py-4 px-6 font-black opacity-60">
-                                            {item.quantityInStock}
+                                            {oldStock}
                                         </TableCell>
                                         <TableCell className="py-2 px-6">
                                             <Input
@@ -431,20 +429,8 @@ export default function CountSessionPage() {
                                                 disabled={isReconciled}
                                             />
                                         </TableCell>
-                                        <TableCell className={`text-right py-4 px-6 font-black text-lg ${variance === 0 ? 'text-muted-foreground' : variance > 0 ? 'text-accent' : 'text-destructive'}`}>
-                                            {variance > 0 ? '+' : ''}{variance.toFixed(3)}
-                                        </TableCell>
-                                        <TableCell className="text-right py-4 px-6 font-black text-destructive">
-                                            {loss.toFixed(3)}
-                                        </TableCell>
-                                        <TableCell className="text-center py-4 px-6">
-                                            {variance === 0 ? (
-                                                <Badge variant="outline" className="opacity-40">Matched</Badge>
-                                            ) : variance > 0 ? (
-                                                <Badge className="bg-accent/20 text-accent font-bold ring-1 ring-accent/30 lowercase">Surplus</Badge>
-                                            ) : (
-                                                <Badge className="bg-destructive/20 text-destructive font-bold ring-1 ring-destructive/30 lowercase">Loss</Badge>
-                                            )}
+                                        <TableCell className={`text-right py-4 px-6 font-black text-lg ${loss <= 0 ? 'text-muted-foreground' : 'text-destructive'}`}>
+                                            {loss > 0 ? loss.toFixed(3) : "-"}
                                         </TableCell>
                                     </TableRow>
                                 )

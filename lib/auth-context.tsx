@@ -20,30 +20,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Fetch current user on mount
   useEffect(() => {
+    let cancelled = false
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
+
     const fetchCurrentUser = async () => {
       try {
-        const response = await fetch("/api/auth/me")
+        const response = await fetch("/api/auth/me", { signal: controller.signal })
+        if (cancelled) return
         if (response.ok) {
           const data = await response.json()
-          setUser(data.user)
+          if (!cancelled) setUser(data.user)
         }
       } catch (error) {
-        console.error("Failed to fetch current user:", error)
+        if (!cancelled) {
+          console.error("Failed to fetch current user:", error)
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchCurrentUser()
+
+    return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
+      controller.abort()
+    }
   }, [])
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        signal: controller.signal,
       })
+
+      clearTimeout(timeoutId)
 
       if (response.ok) {
         const data = await response.json()

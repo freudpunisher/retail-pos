@@ -96,10 +96,14 @@ export interface StockMovement {
   id: string
   productId: string
   productName: string
-  type: "sale" | "purchase" | "adjustment"
+  type: "in" | "out" | "adjustment" | "transfer" | "inventory"
   quantity: number
   date: string
   userId: string
+  locationId?: string
+  location?: { id: string; name: string }
+  referenceId?: string
+  referenceType?: string
   notes?: string
 }
 
@@ -134,10 +138,17 @@ export interface StoreSettings {
   currencySymbol: string
 }
 
+export interface CategoryGroup {
+  id: string
+  name: string
+  description?: string
+}
+
 export interface Category {
   id: string
   name: string
   description?: string
+  groupId?: string | null
 }
 
 export interface Location {

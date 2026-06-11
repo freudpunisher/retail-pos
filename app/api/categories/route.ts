@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { name, description } = body
+        const { name, description, groupId } = body
 
         if (!name) {
             return NextResponse.json({ error: "Name is required" }, { status: 400 })
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
             .values({
                 name,
                 description,
+                groupId: groupId || null,
             })
             .returning()
 

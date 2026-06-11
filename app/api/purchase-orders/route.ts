@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import db from "@/lib/db";
 import { purchaseOrders, purchaseOrderItems, suppliers, products, stock, stockMovements } from "@/lib/db/schema";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { eq, desc, and, gte, lte, lt } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { resolveWarehouse } from "@/lib/db/location-utils";
 
@@ -232,7 +232,7 @@ export async function receive(request: Request) {
           await tx.insert(stock).values({
             productId: item.productId,
             locationId: warehouse.id,
-            quantityOnHand: item.quantity,
+            quantityOnHand: Math.round(Number(item.quantity) || 0),
           });
         }
 
@@ -240,9 +240,12 @@ export async function receive(request: Request) {
         await tx.insert(stockMovements).values({
           productId: item.productId,
           productName: item.productName,
-          type: "purchase",
+          type: "in",
           quantity: item.quantity,
           userId,
+          locationId: warehouse.id,
+          referenceId: id,
+          referenceType: "purchase_order",
           notes: `Received from PO ${id} at ${warehouse.name}`,
         });
       }

@@ -232,12 +232,12 @@ export default function StockTransfersPage() {
                                                         </div>
                                                     )}
 
-                                                    {t.status === "pending" && (
+                                                    {t.status === "pending" && t.transferType === "demand" && isManagerOrAdmin && (
                                                         <Button size="sm" variant="default" onClick={() => handleApprove(t.id)} className="w-full md:w-auto">
                                                             <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Approve
                                                         </Button>
                                                     )}
-                                                    {t.status === "approved" && (
+                                                    {t.status === "approved" && t.transferType === "demand" && (
                                                         <Button size="sm" onClick={() => handleReceive(t.id)} className="w-full md:w-auto">
                                                             <Package className="h-3.5 w-3.5 mr-1.5" /> Receive
                                                         </Button>

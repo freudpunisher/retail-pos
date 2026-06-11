@@ -3,10 +3,9 @@
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { useProducts } from "@/hooks/use-products"
 import { useLocations } from "@/hooks/use-locations"
-import { useUsers } from "@/hooks/use-users"
 import { useStockTransfers } from "@/hooks/use-stock-transfers"
+import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,21 +14,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
-    ArrowRightLeft, Loader2, Plus, Trash2, Package,
-    Warehouse, Store, FileText, Send, AlertCircle, ChevronLeft, ShoppingCart, Beer
+    ArrowRightLeft, Loader2, Plus, Trash2,
+    Store, FileText, Send, AlertCircle, ChevronLeft, ShoppingCart, Beer
 } from "lucide-react"
 
 interface LineItem {
     key: string
     productId: string
-    quantity: string
+    productType: string
+    quantity: number
+    boxes: number
+    quantityPerBox: number
+}
+
+function uuid(): string {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID()
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16)
+    })
 }
 
 export default function TransferToBarPage() {
     const router = useRouter()
-    const { products } = useProducts()
+    const { user } = useAuth()
     const { locations } = useLocations()
-    const { users } = useUsers()
     const { createTransfer } = useStockTransfers()
     const [submitting, setSubmitting] = useState(false)
 
@@ -37,12 +48,10 @@ export default function TransferToBarPage() {
     const [toLocationId, setToLocationId] = useState("")
     const [notes, setNotes] = useState("")
     const [lineItems, setLineItems] = useState<LineItem[]>([
-        { key: crypto.randomUUID(), productId: "", quantity: "" },
+        { key: uuid(), productId: "", productType: "", quantity: 0, boxes: 0, quantityPerBox: 1 },
     ])
     const [stockByLocation, setStockByLocation] = useState<any[]>([])
     const [loadingStock, setLoadingStock] = useState(false)
-
-    const currentUserId = users[0]?.id || ""
 
     const transitionalLocations = useMemo(() => locations.filter((l: any) => l.type === "transitional"), [locations])
     const barLocations = useMemo(() => locations.filter((l: any) => l.type === "bar"), [locations])
@@ -67,43 +76,58 @@ export default function TransferToBarPage() {
     const getProductQty = (pid: string) => stockByLocation.find((s: any) => s.productId === pid)?.quantityOnHand ?? 0
 
     const getItemError = (item: LineItem): string | null => {
-        if (!item.productId || !item.quantity) return null
-        const qty = parseInt(item.quantity)
-        if (isNaN(qty) || qty < 1) return "Invalid quantity"
+        if (!item.productId || item.quantity < 1) return null
         const avail = getProductQty(item.productId)
-        return qty > avail ? `Only ${avail} available` : null
+        return item.quantity > avail ? `Only ${avail} available` : null
     }
-
-    const totalRequestedByProduct = useMemo(() => {
-        const map = new Map<string, number>()
-        for (const item of lineItems) {
-            if (item.productId && item.quantity) {
-                const qty = parseInt(item.quantity)
-                if (!isNaN(qty)) map.set(item.productId, (map.get(item.productId) || 0) + qty)
-            }
-        }
-        return map
-    }, [lineItems])
 
     const canSubmit = useMemo(() => {
         if (!fromLocationId || !toLocationId) return false
-        if (!lineItems.some((i) => i.productId && i.quantity)) return false
-        for (const item of lineItems) if (getItemError(item)) return false
-        for (const [pid, total] of totalRequestedByProduct) if (total > getProductQty(pid)) return false
+        if (!lineItems.some((i) => i.productId && i.quantity > 0)) return false
+        for (const item of lineItems) {
+            if (getItemError(item)) return false
+            if (item.quantity > getProductQty(item.productId)) return false
+        }
         return true
-    }, [fromLocationId, toLocationId, lineItems, totalRequestedByProduct])
+    }, [fromLocationId, toLocationId, lineItems])
 
-    const addLineItem = () => setLineItems([...lineItems, { key: crypto.randomUUID(), productId: "", quantity: "" }])
+    const addLineItem = () => setLineItems([...lineItems, { key: uuid(), productId: "", productType: "", quantity: 0, boxes: 0, quantityPerBox: 1 }])
     const removeLineItem = (key: string) => lineItems.length > 1 && setLineItems(lineItems.filter((i) => i.key !== key))
-    const updateLineItem = (key: string, field: keyof LineItem, value: string) =>
-        setLineItems(lineItems.map((i) => (i.key === key ? { ...i, [field]: value } : i)))
+
+    const handleProductSelect = (key: string, productId: string) => {
+        const product = availableProducts.find((p: any) => p.id === productId)
+        if (!product) return
+        const qpb = product.quantityPerBox || 1
+        setLineItems((prev) =>
+            prev.map((i) =>
+                i.key === key
+                    ? { ...i, productId, productType: product.productType, boxes: 1, quantityPerBox: qpb, quantity: qpb }
+                    : i
+            )
+        )
+    }
+
+    const updateBoxes = (key: string, newBoxes: number) => {
+        const bxs = Math.max(0, newBoxes)
+        if (bxs === 0) {
+            setLineItems((prev) => prev.filter((i) => i.key !== key))
+        } else {
+            setLineItems((prev) =>
+                prev.map((i) =>
+                    i.key === key
+                        ? { ...i, boxes: bxs, quantity: bxs * i.quantityPerBox }
+                        : i
+                )
+            )
+        }
+    }
 
     const handleSubmit = async () => {
-        const items = lineItems.filter((i) => i.productId && i.quantity).map((i) => ({ productId: i.productId, quantity: parseInt(i.quantity) }))
-        if (!items.length || !currentUserId) return
+        const items = lineItems.filter((i) => i.productId && i.quantity > 0).map((i) => ({ productId: i.productId, quantity: i.quantity }))
+        if (!items.length || !user?.id) return
         setSubmitting(true)
         try {
-            await createTransfer({ fromLocationId, toLocationId, userId: currentUserId, notes, items })
+            await createTransfer({ fromLocationId, toLocationId, userId: user.id, notes, items })
             router.push("/stock/transfers")
         } catch (err: any) { alert(err.message) }
         finally { setSubmitting(false) }
@@ -197,7 +221,7 @@ export default function TransferToBarPage() {
                             </div>
                         ) : (
                             <div className="border rounded-lg overflow-hidden">
-                                <div className="grid grid-cols-[1fr,8rem,5rem,auto] gap-3 px-4 py-2.5 bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                <div className="grid grid-cols-[1fr,11rem,5rem,auto] gap-3 px-4 py-2.5 bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                     <span>Product</span>
                                     <span className="text-center">Quantity</span>
                                     <span className="text-right">Stock</span>
@@ -207,8 +231,8 @@ export default function TransferToBarPage() {
                                     {lineItems.map((item) => {
                                         const error = getItemError(item)
                                         return (
-                                            <div key={item.key} className="grid grid-cols-[1fr,8rem,5rem,auto] gap-3 px-4 py-3 items-start">
-                                                <Select value={item.productId} onValueChange={(v) => updateLineItem(item.key, "productId", v)}>
+                                            <div key={item.key} className="grid grid-cols-[1fr,11rem,5rem,auto] gap-3 px-4 py-3 items-start">
+                                                <Select value={item.productId} onValueChange={(v) => handleProductSelect(item.key, v)}>
                                                     <SelectTrigger className={`h-9 ${error ? "border-destructive" : ""}`}>
                                                         <SelectValue placeholder="Choose product..." />
                                                     </SelectTrigger>
@@ -224,10 +248,33 @@ export default function TransferToBarPage() {
                                                     </SelectContent>
                                                 </Select>
                                                 <div className="space-y-0.5">
-                                                    <Input type="number" min={1} max={item.productId ? getProductQty(item.productId) : undefined}
-                                                        value={item.quantity} onChange={(e) => updateLineItem(item.key, "quantity", e.target.value)}
-                                                        placeholder="0" className={`h-9 text-center ${error ? "border-destructive" : ""}`} />
-                                                    {error && <p className="text-xs text-destructive text-center">{error}</p>}
+                                                    {item.productId ? (
+                                                        <div className="flex flex-col gap-1 items-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <Input
+                                                                    type="number"
+                                                                    min={0}
+                                                                    max={item.productId ? Math.floor(getProductQty(item.productId) / item.quantityPerBox) : undefined}
+                                                                    value={item.boxes}
+                                                                    onChange={(e) => updateBoxes(item.key, Number(e.target.value))}
+                                                                    className={`w-20 text-center h-8 ${error ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                                                                />
+                                                                <span className="text-sm font-medium">Boxes</span>
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground flex gap-1.5 items-center mt-0.5">
+                                                                <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                                                                    {item.quantityPerBox} units/box
+                                                                </Badge>
+                                                                <span>=</span>
+                                                                <span className="font-semibold text-foreground">{item.quantity} total units</span>
+                                                            </div>
+                                                            {error && <p className="text-xs text-destructive text-center">{error}</p>}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center justify-center py-2">
+                                                            <span className="text-xs text-muted-foreground">Select a product</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="text-sm text-muted-foreground text-right pt-2">
                                                     {item.productId ? <Badge variant="secondary" className="text-xs font-mono">{getProductQty(item.productId)}</Badge> : "—"}
@@ -242,10 +289,16 @@ export default function TransferToBarPage() {
                             </div>
                         )}
 
-                        {lineItems.some((i) => i.productId && i.quantity) && (
+                        {lineItems.some((i) => i.productId && i.quantity > 0) && (
                             <div className="flex items-center justify-between text-sm bg-muted/30 rounded-lg px-4 py-2.5">
-                                <span className="text-muted-foreground">{lineItems.filter((i) => i.productId && i.quantity).length} product(s)</span>
-                                <span className="font-medium">Total: {lineItems.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0)} units</span>
+                                <span className="text-muted-foreground">{lineItems.filter((i) => i.productId && i.quantity > 0).length} product(s)</span>
+                                <span className="font-medium">
+                                    {(() => {
+                                        const totalBoxes = lineItems.reduce((s, i) => s + i.boxes, 0)
+                                        const totalUnits = lineItems.reduce((s, i) => s + i.quantity, 0)
+                                        return totalBoxes > 0 ? `${totalBoxes} boxes / ${totalUnits} units` : `${totalUnits} units`
+                                    })()}
+                                </span>
                             </div>
                         )}
                     </CardContent>

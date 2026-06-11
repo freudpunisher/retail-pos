@@ -1,15 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, Plus, Edit2, Trash2, Loader2, Package, Beer, Utensils, Wheat } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Search, Plus, Edit2, Trash2, Loader2, Package, Beer, Utensils, Wheat, Ruler } from "lucide-react"
 import { useProducts } from "@/hooks/use-products"
+import { useAuth } from "@/lib/auth-context"
 import { ProductFormDialog } from "@/components/inventory/product-form-dialog"
 import { formatCurrency } from "@/lib/mock-data"
+import { useCategoryGroups } from "@/hooks/use-category-groups"
+import Swal from "sweetalert2"
 
 const typeConfig: Record<string, { label: string; icon: any; color: string }> = {
     drink: { label: "Drink", icon: Beer, color: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
@@ -20,25 +24,54 @@ const typeConfig: Record<string, { label: string; icon: any; color: string }> = 
 export default function ProductManagementPage() {
     const [search, setSearch] = useState("")
     const [typeFilter, setTypeFilter] = useState<string>("all")
+    const [categoryFilter, setCategoryFilter] = useState<string>("all")
+    const [groupFilter, setGroupFilter] = useState<string>("all")
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
+    const [page, setPage] = useState(1)
+    const [pageSize, setPageSize] = useState(20)
 
     const { products, loading, deleteProduct, createProduct, updateProduct } = useProducts()
+    const { groups } = useCategoryGroups()
+    const [categories, setCategories] = useState<any[]>([])
+
+    useEffect(() => {
+        fetch("/api/categories")
+            .then((res) => res.ok && res.json())
+            .then((data) => data && setCategories(data))
+            .catch(() => {})
+    }, [])
     const { user } = useAuth()
     const canEdit = user?.role === "admin"
     const roleSector =
-        user?.role === "cashier_bakery" || user?.role === "supervisor_bakery" || user?.role === "production_bakery"
+        (user?.role as string) === "cashier_bakery" || (user?.role as string) === "supervisor_bakery" || (user?.role as string) === "production_bakery"
             ? "Boulangerie"
-            : user?.role === "cashier_food" || user?.role === "supervisor_food"
+            : (user?.role as string) === "cashier_food" || (user?.role as string) === "supervisor_food"
             ? "Alimentation"
             : null
 
-    const filteredProducts = products.filter((product) => {
+    const categoryIdsByGroup = useMemo(() => {
+        if (groupFilter === "all") return null
+        return categories.filter((c) => c.groupId === groupFilter).map((c) => c.id)
+    }, [groupFilter, categories])
+
+    const filteredProducts = useMemo(() => products.filter((product) => {
         const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
             product.sku.toLowerCase().includes(search.toLowerCase())
         const matchesType = typeFilter === "all" || product.productType === typeFilter
-        return matchesSearch && matchesType
-    })
+        const matchesCategory = categoryFilter === "all" || product.categoryId === categoryFilter
+        const matchesGroup = !categoryIdsByGroup || categoryIdsByGroup.includes(product.categoryId)
+        return matchesSearch && matchesType && matchesCategory && matchesGroup
+    }), [products, search, typeFilter, categoryFilter, categoryIdsByGroup])
+
+    const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize))
+    const currentPage = Math.min(page, totalPages)
+    const paginatedProducts = filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value)
+        setPage(1)
+    }
 
     const handleEdit = (product: any) => {
         setSelectedProduct(product)
@@ -51,18 +84,62 @@ export default function ProductManagementPage() {
     }
 
     const handleDelete = async (id: string) => {
-        if (window.confirm("Are you sure you want to delete this product?")) {
-            await deleteProduct(id)
+        const result = await Swal.fire({
+            title: "Supprimer ce produit ?",
+            text: "Cette action est irréversible et supprimera le produit de l'inventaire.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Supprimer",
+            cancelButtonText: "Annuler",
+            confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#6b7280",
+        })
+        if (result.isConfirmed) {
+            try {
+                await deleteProduct(id)
+                await Swal.fire({
+                    icon: "success",
+                    title: "Produit supprimé",
+                    timer: 1500,
+                    showConfirmButton: false,
+                })
+            } catch (error) {
+                await Swal.fire({
+                    icon: "error",
+                    title: "Erreur",
+                    text: "Impossible de supprimer le produit.",
+                })
+            }
         }
     }
 
     const handleFormSubmit = async (data: any) => {
-        if (selectedProduct) {
-            await updateProduct(selectedProduct.id, data)
-        } else {
-            await createProduct(data)
+        try {
+            if (selectedProduct) {
+                await updateProduct(selectedProduct.id, data)
+                await Swal.fire({
+                    icon: "success",
+                    title: "Produit modifié",
+                    timer: 1500,
+                    showConfirmButton: false,
+                })
+            } else {
+                await createProduct(data)
+                await Swal.fire({
+                    icon: "success",
+                    title: "Produit créé",
+                    timer: 1500,
+                    showConfirmButton: false,
+                })
+            }
+            setIsFormOpen(false)
+        } catch (error: any) {
+            await Swal.fire({
+                icon: "error",
+                title: "Erreur",
+                text: error.message || "Une erreur est survenue.",
+            })
         }
-        setIsFormOpen(false)
     }
 
     const typeFilters = [
@@ -92,20 +169,59 @@ export default function ProductManagementPage() {
                 </Button>
             </div>
 
-            {/* Type Filter Tabs */}
-            <div className="flex gap-2 flex-wrap">
-                {typeFilters.map(({ key, label, icon: Icon }) => (
-                    <Button
-                        key={key}
-                        variant={typeFilter === key ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setTypeFilter(key)}
-                    >
-                        <Icon className="h-4 w-4 mr-1" />
-                        {label} ({counts[key as keyof typeof counts]})
-                    </Button>
-                ))}
-            </div>
+            {/* Filters */}
+            <Card>
+                <CardContent className="p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex gap-2 flex-wrap">
+                            {typeFilters.map(({ key, label, icon: Icon }) => (
+                                <Button
+                                    key={key}
+                                    variant={typeFilter === key ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => { setTypeFilter(key); setPage(1) }}
+                                >
+                                    <Icon className="h-4 w-4 mr-1" />
+                                    {label} ({counts[key as keyof typeof counts]})
+                                </Button>
+                            ))}
+                        </div>
+                        <div className="flex-1" />
+                        <div className="flex items-center gap-2">
+                            <Select
+                                value={groupFilter}
+                                onValueChange={(value) => { setGroupFilter(value); setCategoryFilter("all"); setPage(1) }}
+                            >
+                                <SelectTrigger className="w-[180px] h-9">
+                                    <SelectValue placeholder="Category Group" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Groups</SelectItem>
+                                    {groups.map((g: any) => (
+                                        <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select
+                                value={categoryFilter}
+                                onValueChange={(value) => { setCategoryFilter(value); setPage(1) }}
+                            >
+                                <SelectTrigger className="w-[180px] h-9">
+                                    <SelectValue placeholder="Category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Categories</SelectItem>
+                                    {categories
+                                        .filter((c) => groupFilter === "all" || c.groupId === groupFilter)
+                                        .map((c: any) => (
+                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader className="pb-3 border-b">
@@ -119,7 +235,7 @@ export default function ProductManagementPage() {
                             <Input
                                 placeholder="Search by name or SKU..."
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => handleSearchChange(e.target.value)}
                                 className="pl-10"
                             />
                         </div>
@@ -133,6 +249,7 @@ export default function ProductManagementPage() {
                                 <TableHead>Name</TableHead>
                                 <TableHead>Type</TableHead>
                                 <TableHead>Category</TableHead>
+                                <TableHead>Unit</TableHead>
                                 <TableHead className="text-right">Price</TableHead>
                                 <TableHead className="text-right">Stock</TableHead>
                                 <TableHead>Status</TableHead>
@@ -142,18 +259,18 @@ export default function ProductManagementPage() {
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="h-32 text-center">
+                                    <TableCell colSpan={9} className="h-32 text-center">
                                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                                     </TableCell>
                                 </TableRow>
                             ) : filteredProducts.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground italic">
+                                    <TableCell colSpan={9} className="h-32 text-center text-muted-foreground italic">
                                         No products found
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                filteredProducts.map((product) => {
+                                paginatedProducts.map((product) => {
                                     const type = typeConfig[product.productType] || typeConfig.drink
                                     const TypeIcon = type.icon
                                     const isIngredient = product.productType === "ingredient"
@@ -172,6 +289,9 @@ export default function ProductManagementPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <span className="text-xs text-muted-foreground">{product.categoryName || "—"}</span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-xs text-muted-foreground">{product.unitName || product.unit || "—"}</span>
                                             </TableCell>
                                             <TableCell className="text-right font-semibold">
                                                 {isIngredient ? (
@@ -218,6 +338,44 @@ export default function ProductManagementPage() {
                             )}
                         </TableBody>
                     </Table>
+
+                    <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-sm text-muted-foreground">
+                            Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredProducts.length)} of {filteredProducts.length} products
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Select value={String(pageSize)} onValueChange={(value) => { setPageSize(Number(value)); setPage(1) }}>
+                                <SelectTrigger className="w-[100px] h-8">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="10">10 / page</SelectItem>
+                                    <SelectItem value="20">20 / page</SelectItem>
+                                    <SelectItem value="50">50 / page</SelectItem>
+                                    <SelectItem value="100">100 / page</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Previous
+                            </Button>
+                            <div className="text-sm text-muted-foreground">
+                                Page {currentPage} of {totalPages}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                            >
+                                Next
+                            </Button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
