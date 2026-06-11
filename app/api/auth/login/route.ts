@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
 import db from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -48,18 +47,8 @@ export async function POST(request: Request) {
             role: user.role,
         })
 
-        // Set HTTP-only cookie
-        const cookieStore = await cookies()
-        cookieStore.set("auth-token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            path: "/",
-        })
-
-        // Return user data (without password)
-        return NextResponse.json({
+        // Set HTTP-only cookie on the response
+        const response = NextResponse.json({
             user: {
                 id: user.id,
                 name: user.name,
@@ -68,6 +57,16 @@ export async function POST(request: Request) {
                 avatar: user.avatar,
             },
         })
+
+        response.cookies.set("auth-token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+            path: "/",
+        })
+
+        return response
     } catch (error) {
         console.error("Login error:", error)
         return NextResponse.json(

@@ -36,10 +36,17 @@ export const users = pgTable("users", {
     avatar: text("avatar"),
 })
 
+export const categoryGroups = pgTable("category_groups", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull().unique(),
+    description: text("description"),
+})
+
 export const categories = pgTable("categories", {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     description: text("description"),
+    groupId: uuid("group_id").references(() => categoryGroups.id),
 })
 
 export const products = pgTable("products", {

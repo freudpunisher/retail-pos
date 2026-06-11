@@ -43,15 +43,6 @@ export default function LoginPage() {
         }
     }
 
-    // Show loading state while checking authentication
-    if (authLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-background">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-        )
-    }
-
     return (
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
             <Card className="w-full max-w-md border-border bg-card shadow-2xl">

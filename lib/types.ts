@@ -138,10 +138,17 @@ export interface StoreSettings {
   currencySymbol: string
 }
 
+export interface CategoryGroup {
+  id: string
+  name: string
+  description?: string
+}
+
 export interface Category {
   id: string
   name: string
   description?: string
+  groupId?: string | null
 }
 
 export interface Location {

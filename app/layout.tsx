@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next"
 // import type { Metadata, Viewport } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import { Providers } from "@/components/providers"
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -41,7 +42,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Toaster />
+        </Providers>
         <Analytics />
       </body>
     </html>
