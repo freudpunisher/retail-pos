@@ -14,7 +14,7 @@ export async function PUT(
 
         const { id } = await params
         const body = await request.json()
-        const { name, categoryId, productType, price, minStock, trackStock, image } = body
+        const { name, categoryId, productType, price, cost, minStock, unit, trackStock, image, sector, quantityPerBox } = body
 
         const [updatedProduct] = await db
             .update(products)
@@ -23,9 +23,13 @@ export async function PUT(
                 categoryId,
                 productType,
                 price: price?.toString(),
+                cost: cost ? cost.toString() : undefined,
                 minStock,
+                unit,
                 trackStock,
                 image,
+                sector,
+                quantityPerBox: quantityPerBox || 1,
             })
             .where(eq(products.id, id))
             .returning()

@@ -53,10 +53,15 @@ export const products = pgTable("products", {
     categoryId: uuid("category_id").references(() => categories.id),
     productType: productTypeEnum("product_type").notNull().default("food"),
     price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+    sector: text("sector"),
+    type: text("type"),
+    unit: text("unit"),
+    cost: numeric("cost", { precision: 12, scale: 2 }),
     stock: integer("stock").notNull().default(0), // Kept for backward compatibility/simplicity
     minStock: integer("min_stock").notNull().default(0),
     trackStock: boolean("track_stock").notNull().default(false),
     image: text("image"),
+    quantityPerBox: integer("quantity_per_box").default(1),
 })
 
 export const locations = pgTable("locations", {

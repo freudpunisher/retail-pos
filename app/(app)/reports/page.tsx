@@ -46,20 +46,23 @@ const getMonthEnd = () => {
 }
 
 export default function ReportsPage() {
-  const [dateFrom, setDateFrom] = useState("")
-  const [dateTo, setDateTo] = useState("")
+  const [dateFrom, setDateFrom] = useState(getMonthStart)
+  const [dateTo, setDateTo] = useState(getMonthEnd)
+  const [granularity, setGranularity] = useState<"day" | "week" | "month">("day")
 
   const { transactions, loading: txLoading, fetchTransactions } = useTransactions()
   const { purchaseOrders, loading: poLoading, refresh: fetchPurchaseOrders } = usePurchaseOrders()
-  const { movements, loading: moveLoading, refresh: fetchMovements } = useStockMovements()
+  const { movements, loading: moveLoading, refresh: fetchStockMovements } = useStockMovements()
   const { clients, loading: clientLoading, refresh: fetchClients } = useClients()
+
+  const isLoading = txLoading || poLoading || moveLoading || clientLoading
 
   const fetchAllData = useCallback((from?: string, to?: string) => {
     fetchTransactions(from, to)
     fetchPurchaseOrders(from, to)
-    fetchMovements(from, to)
+    fetchStockMovements(from, to)
     fetchClients()
-  }, [fetchTransactions, fetchPurchaseOrders, fetchMovements, fetchClients])
+  }, [fetchTransactions, fetchPurchaseOrders, fetchStockMovements, fetchClients])
 
   // Fetch on mount with no date filter (all data)
   useEffect(() => {

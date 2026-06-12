@@ -1,5 +1,11 @@
 "use client"
 
+const uuid = () =>
+    "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16)
+    })
+
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -38,7 +44,7 @@ export default function NewTransferPage() {
     const [toLocationId, setToLocationId] = useState("")
     const [notes, setNotes] = useState("")
     const [lineItems, setLineItems] = useState<LineItem[]>([
-        { key: crypto.randomUUID(), productId: "", quantity: "" },
+        { key: uuid(), productId: "", quantity: "" },
     ])
     const [stockByLocation, setStockByLocation] = useState<any[]>([])
     const [loadingStock, setLoadingStock] = useState(false)
@@ -99,7 +105,7 @@ export default function NewTransferPage() {
     const barLocations = locations.filter((l: any) => l.type === "bar")
     const kitchenLocations = locations.filter((l: any) => l.type === "kitchen")
 
-    const addLineItem = () => setLineItems([...lineItems, { key: crypto.randomUUID(), productId: "", quantity: "" }])
+    const addLineItem = () => setLineItems([...lineItems, { key: uuid(), productId: "", quantity: "" }])
     const removeLineItem = (key: string) => lineItems.length > 1 && setLineItems(lineItems.filter((i) => i.key !== key))
     const updateLineItem = (key: string, field: keyof LineItem, value: string) =>
         setLineItems(lineItems.map((i) => (i.key === key ? { ...i, [field]: value } : i)))
@@ -306,7 +312,7 @@ export default function NewTransferPage() {
                     <div className="flex items-center gap-2">
                         <Button type="button" variant="ghost" onClick={() => {
                             setFromLocationId(""); setToLocationId(""); setNotes("")
-                            setLineItems([{ key: crypto.randomUUID(), productId: "", quantity: "" }])
+                            setLineItems([{ key: uuid(), productId: "", quantity: "" }])
                         }}>
                             Reset
                         </Button>

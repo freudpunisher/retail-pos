@@ -81,18 +81,20 @@ export function ProductGrid() {
 
   const { products, loading: productsLoading, refresh } = useProducts(selectedCategoryId || "all", search)
   const { categories, loading: categoriesLoading } = useCategories()
+  const { user } = useAuth()
 
   // Filter: only show drink and food (not ingredients), optionally filter by type
   const posProducts = useMemo(() => {
-    return products.filter((p: any) => {
-      if (p.productType === "ingredient") return false
-      if (posFilter === "all") return true
-      return p.productType === posFilter
-    })
-  }, [products, posFilter])
+    let filtered = products.filter((p: any) => p.productType !== "ingredient")
+    if (posFilter !== "all") filtered = filtered.filter((p: any) => p.productType === posFilter)
+    if (user?.role === "cashier_bakery") {
+      filtered = filtered.filter((p: any) => p.sector === "Boulangerie" && p.type === "finished_good")
+    }
+    return filtered
+  }, [products, posFilter, user?.role])
 
   const getStockStatus = (product: any, effectiveStock: number) => {
-    if (product.productType === "food") return "mto" // made to order
+    if (product.productType === "food") return "mto"
     if (effectiveStock === 0 && product.productType !== "food") return "out"
     if (effectiveStock <= product.minStock) return "low"
     return "in-stock"

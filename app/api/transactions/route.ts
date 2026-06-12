@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 import db from "@/lib/db"
-import { transactions, transactionItems, products, stockMovements, clients } from "@/lib/db/schema"
+import { transactions, transactionItems, products, stockMovements, clients, creditRecords, cashFlow, stock } from "@/lib/db/schema"
 import { eq, sql, gte, lte, and, max } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams
+        const sector = searchParams.get("sector")
         const dateFrom = searchParams.get("dateFrom")
         const dateTo = searchParams.get("dateTo")
 
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { type, total, status, paymentMethod, clientId, userId, items } = body
+        const { type, total, status, paymentMethod, clientId, userId, items, invoiceRef } = body
         const normalizedType = String(type || "").toLowerCase().trim()
         const normalizedPaymentMethod = String(paymentMethod || "").toLowerCase().trim()
 

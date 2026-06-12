@@ -3,6 +3,7 @@ import db from "@/lib/db"
 import { products, categories, stock } from "@/lib/db/schema"
 import { eq, desc, sql } from "drizzle-orm"
 import { resolveWarehouse } from "@/lib/db/location-utils"
+import { requireAdmin } from "@/lib/auth-guard"
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
                 categoryId: products.categoryId,
                 categoryName: categories.name,
                 sector: products.sector,
+                quantityPerBox: products.quantityPerBox,
             })
             .from(products)
             .leftJoin(categories, eq(products.categoryId, categories.id))
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
         if (authError) return authError
 
         const body = await request.json()
-        const { name, categoryId, productType, price, minStock, trackStock, image } = body
+        const { name, categoryId, productType, price, cost, minStock, unit, trackStock, image, sector, quantityPerBox } = body
         let { sku } = body
 
         if (!name || price === undefined) {
@@ -74,10 +76,14 @@ export async function POST(request: Request) {
                     categoryId,
                     productType: productType || "food",
                     price: price.toString(),
+                    cost: cost ? cost.toString() : null,
                     stock: 0, // Always 0 on creation
                     minStock: minStock || 10,
+                    unit,
                     trackStock: trackStock || false,
                     image,
+                    sector,
+                    quantityPerBox: quantityPerBox || 1,
                 })
                 .returning()
 

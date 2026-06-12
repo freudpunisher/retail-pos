@@ -32,5 +32,23 @@ export function useLocations() {
         return loc
     }
 
-    return { locations, loading, refresh: fetchLocations, createLocation }
+    const updateLocation = async (id: string, data: any) => {
+        const res = await fetch(`/api/locations/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        })
+        if (!res.ok) throw new Error("Failed to update location")
+        const updated = await res.json()
+        setLocations((prev) => prev.map((l) => (l.id === id ? updated : l)))
+        return updated
+    }
+
+    const deleteLocation = async (id: string) => {
+        const res = await fetch(`/api/locations/${id}`, { method: "DELETE" })
+        if (!res.ok) throw new Error("Failed to delete location")
+        setLocations((prev) => prev.filter((l) => l.id !== id))
+    }
+
+    return { locations, loading, refresh: fetchLocations, createLocation, updateLocation, deleteLocation }
 }

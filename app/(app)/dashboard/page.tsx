@@ -181,7 +181,7 @@ export default function DashboardPage() {
       {/* Chart + Quick Stats Side by Side */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <SalesChart loading={statsLoading} timePeriod={timePeriod} />
+          <SalesChart loading={statsLoading} timePeriod={timePeriod} sector={dashboardSector} />
         </div>
 
         <Card className="border-border/50 shadow-sm">
