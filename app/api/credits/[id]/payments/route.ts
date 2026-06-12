@@ -62,10 +62,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         .where(eq(transactions.id, record.transactionId))
 
       await tx.insert(cashFlow).values({
-        date: new Date(),
         amount: numericAmount.toString(),
         type: "inflow",
-        category: "sales",
+        category: "sale",
         description: `Paiement crédit ${linkedTransaction?.invoiceRef || record.transactionId} (${method})`,
         referenceId: payment.id,
         referenceType: "credit_payment",

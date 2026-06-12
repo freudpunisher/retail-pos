@@ -57,8 +57,8 @@ export const products = pgTable("products", {
     type: text("type"),
     unit: text("unit"),
     cost: numeric("cost", { precision: 12, scale: 2 }),
-    stock: integer("stock").notNull().default(0), // Kept for backward compatibility/simplicity
-    minStock: integer("min_stock").notNull().default(0),
+    stock: numeric("stock", { precision: 12, scale: 3 }).notNull().default("0"), // Kept for backward compatibility/simplicity
+    minStock: numeric("min_stock", { precision: 12, scale: 3 }).notNull().default("0"),
     trackStock: boolean("track_stock").notNull().default(false),
     image: text("image"),
     quantityPerBox: integer("quantity_per_box").default(1),
@@ -84,10 +84,10 @@ export const stock = pgTable("stock", {
     id: uuid("id").primaryKey().defaultRandom(),
     productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
     locationId: uuid("location_id").notNull().references(() => locations.id),
-    quantityOnHand: integer("quantity_on_hand").notNull().default(0),
-    quantityReserved: integer("quantity_reserved").notNull().default(0),
-    reorderLevel: integer("reorder_level").notNull().default(10),
-    reorderQuantity: integer("reorder_quantity").notNull().default(20),
+    quantityOnHand: numeric("quantity_on_hand", { precision: 12, scale: 3 }).notNull().default("0"),
+    quantityReserved: numeric("quantity_reserved", { precision: 12, scale: 3 }).notNull().default("0"),
+    reorderLevel: numeric("reorder_level", { precision: 12, scale: 3 }).notNull().default("10"),
+    reorderQuantity: numeric("reorder_quantity", { precision: 12, scale: 3 }).notNull().default("20"),
     lastCountedDate: timestamp("last_counted_date"),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
@@ -97,7 +97,7 @@ export const stockTransfers = pgTable("stock_transfers", {
     productId: uuid("product_id").references(() => products.id),
     fromLocationId: uuid("from_location_id").notNull().references(() => locations.id),
     toLocationId: uuid("to_location_id").notNull().references(() => locations.id),
-    quantity: integer("quantity"),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }),
     transferType: transferTypeEnum("transfer_type").notNull().default("demand"),
     userId: uuid("user_id").notNull().references(() => users.id),
     date: timestamp("date").notNull().defaultNow(),
@@ -112,7 +112,7 @@ export const stockTransferItems = pgTable("stock_transfer_items", {
     id: uuid("id").primaryKey().defaultRandom(),
     transferId: uuid("transfer_id").notNull().references(() => stockTransfers.id, { onDelete: "cascade" }),
     productId: uuid("product_id").notNull().references(() => products.id),
-    quantity: integer("quantity").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
 })
 
 export const tables = pgTable("tables", {
@@ -349,6 +349,38 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     inventoryItems: many(inventoryItems),
     recipes: many(recipes), // Products that are produced via recipes
     ingredientIn: many(recipeIngredients), // Products used as ingredients
+    productionRuns: many(productionRuns),
+}))
+
+export const recipesRelations = relations(recipes, ({ one, many }) => ({
+    product: one(products, {
+        fields: [recipes.productId],
+        references: [products.id],
+    }),
+    ingredients: many(recipeIngredients),
+    productionRuns: many(productionRuns),
+}))
+
+export const recipeIngredientsRelations = relations(recipeIngredients, ({ one }) => ({
+    recipe: one(recipes, {
+        fields: [recipeIngredients.recipeId],
+        references: [recipes.id],
+    }),
+    ingredient: one(products, {
+        fields: [recipeIngredients.ingredientId],
+        references: [products.id],
+    }),
+}))
+
+export const productionRunsRelations = relations(productionRuns, ({ one }) => ({
+    recipe: one(recipes, {
+        fields: [productionRuns.recipeId],
+        references: [recipes.id],
+    }),
+    user: one(users, {
+        fields: [productionRuns.producedBy],
+        references: [users.id],
+    }),
 }))
 
 export const stockRelations = relations(stock, ({ one }) => ({

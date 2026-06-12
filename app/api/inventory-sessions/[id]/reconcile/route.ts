@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { inventory, inventoryItems, stock, stockMovements, products, stockAdjustments } from "@/lib/db/schema"
-import { eq, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
+import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function POST(
     request: Request,
@@ -33,9 +34,15 @@ export async function POST(
             for (const item of session.items) {
                 const variance = Number(item.variance ?? 0)
                 const physicalQty = Number(item.physicalQuantity ?? 0)
+                const warehouse = await resolveWarehouse(tx, item.product?.productType || "ingredient")
+
                 if (variance !== 0) {
                     // Update Stock table
-                    const [stockRow] = await tx.select().from(stock).where(eq(stock.productId, item.productId))
+                    const [stockRow] = await tx
+                        .select()
+                        .from(stock)
+                        .where(and(eq(stock.productId, item.productId), eq(stock.locationId, warehouse.id)))
+
                     if (stockRow) {
                         await tx
                             .update(stock)
@@ -44,26 +51,24 @@ export async function POST(
                                 lastCountedDate: new Date(),
                                 updatedAt: new Date(),
                             })
-                            .where(eq(stock.productId, item.productId))
+                            .where(eq(stock.id, stockRow.id))
                     } else {
                         await tx.insert(stock).values({
                             productId: item.productId,
+                            locationId: warehouse.id,
                             quantityOnHand: physicalQty.toString(),
                             quantityReserved: "0",
-                            reorderLevel: Number(item.product?.minStock || 10),
-                            reorderQuantity: 20,
+                            reorderLevel: (item.product?.minStock || 0).toString(),
+                            reorderQuantity: "20",
                             lastCountedDate: new Date(),
                             updatedAt: new Date(),
                         })
                     }
 
                     // Update Products table (denormalized total stock)
-                    const [product] = await tx.select().from(products).where(eq(products.id, item.productId))
-                    if (product) {
-                        await tx.update(products).set({
-                            stock: physicalQty
-                        }).where(eq(products.id, item.productId))
-                    }
+                    await tx.update(products).set({
+                        stock: physicalQty.toString()
+                    }).where(eq(products.id, item.productId))
 
                     // Record Stock Movement
                     await tx.insert(stockMovements).values({
@@ -86,7 +91,11 @@ export async function POST(
                     })
                 } else {
                     // Even if variance is 0, update last counted date
-                    const [stockRow] = await tx.select().from(stock).where(eq(stock.productId, item.productId))
+                    const [stockRow] = await tx
+                        .select()
+                        .from(stock)
+                        .where(and(eq(stock.productId, item.productId), eq(stock.locationId, warehouse.id)))
+
                     if (stockRow) {
                         await tx
                             .update(stock)
@@ -94,14 +103,15 @@ export async function POST(
                                 lastCountedDate: new Date(),
                                 updatedAt: new Date(),
                             })
-                            .where(eq(stock.productId, item.productId))
+                            .where(eq(stock.id, stockRow.id))
                     } else {
                         await tx.insert(stock).values({
                             productId: item.productId,
+                            locationId: warehouse.id,
                             quantityOnHand: physicalQty.toString(),
                             quantityReserved: "0",
-                            reorderLevel: Number(item.product?.minStock || 10),
-                            reorderQuantity: 20,
+                            reorderLevel: (item.product?.minStock || 0).toString(),
+                            reorderQuantity: "20",
                             lastCountedDate: new Date(),
                             updatedAt: new Date(),
                         })

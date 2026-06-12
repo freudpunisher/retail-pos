@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { productionRuns, recipes, recipeIngredients, stock, stockMovements, products } from "@/lib/db/schema"
-import { eq, desc, sql } from "drizzle-orm"
+import { eq, desc, sql, and } from "drizzle-orm"
+import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function GET(request: Request) {
     try {
@@ -58,10 +59,11 @@ export async function POST(request: Request) {
 
             for (const item of recipe.ingredients) {
                 const requiredQty = Number(item.quantity) * productionRatio
+                const warehouse = await resolveWarehouse(tx, 'raw_material')
                 const [stockRecord] = await tx
                     .select()
                     .from(stock)
-                    .where(eq(stock.productId, item.ingredientId))
+                    .where(and(eq(stock.productId, item.ingredientId), eq(stock.locationId, warehouse.id)))
 
                 const availableQty = Number(stockRecord?.quantityOnHand || 0)
                 if (availableQty < requiredQty) {
@@ -104,11 +106,12 @@ export async function POST(request: Request) {
             // 3. Deduct Raw Materials (Ingredients)
             for (const item of recipe.ingredients) {
                 const requiredQty = Number(item.quantity) * productionRatio
+                const warehouse = await resolveWarehouse(tx, 'raw_material')
 
                 const [stockRecord] = await tx
                     .select()
                     .from(stock)
-                    .where(eq(stock.productId, item.ingredientId))
+                    .where(and(eq(stock.productId, item.ingredientId), eq(stock.locationId, warehouse.id)))
 
                 if (stockRecord) {
                     await tx
@@ -117,14 +120,15 @@ export async function POST(request: Request) {
                             quantityOnHand: sql`${stock.quantityOnHand} - ${requiredQty}`,
                             updatedAt: new Date(),
                         })
-                        .where(eq(stock.productId, item.ingredientId))
+                        .where(eq(stock.id, stockRecord.id))
                 } else {
                     await tx.insert(stock).values({
                         productId: item.ingredientId,
-                        quantityOnHand: 0,
-                        quantityReserved: 0,
-                        reorderLevel: 10,
-                        reorderQuantity: 20,
+                        locationId: warehouse.id,
+                        quantityOnHand: (-requiredQty).toString(),
+                        quantityReserved: "0",
+                        reorderLevel: (item.ingredient.minStock || 0).toString(),
+                        reorderQuantity: "20",
                         updatedAt: new Date(),
                     })
                 }
@@ -140,8 +144,8 @@ export async function POST(request: Request) {
                 await tx.insert(stockMovements).values({
                     productId: item.ingredientId,
                     productName: item.ingredient.name,
-                    type: "sale", // Using 'sale' for outflow
-                    quantity: requiredQty,
+                    type: "sale",
+                    quantity: (-requiredQty).toString(),
                     userId: userId,
                     notes: `Used in production run ${run.batchNumber}`,
                 })

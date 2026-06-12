@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { productionRuns, recipes, stock, stockMovements, products } from "@/lib/db/schema"
-import { eq, sql } from "drizzle-orm"
+import { eq, sql, and } from "drizzle-orm"
+import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -34,10 +35,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         return { error: "Recipe not found", status: 404 }
       }
 
+      const warehouse = await resolveWarehouse(tx, 'food') // Or derived from product.productType
       const [finishedStock] = await tx
         .select()
         .from(stock)
-        .where(eq(stock.productId, recipe.productId))
+        .where(and(eq(stock.productId, recipe.productId), eq(stock.locationId, warehouse.id)))
 
       if (finishedStock) {
         await tx
@@ -46,14 +48,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             quantityOnHand: sql`${stock.quantityOnHand} + ${numericQty}`,
             updatedAt: new Date(),
           })
-          .where(eq(stock.productId, recipe.productId))
+          .where(eq(stock.id, finishedStock.id))
       } else {
         await tx.insert(stock).values({
           productId: recipe.productId,
-          quantityOnHand: numericQty,
-          quantityReserved: 0,
-          reorderLevel: recipe.product?.minStock ?? 10,
-          reorderQuantity: 20,
+          locationId: warehouse.id,
+          quantityOnHand: numericQty.toString(),
+          quantityReserved: "0",
+          reorderLevel: (recipe.product?.minStock ?? 0).toString(),
+          reorderQuantity: "20",
           updatedAt: new Date(),
         })
       }
@@ -68,8 +71,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       await tx.insert(stockMovements).values({
         productId: recipe.productId,
         productName: recipe.product?.name || "Produit fini",
-        type: "purchase",
-        quantity: numericQty,
+        type: "purchase", // Or 'production' if type exists
+        quantity: numericQty.toString(),
         userId,
         notes: `Produced in run ${run.batchNumber || run.id}`,
       })

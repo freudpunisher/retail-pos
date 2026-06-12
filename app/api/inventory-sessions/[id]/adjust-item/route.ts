@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { inventory, inventoryItems, products, stock, stockAdjustments, stockMovements } from "@/lib/db/schema"
-import { eq, sql } from "drizzle-orm"
+import { eq, sql, and } from "drizzle-orm"
+import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function POST(
   request: Request,
@@ -72,7 +73,9 @@ export async function POST(
         })
         .where(eq(inventoryItems.id, sessionItemId))
 
-      const [stockRow] = await tx.select().from(stock).where(eq(stock.productId, productId))
+      const warehouse = await resolveWarehouse(tx, product.productType || "ingredient")
+      const [stockRow] = await tx.select().from(stock).where(and(eq(stock.productId, productId), eq(stock.locationId, warehouse.id)))
+
       if (stockRow) {
         await tx
           .update(stock)
@@ -81,20 +84,21 @@ export async function POST(
             lastCountedDate: new Date(),
             updatedAt: new Date(),
           })
-          .where(eq(stock.productId, productId))
+          .where(and(eq(stock.productId, productId), eq(stock.locationId, warehouse.id)))
       } else {
         await tx.insert(stock).values({
           productId,
+          locationId: warehouse.id,
           quantityOnHand: physicalQty.toString(),
           quantityReserved: "0",
-          reorderLevel: Number(item.product?.minStock || 10),
-          reorderQuantity: 20,
+          reorderLevel: (product.minStock || 0).toString(),
+          reorderQuantity: "20",
           lastCountedDate: new Date(),
           updatedAt: new Date(),
         })
       }
 
-      await tx.update(products).set({ stock: physicalQty }).where(eq(products.id, productId))
+      await tx.update(products).set({ stock: physicalQty.toString() }).where(eq(products.id, productId))
 
       if (variance !== 0) {
         await tx.insert(stockMovements).values({

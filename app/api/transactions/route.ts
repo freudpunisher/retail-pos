@@ -3,6 +3,7 @@ import { NextRequest } from "next/server"
 import db from "@/lib/db"
 import { transactions, transactionItems, products, stockMovements, clients, creditRecords, cashFlow, stock } from "@/lib/db/schema"
 import { eq, sql, gte, lte, and, max } from "drizzle-orm"
+import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function GET(request: NextRequest) {
     try {
@@ -152,6 +153,7 @@ export async function POST(request: Request) {
                         name: products.name,
                         stock: products.stock,
                         minStock: products.minStock,
+                        productType: products.productType,
                     })
                     .from(products)
                     .where(eq(products.id, item.productId))
@@ -160,12 +162,14 @@ export async function POST(request: Request) {
                     throw new Error(`Product not found: ${item.productId}`)
                 }
 
+                const warehouse = await resolveWarehouse(tx, product.productType || "food")
                 const [stockRecord] = await tx
                     .select({
+                        id: stock.id,
                         quantityOnHand: stock.quantityOnHand,
                     })
                     .from(stock)
-                    .where(eq(stock.productId, item.productId))
+                    .where(and(eq(stock.productId, item.productId), eq(stock.locationId, warehouse.id)))
 
                 const quantityChange = normalizedType === "sale" ? -itemQuantity : itemQuantity
                 const availableQty = Number(stockRecord?.quantityOnHand ?? product.stock ?? 0)
@@ -198,15 +202,16 @@ export async function POST(request: Request) {
                             quantityOnHand: sql`${stock.quantityOnHand} + ${quantityChange}`,
                             updatedAt: new Date(),
                         })
-                        .where(eq(stock.productId, item.productId))
+                        .where(eq(stock.id, stockRecord.id))
                 } else {
                     const fallbackQty = Number(product.stock || 0) + quantityChange
                     await tx.insert(stock).values({
                         productId: item.productId,
+                        locationId: warehouse.id,
                         quantityOnHand: Math.max(0, fallbackQty).toString(),
                         quantityReserved: "0",
-                        reorderLevel: Number(product.minStock || 10),
-                        reorderQuantity: 20,
+                        reorderLevel: product.minStock || "0",
+                        reorderQuantity: "20",
                         updatedAt: new Date(),
                     })
                 }

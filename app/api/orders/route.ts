@@ -99,7 +99,9 @@ export async function POST(request: Request) {
                 await db.insert(stock).values({
                     productId: item.productId,
                     locationId: saleLocation.id,
-                    quantityOnHand: -item.quantity,
+                    quantityOnHand: (-item.quantity).toString(),
+                    reorderLevel: "0",
+                    reorderQuantity: "0",
                 })
             }
 
@@ -108,7 +110,7 @@ export async function POST(request: Request) {
                 productId: item.productId,
                 productName: item.productName,
                 type: "sale",
-                quantity: -item.quantity,
+                quantity: (-item.quantity).toString(),
                 userId,
                 notes: `Order ${newOrder.id}`,
             })

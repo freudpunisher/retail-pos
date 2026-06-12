@@ -197,7 +197,10 @@ export async function receive(request: Request) {
       // Update stock for each item
       for (const item of items) {
         const [product] = await tx
-          .select({ productType: products.productType })
+          .select({
+            productType: products.productType,
+            minStock: products.minStock
+          })
           .from(products)
           .where(eq(products.id, item.productId))
           .limit(1)
@@ -232,7 +235,9 @@ export async function receive(request: Request) {
           await tx.insert(stock).values({
             productId: item.productId,
             locationId: warehouse.id,
-            quantityOnHand: Math.round(Number(item.quantity) || 0),
+            quantityOnHand: item.quantity,
+            reorderLevel: (product?.minStock || 0).toString(),
+            reorderQuantity: "20",
           });
         }
 

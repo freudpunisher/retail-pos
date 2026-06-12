@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { products, stock, stockMovements } from "@/lib/db/schema"
 import { and, eq, sql } from "drizzle-orm"
+import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function GET() {
   try {
@@ -51,7 +52,9 @@ export async function POST(request: Request) {
         throw new Error("Product must be a bakery finished good")
       }
 
-      const [stockRecord] = await tx.select().from(stock).where(eq(stock.productId, productId))
+      const warehouse = await resolveWarehouse(tx, 'food')
+      const [stockRecord] = await tx.select().from(stock).where(and(eq(stock.productId, productId), eq(stock.locationId, warehouse.id)))
+
       if (stockRecord) {
         await tx
           .update(stock)
@@ -59,14 +62,15 @@ export async function POST(request: Request) {
             quantityOnHand: sql`${stock.quantityOnHand} + ${numericQty}`,
             updatedAt: new Date(),
           })
-          .where(eq(stock.productId, productId))
+          .where(eq(stock.id, stockRecord.id))
       } else {
         await tx.insert(stock).values({
           productId,
-          quantityOnHand: numericQty,
-          quantityReserved: 0,
-          reorderLevel: product.minStock ?? 10,
-          reorderQuantity: 20,
+          locationId: warehouse.id,
+          quantityOnHand: numericQty.toString(),
+          quantityReserved: "0",
+          reorderLevel: (product.minStock || 0).toString(),
+          reorderQuantity: "20",
           updatedAt: new Date(),
         })
       }
@@ -82,7 +86,7 @@ export async function POST(request: Request) {
         productId,
         productName: product.name,
         type: "adjustment",
-        quantity: numericQty,
+        quantity: numericQty.toString(),
         userId,
         notes: note || "Production entry",
       })

@@ -77,13 +77,13 @@ export async function POST(request: Request) {
                     productType: productType || "food",
                     price: price.toString(),
                     cost: cost ? cost.toString() : null,
-                    stock: 0, // Always 0 on creation
-                    minStock: minStock || 10,
+                    stock: "0", // Always 0 on creation
+                    minStock: (minStock || 0).toString(),
                     unit,
                     trackStock: trackStock || false,
                     image,
                     sector,
-                    quantityPerBox: quantityPerBox || 1,
+                    quantityPerBox: parseInt(quantityPerBox) || 1,
                 })
                 .returning()
 
@@ -96,10 +96,10 @@ export async function POST(request: Request) {
                 await tx.insert(stock).values({
                     productId: newProduct.id,
                     locationId: warehouse.id,
-                    quantityOnHand: 0,
-                    quantityReserved: 0,
-                    reorderLevel: minStock || 10,
-                    reorderQuantity: 20
+                    quantityOnHand: "0",
+                    quantityReserved: "0",
+                    reorderLevel: (minStock || 0).toString(),
+                    reorderQuantity: "20"
                 })
             }
 

@@ -36,7 +36,10 @@ export async function POST(request: Request) {
                 const { productId, quantity } = item
 
                 const [product] = await tx
-                    .select({ name: products.name })
+                    .select({
+                        name: products.name,
+                        minStock: products.minStock
+                    })
                     .from(products)
                     .where(eq(products.id, productId))
                     .limit(1)
@@ -46,7 +49,7 @@ export async function POST(request: Request) {
                 await tx.insert(stockTransferItems).values({
                     transferId: newTransfer.id,
                     productId,
-                    quantity,
+                    quantity: quantity.toString(),
                 })
 
                 const [sourceStock] = await tx
@@ -54,7 +57,7 @@ export async function POST(request: Request) {
                     .from(stock)
                     .where(sql`${stock.productId} = ${productId} AND ${stock.locationId} = ${fromLocationId}`)
 
-                if (!sourceStock || sourceStock.quantityOnHand < quantity) {
+                if (!sourceStock || Number(sourceStock.quantityOnHand || 0) < Number(quantity)) {
                     throw new Error(
                         `Insufficient stock for ${product?.name || productId}. Available: ${sourceStock?.quantityOnHand || 0}, needed: ${quantity}`
                     )
@@ -85,7 +88,9 @@ export async function POST(request: Request) {
                     await tx.insert(stock).values({
                         productId,
                         locationId: toLocationId,
-                        quantityOnHand: quantity,
+                        quantityOnHand: quantity.toString(),
+                        reorderLevel: (product?.minStock || 0).toString(),
+                        reorderQuantity: "20",
                     })
                 }
 
@@ -93,7 +98,7 @@ export async function POST(request: Request) {
                     productId,
                     productName: product?.name || "Unknown",
                     type: "transfer",
-                    quantity: -quantity,
+                    quantity: (-Number(quantity)).toString(),
                     userId,
                     notes: `Direct transfer: ${notes || `to ${toLocationId}`}`,
                 })
