@@ -59,7 +59,7 @@ export async function POST(request: Request) {
                 await tx.insert(stock).values({
                     productId,
                     locationId: targetLocationId,
-                    quantityOnHand: quantityChange,
+                    quantityOnHand: String(quantityChange),
                 })
             }
 
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
             const [product] = await tx.select().from(products).where(eq(products.id, productId))
             if (product) {
                 await tx.update(products).set({
-                    stock: (product.stock || 0) + quantityChange
+                    stock: String(Number(product.stock || 0) + quantityChange)
                 }).where(eq(products.id, productId))
             }
 

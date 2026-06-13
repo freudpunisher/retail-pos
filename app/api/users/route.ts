@@ -3,12 +3,12 @@ import db from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { asc } from "drizzle-orm"
 import { hashPassword } from "@/lib/password"
-import { requireAdmin } from "@/lib/auth-guard"
+import { requireAuth, requireAdmin } from "@/lib/auth-guard"
 
 export async function GET() {
     try {
-        const authError = await requireAdmin()
-        if (authError) return authError
+        const { error } = await requireAuth()
+        if (error) return error
 
         const allUsers = await db
             .select({

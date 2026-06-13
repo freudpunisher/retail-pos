@@ -1,15 +1,15 @@
 "use client"
 
 import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react"
-import type { Product, CartItem, Client } from "./types"
+import type { Product, CartItem, Client, SellingUnit } from "./types"
 
 interface CartContextType {
   items: CartItem[]
   selectedClient: Client | null
   setSelectedClient: (client: Client | null) => void
-  addItem: (product: Product) => void
-  removeItem: (productId: string) => void
-  updateQuantity: (productId: string, quantity: number) => void
+  addItem: (product: Product, sellingUnit?: SellingUnit) => void
+  removeItem: (productId: string, sellingUnitId?: string) => void
+  updateQuantity: (productId: string, quantity: number, sellingUnitId?: string) => void
   updateDiscount: (productId: string, discount: number) => void
   clearCart: () => void
   subtotal: number
@@ -43,40 +43,75 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setPrincipalStockMap(stocks)
   }, [])
 
-  const addItem = useCallback((product: Product) => {
+  const addItem = useCallback((product: Product, sellingUnit?: SellingUnit) => {
     setItems((prev) => {
-      const existing = prev.find((item) => item.id === product.id)
+      const unitKey = sellingUnit?.id || product.id
+      const compositeId = `${product.id}::${unitKey}`
+      const existing = prev.find((item) => {
+        if (sellingUnit) {
+          return item.id === product.id && item.sellingUnitId === sellingUnit.id
+        }
+        return item.id === product.id && !item.sellingUnitId
+      })
       const currentQty = existing ? existing.quantity : 0
       const isTracked = product.productType === "food" || product.trackStock
       const maxQty = isTracked ? (productStocksRef.current[product.id] ?? 0) : Infinity
       if (product.productType !== "food" && currentQty >= maxQty) return prev
       if (existing) {
-        return prev.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item))
+        return prev.map((item) => {
+          if (sellingUnit) {
+            if (item.id === product.id && item.sellingUnitId === sellingUnit.id) {
+              return { ...item, quantity: item.quantity + 1 }
+            }
+          } else if (item.id === product.id && !item.sellingUnitId) {
+            return { ...item, quantity: item.quantity + 1 }
+          }
+          return item
+        })
       }
-      return [...prev, { ...product, quantity: 1, discount: 0 }]
+      return [...prev, {
+        ...product,
+        price: sellingUnit ? sellingUnit.price : product.price,
+        quantity: 1,
+        discount: 0,
+        sellingUnitName: sellingUnit?.name,
+        sellingUnitId: sellingUnit?.id,
+      }]
     })
   }, [])
 
-  const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== productId))
+  const removeItem = useCallback((productId: string, sellingUnitId?: string) => {
+    setItems((prev) => prev.filter((item) => {
+      if (sellingUnitId) return !(item.id === productId && item.sellingUnitId === sellingUnitId)
+      if (item.sellingUnitId) return item.id !== productId || item.sellingUnitId !== undefined
+      return item.id !== productId
+    }))
   }, [])
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number, sellingUnitId?: string) => {
     if (quantity <= 0) {
-      setItems((prev) => prev.filter((item) => item.id !== productId))
+      setItems((prev) => prev.filter((item) => {
+        if (sellingUnitId) return !(item.id === productId && item.sellingUnitId === sellingUnitId)
+        if (item.sellingUnitId) return item.id !== productId || item.sellingUnitId !== undefined
+        return item.id !== productId
+      }))
     } else {
       setItems((prev) =>
-        prev.map((item) =>
-          item.id === productId
-            ? {
-                ...item,
-                quantity:
-                  item.productType !== "food"
-                    ? Math.min(quantity, item.trackStock ? (productStocksRef.current[item.id] ?? 0) : Infinity)
-                    : quantity,
-              }
-            : item,
-        ),
+        prev.map((item) => {
+          const match = sellingUnitId
+            ? item.id === productId && item.sellingUnitId === sellingUnitId
+            : item.id === productId && !item.sellingUnitId
+          if (match) {
+            return {
+              ...item,
+              quantity:
+                item.productType !== "food"
+                  ? Math.min(quantity, item.trackStock ? (productStocksRef.current[item.id] ?? 0) : Infinity)
+                  : quantity,
+            }
+          }
+          return item
+        }),
       )
     }
   }, [])

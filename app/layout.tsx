@@ -7,26 +7,11 @@ import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "SmartPOS - Point of Sale System",
-  description: "Professional Point of Sale web application for retail management",
+  title: "SmartPOS - Système de Point de Vente",
+  description: "Application web professionnelle de point de vente pour la gestion commerciale",
   generator: "v0.app",
   icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
-    shortcut: "/icon-light-32x32.png",
+    icon: "/ahava.png",
   },
 }
 
@@ -40,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
         <Providers>
           {children}

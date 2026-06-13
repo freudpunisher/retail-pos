@@ -46,7 +46,7 @@ export async function POST() {
             })
             .from(stock)
             .innerJoin(products, eq(products.id, stock.productId))
-            .where(eq(stock.quantityOnHand, 0))
+            .where(eq(stock.quantityOnHand, "0"))
 
         // Create notifications for low stock
         const created: any[] = []

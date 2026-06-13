@@ -37,16 +37,16 @@ import { formatCurrency } from "@/lib/mock-data"
 import type { ExpenseCategory } from "@/lib/types"
 
 const categoryConfig: Record<ExpenseCategory, { label: string; color: string; icon: string }> = {
-    rent: { label: "Rent", color: "bg-blue-500/20 text-blue-600 border-blue-500/30", icon: "🏠" },
-    utilities: { label: "Utilities", color: "bg-yellow-500/20 text-yellow-600 border-yellow-500/30", icon: "⚡" },
-    salaries: { label: "Salaries", color: "bg-green-500/20 text-green-600 border-green-500/30", icon: "👤" },
-    supplies: { label: "Supplies", color: "bg-purple-500/20 text-purple-600 border-purple-500/30", icon: "📦" },
+    rent: { label: "Loyer", color: "bg-blue-500/20 text-blue-600 border-blue-500/30", icon: "🏠" },
+    utilities: { label: "Services publics", color: "bg-yellow-500/20 text-yellow-600 border-yellow-500/30", icon: "⚡" },
+    salaries: { label: "Salaires", color: "bg-green-500/20 text-green-600 border-green-500/30", icon: "👤" },
+    supplies: { label: "Fournitures", color: "bg-purple-500/20 text-purple-600 border-purple-500/30", icon: "📦" },
     maintenance: { label: "Maintenance", color: "bg-orange-500/20 text-orange-600 border-orange-500/30", icon: "🔧" },
     marketing: { label: "Marketing", color: "bg-pink-500/20 text-pink-600 border-pink-500/30", icon: "📢" },
     transport: { label: "Transport", color: "bg-cyan-500/20 text-cyan-600 border-cyan-500/30", icon: "🚚" },
-    insurance: { label: "Insurance", color: "bg-indigo-500/20 text-indigo-600 border-indigo-500/30", icon: "🛡️" },
+    insurance: { label: "Assurance", color: "bg-indigo-500/20 text-indigo-600 border-indigo-500/30", icon: "🛡️" },
     taxes: { label: "Taxes", color: "bg-red-500/20 text-red-600 border-red-500/30", icon: "🏛️" },
-    other: { label: "Other", color: "bg-gray-500/20 text-gray-600 border-gray-500/30", icon: "📋" },
+    other: { label: "Autre", color: "bg-gray-500/20 text-gray-600 border-gray-500/30", icon: "📋" },
 }
 
 export default function ExpensesPage() {
@@ -126,14 +126,14 @@ export default function ExpensesPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Expenses</h2>
-                    <p className="text-muted-foreground">Track and manage all business expenses</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Dépenses</h2>
+                    <p className="text-muted-foreground">Suivez et gérez toutes les dépenses professionnelles</p>
                 </div>
                 <Dialog open={showDialog} onOpenChange={setShowDialog}>
                     <DialogTrigger asChild>
                         <Button className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                             <Plus className="mr-2 h-4 w-4" />
-                            New Expense
+                            Nouvelle dépense
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[500px] border-border/50 shadow-2xl backdrop-blur-xl bg-card/90">
@@ -143,17 +143,17 @@ export default function ExpensesPage() {
                                     <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center">
                                         <TrendingDown className="h-6 w-6 text-destructive" />
                                     </div>
-                                    Record Expense
+                                    Enregistrer une dépense
                                 </DialogTitle>
                                 <DialogDescription className="text-base italic">
-                                    Enter the details of the expense to keep accurate financial records.
+                                    Saisissez les détails de la dépense pour tenir des registres financiers précis.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-6 py-6">
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-primary/80">Expense Name</Label>
+                                    <Label className="text-sm font-bold text-primary/80">Nom de la dépense</Label>
                                     <Input
-                                        placeholder="e.g. Electricity Bill"
+                                        placeholder="ex. Facture d'électricité"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         className="bg-background/50 border-border/50 hover:border-primary/50"
@@ -162,7 +162,7 @@ export default function ExpensesPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-primary/80">Amount</Label>
+                                        <Label className="text-sm font-bold text-primary/80">Montant</Label>
                                         <Input
                                             type="number"
                                             step="0.01"
@@ -174,7 +174,7 @@ export default function ExpensesPage() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-primary/80">Category</Label>
+                                        <Label className="text-sm font-bold text-primary/80">Catégorie</Label>
                                         <Select
                                             value={formData.category}
                                             onValueChange={(val) => setFormData({ ...formData, category: val as ExpenseCategory })}
@@ -201,9 +201,9 @@ export default function ExpensesPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-primary/80">Description (Optional)</Label>
+                                    <Label className="text-sm font-bold text-primary/80">Description (Optionnelle)</Label>
                                     <Input
-                                        placeholder="Additional details about this expense"
+                                        placeholder="Détails supplémentaires sur cette dépense"
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         className="bg-background/50 border-border/50"
@@ -212,11 +212,11 @@ export default function ExpensesPage() {
                             </div>
                             <DialogFooter className="bg-secondary/5 -mx-6 -mb-6 p-6 rounded-b-lg border-t border-border/50">
                                 <Button type="button" variant="outline" onClick={() => setShowDialog(false)} className="border-border/50">
-                                    Cancel
+                                    Annuler
                                 </Button>
                                 <Button type="submit" disabled={isSubmitting} className="min-w-[170px] bg-gradient-to-r from-destructive to-destructive/80 hover:shadow-destructive/30 shadow-lg transition-all">
                                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wallet className="mr-2 h-4 w-4" />}
-                                    Save Expense
+                                    Enregistrer la dépense
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -230,7 +230,7 @@ export default function ExpensesPage() {
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Expenses</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total des dépenses</p>
                                 <p className="text-3xl font-black text-foreground mt-1">{expenses.length}</p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -243,7 +243,7 @@ export default function ExpensesPage() {
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Amount</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Montant total</p>
                                 <p className="text-3xl font-black text-destructive mt-1">{formatCurrency(totalAmount)}</p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -256,7 +256,7 @@ export default function ExpensesPage() {
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">This Filter</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ce filtre</p>
                                 <p className="text-3xl font-black text-accent mt-1">{formatCurrency(totalAmount)}</p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
@@ -269,7 +269,7 @@ export default function ExpensesPage() {
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categories</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Catégories</p>
                                 <p className="text-3xl font-black text-foreground mt-1">{Object.keys(categoryTotals).length}</p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -287,7 +287,7 @@ export default function ExpensesPage() {
                     size="sm"
                     onClick={() => setCategoryFilter("all")}
                 >
-                    All
+                    Tout
                 </Button>
                 {Object.entries(categoryConfig).map(([key, cfg]) => (
                     <Button
@@ -313,13 +313,13 @@ export default function ExpensesPage() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <CardTitle className="text-lg font-bold flex items-center gap-2">
                             <Wallet className="h-5 w-5 text-destructive" />
-                            Expense Records
+                            Registre des dépenses
                             <Badge variant="secondary" className="ml-2">{filtered.length}</Badge>
                         </CardTitle>
                         <div className="relative w-full md:w-72">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Search expenses..."
+                                placeholder="Rechercher des dépenses..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="pl-10 bg-background/50 border-border/50"
@@ -332,11 +332,11 @@ export default function ExpensesPage() {
                         <TableHeader>
                             <TableRow className="bg-secondary/10 hover:bg-secondary/10 border-border/50">
                                 <TableHead className="font-bold">Date</TableHead>
-                                <TableHead className="font-bold">Name</TableHead>
-                                <TableHead className="font-bold">Category</TableHead>
-                                <TableHead className="text-right font-bold">Amount</TableHead>
+                                <TableHead className="font-bold">Nom</TableHead>
+                                <TableHead className="font-bold">Catégorie</TableHead>
+                                <TableHead className="text-right font-bold">Montant</TableHead>
                                 <TableHead className="font-bold">Description</TableHead>
-                                <TableHead className="font-bold">Recorded By</TableHead>
+                                <TableHead className="font-bold">Enregistré par</TableHead>
                                 <TableHead className="text-right font-bold">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -345,7 +345,7 @@ export default function ExpensesPage() {
                                 <TableRow>
                                     <TableCell colSpan={7} className="h-32 text-center">
                                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                                        <p className="mt-2 text-sm text-muted-foreground">Loading expenses...</p>
+                                        <p className="mt-2 text-sm text-muted-foreground">Chargement des dépenses...</p>
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -354,8 +354,8 @@ export default function ExpensesPage() {
                                     <TableCell colSpan={7} className="h-32 text-center text-muted-foreground italic">
                                         <div className="flex flex-col items-center gap-2">
                                             <Wallet className="h-12 w-12 opacity-10" />
-                                            <p className="text-lg font-medium">No expenses found</p>
-                                            <p className="text-sm">Record your first expense to start tracking.</p>
+                                            <p className="text-lg font-medium">Aucune dépense trouvée</p>
+                                            <p className="text-sm">Enregistrez votre première dépense pour commencer le suivi.</p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -385,7 +385,7 @@ export default function ExpensesPage() {
                                         </TableCell>
                                         <TableCell className="max-w-[200px]">
                                             <p className="text-xs text-muted-foreground truncate">
-                                                {exp.description || <span className="italic opacity-40">No description</span>}
+                                                {exp.description || <span className="italic opacity-40">Aucune description</span>}
                                             </p>
                                         </TableCell>
                                         <TableCell>
@@ -399,7 +399,7 @@ export default function ExpensesPage() {
                                                 size="icon"
                                                 className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
                                                 onClick={() => {
-                                                    if (confirm("Delete this expense?")) {
+                                                    if (confirm("Supprimer cette dépense ?")) {
                                                         deleteExpense(exp.id)
                                                     }
                                                 }}

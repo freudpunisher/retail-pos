@@ -303,8 +303,8 @@ export default function RawMaterialsPage() {
                                     <TableCell><Badge variant="outline">{unitLabel(item.unit)}</Badge></TableCell>
                                     <TableCell className="text-right">{Number(item.cost).toLocaleString()} FCFA</TableCell>
                                     <TableCell className="text-right">
-                                        <span className={item.stock <= item.minStock ? "text-destructive font-bold" : ""}>
-                                            {item.stock}
+                                        <span className={Number(item.stock) <= item.minStock ? "text-destructive font-bold" : ""}>
+                                            {Number(item.stock)}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-right">

@@ -14,8 +14,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
 import { formatCurrency } from "@/lib/mock-data"
 import { useCart } from "@/lib/cart-context"
+import { formatStockFromSellingUnits } from "@/lib/stock-utils"
+import type { SellingUnit } from "@/lib/types"
 import {
   Search,
   Plus,
@@ -77,6 +80,7 @@ export function ProductGrid() {
   const [posFilter, setPosFilter] = useState<string>("all")
   const { addItem, items, productStockMap, principalStockMap } = useCart()
   const [stockAlert, setStockAlert] = useState<{ product: any; secondary: number; principal: number } | null>(null)
+  const [unitSelectorProduct, setUnitSelectorProduct] = useState<any | null>(null)
 
   const { products, loading: productsLoading, refresh } = useProducts(selectedCategoryId || "all", search)
   const { categories, loading: categoriesLoading } = useCategories()
@@ -99,7 +103,7 @@ export function ProductGrid() {
     return "in-stock"
   }
 
-  const handleAddItem = (product: any) => {
+  const handleAddItem = (product: any, sellingUnit?: SellingUnit) => {
     const secondaryQty = productStockMap[product.id]
     const principalQty = principalStockMap[product.id]
     const isTracked = product.productType !== "food" && product.trackStock
@@ -109,11 +113,31 @@ export function ProductGrid() {
       return
     }
 
-    addItem({
-      ...product,
-      price: Number.parseFloat(product.price),
-      category: product.categoryName || product.category
-    })
+    addItem(
+      {
+        ...product,
+        price: Number.parseFloat(sellingUnit?.price ?? product.price),
+        category: product.categoryName || product.category,
+      },
+      sellingUnit,
+    )
+  }
+
+  const handleProductClick = (product: any) => {
+    const hasSellingUnits = product.sellingUnits && product.sellingUnits.length > 0
+    const isTracked = product.productType !== "food" && product.trackStock
+    const effectiveStock = isTracked ? (productStockMap[product.id] ?? 0) : Infinity
+    const isOutOfStock = effectiveStock === 0 && product.productType !== "food"
+    const cartQty = items.filter((i) => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0)
+    const isCartFull = product.productType !== "food" && cartQty >= effectiveStock
+
+    if (isOutOfStock || isCartFull) return
+
+    if (hasSellingUnits) {
+      setUnitSelectorProduct(product)
+    } else {
+      handleAddItem(product)
+    }
   }
 
   useEffect(() => {
@@ -131,7 +155,7 @@ export function ProductGrid() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search products by name or SKU..."
+            placeholder="Rechercher des produits par nom ou code..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-9"
@@ -140,30 +164,30 @@ export function ProductGrid() {
 
         <div className="w-full overflow-x-auto">
           <div className="flex gap-1.5 pb-1 min-w-min">
-            <Button
-              variant={posFilter === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setPosFilter("all")}
-              className="shrink-0 h-7 text-xs"
-            >
-              All
-            </Button>
-            <Button
-              variant={posFilter === "drink" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setPosFilter("drink")}
-              className="shrink-0 h-7 text-xs"
-            >
-              Drinks
-            </Button>
-            <Button
-              variant={posFilter === "food" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setPosFilter("food")}
-              className="shrink-0 h-7 text-xs"
-            >
-              Food
-            </Button>
+<Button
+                  variant={posFilter === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPosFilter("all")}
+                  className="shrink-0 h-7 text-xs"
+                >
+                  Tous
+                </Button>
+                <Button
+                  variant={posFilter === "drink" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPosFilter("drink")}
+                  className="shrink-0 h-7 text-xs"
+                >
+                  Boissons
+                </Button>
+                <Button
+                  variant={posFilter === "food" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPosFilter("food")}
+                  className="shrink-0 h-7 text-xs"
+                >
+                  Plats
+                </Button>
             <div className="w-px bg-border mx-1 shrink-0" />
             <Button
               variant={selectedCategoryId === null ? "default" : "outline"}
@@ -171,7 +195,7 @@ export function ProductGrid() {
               onClick={() => setSelectedCategoryId(null)}
               className="shrink-0 h-7 text-xs"
             >
-              Categories
+              Catégories
             </Button>
             {categories.map((category: any) => (
               <Button
@@ -214,7 +238,7 @@ export function ProductGrid() {
                     "group cursor-pointer border-border bg-card transition-all hover:border-primary/50",
                     (isOutOfStock || isCartFull) && "opacity-60",
                   )}
-                  onClick={() => !isOutOfStock && !isCartFull && handleAddItem(product)}
+                  onClick={() => handleProductClick(product)}
                 >
                     <CardContent className="p-3">
                         <div className="relative mb-2 aspect-square overflow-hidden rounded-lg bg-secondary">
@@ -231,14 +255,14 @@ export function ProductGrid() {
                             </div>
                       {isMadeToOrder ? (
                         <Badge className="absolute right-1 top-1 bg-purple-500/80 text-white border-0 text-xs">
-                          MTO
+                          FSP
                         </Badge>
                       ) : isCartFull ? (
                         <Badge className="absolute right-1 top-1 bg-destructive text-xs">Max</Badge>
                       ) : stockStatus === "out" ? (
-                        <Badge className="absolute right-1 top-1 bg-destructive text-xs">Out</Badge>
+                        <Badge className="absolute right-1 top-1 bg-destructive text-xs">Épuisé</Badge>
                       ) : stockStatus === "low" ? (
-                        <Badge className="absolute right-1 top-1 bg-warning text-xs">Low</Badge>
+                        <Badge className="absolute right-1 top-1 bg-warning text-xs">Faible</Badge>
                       ) : null}
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                         {isCartFull || isOutOfStock ? (
@@ -252,9 +276,24 @@ export function ProductGrid() {
                       <p className="truncate text-sm font-medium">{product.name}</p>
                       <p className="text-xs text-muted-foreground">{product.sku}</p>
                       <div className="flex items-center justify-between">
-                        <p className="font-semibold text-primary">{formatCurrency(Number.parseFloat(product.price))}</p>
+                        <p className="font-semibold text-primary">
+                          {product.sellingUnits && product.sellingUnits.length > 0
+                            ? (() => {
+                                const prices = product.sellingUnits.map((s: any) => Number.parseFloat(s.price))
+                                const minP = Math.min(...prices)
+                                const maxP = Math.max(...prices)
+                                return minP === maxP
+                                  ? formatCurrency(minP)
+                                  : `${formatCurrency(minP)} - ${formatCurrency(maxP)}`
+                              })()
+                            : formatCurrency(Number.parseFloat(product.price))
+                          }
+                        </p>
                         <span className="text-xs text-muted-foreground">
-                          {isMadeToOrder ? "Made to Order" : !isTracked ? "In Stock" : `${effectiveStock} in stock`}
+                          {isMadeToOrder ? "Fabriqué sur place" : !isTracked ? "En stock"
+                            : product.sellingUnits?.length > 0
+                              ? `${formatStockFromSellingUnits(Number(effectiveStock), product.sellingUnits)} en stock`
+                              : `${Number(effectiveStock)} en stock`}
                         </span>
                       </div>
                     </div>
@@ -266,10 +305,41 @@ export function ProductGrid() {
         )}
         {!productsLoading && posProducts.length === 0 && (
           <div className="flex h-40 items-center justify-center text-muted-foreground">
-            <p>No products found</p>
+            <p>Aucun produit trouvé</p>
           </div>
         ) as any}
       </div>
+
+      {/* Selling Unit Selector */}
+      <Dialog open={!!unitSelectorProduct} onOpenChange={(open) => !open && setUnitSelectorProduct(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>{unitSelectorProduct?.name}</DialogTitle>
+            <DialogDescription>Sélectionnez une unité de vente à ajouter au panier</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            {unitSelectorProduct?.sellingUnits?.map((su: any) => (
+              <Button
+                key={su.id}
+                variant="outline"
+                className="w-full justify-between h-auto py-3 px-4"
+                onClick={() => {
+                  handleAddItem(unitSelectorProduct, su)
+                  setUnitSelectorProduct(null)
+                }}
+              >
+                <span className="font-medium">{su.name}</span>
+                <span className="font-bold text-primary">{formatCurrency(Number.parseFloat(su.price))}</span>
+              </Button>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setUnitSelectorProduct(null)}>
+              Annuler
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Stock Alert Dialog */}
       <Dialog open={!!stockAlert} onOpenChange={(open) => !open && setStockAlert(null)}>
@@ -277,28 +347,28 @@ export function ProductGrid() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg text-warning">
               <AlertTriangle className="h-5 w-5" />
-              Out of Stock in Bar
+              Rupture de stock au bar
             </DialogTitle>
             <DialogDescription className="text-sm">
-              <strong>{stockAlert?.product.name}</strong> is currently out of stock in the
-              secondary location, but there are{" "}
-              <span className="font-bold text-accent">{stockAlert?.principal ?? 0}</span> units
-              available in the principal warehouse.
+              <strong>{stockAlert?.product.name}</strong> est actuellement en rupture de stock
+              dans l'emplacement secondaire, mais il y a{" "}
+              <span className="font-bold text-accent">{stockAlert?.principal ?? 0}</span> unités
+              disponibles dans l'entrepôt principal.
             </DialogDescription>
           </DialogHeader>
           <div className="bg-secondary/10 rounded-lg p-4 text-sm space-y-1">
-            <p className="font-medium">Recommended:</p>
+            <p className="font-medium">Recommandé :</p>
             <p className="text-muted-foreground">
-              Go to <strong>Stock Transfers</strong> to move stock from the warehouse to the bar
-              before selling.
+              Allez dans <strong>Transferts de stock</strong> pour déplacer le stock de l'entrepôt
+              vers le bar avant de vendre.
             </p>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setStockAlert(null)}>
-              Cancel
+              Annuler
             </Button>
             <Button asChild>
-              <Link href="/stock/transfers">Go to Transfers</Link>
+              <Link href="/stock/transfers">Aller aux transferts</Link>
             </Button>
           </DialogFooter>
         </DialogContent>

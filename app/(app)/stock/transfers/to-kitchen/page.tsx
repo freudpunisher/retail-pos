@@ -124,8 +124,8 @@ export default function TransferToKitchenPage() {
                     <Link href="/stock/transfers"><ChevronLeft className="h-5 w-5" /></Link>
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Transfer to Kitchen</h1>
-                    <p className="text-muted-foreground text-sm">Directly transfer ingredients from transitional to kitchen</p>
+                    <h1 className="text-2xl font-bold tracking-tight">Transfert vers la Cuisine</h1>
+                    <p className="text-muted-foreground text-sm">Transférer directement les ingrédients du stock de transition vers la cuisine</p>
                 </div>
             </div>
 
@@ -133,21 +133,21 @@ export default function TransferToKitchenPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
-                            <ArrowRightLeft className="h-4 w-4" /> Route
+                            <ArrowRightLeft className="h-4 w-4" /> Itinéraire
                         </CardTitle>
-                        <CardDescription>Transitional stock &rarr; Kitchen (immediate transfer)</CardDescription>
+                        <CardDescription>Stock de transition &rarr; Cuisine (transfert immédiat)</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-[1fr,auto,1fr] items-end gap-4">
                             <div className="space-y-1.5">
                                 <Label className="text-sm font-medium flex items-center gap-1.5">
-                                    <Store className="h-4 w-4 text-muted-foreground" /> From (Transitional)
+                                    <Store className="h-4 w-4 text-muted-foreground" /> De (Transition)
                                 </Label>
                                 <Select value={fromLocationId} onValueChange={(v) => {
                                     setFromLocationId(v)
                                     setLineItems(lineItems.map((i) => ({ ...i, productId: "" })))
                                 }}>
-                                    <SelectTrigger className="h-10"><SelectValue placeholder="Select transitional..." /></SelectTrigger>
+                                    <SelectTrigger className="h-10"><SelectValue placeholder="Sélectionner un transit..." /></SelectTrigger>
                                     <SelectContent>
                                         {transitionalLocations.map((l: any) => (
                                             <SelectItem key={l.id} value={l.id}>
@@ -160,7 +160,7 @@ export default function TransferToKitchenPage() {
                             <div className="pb-2"><ArrowRightLeft className="h-6 w-6 text-muted-foreground" /></div>
                             <div className="space-y-1.5">
                                 <Label className="text-sm font-medium flex items-center gap-1.5">
-                                    <UtensilsCrossed className="h-4 w-4 text-muted-foreground" /> To (Kitchen)
+                                    <UtensilsCrossed className="h-4 w-4 text-muted-foreground" /> Vers (Cuisine)
                                 </Label>
                                 <Select value={toLocationId} onValueChange={setToLocationId}>
                                     <SelectTrigger className="h-10"><SelectValue placeholder="Select kitchen..." /></SelectTrigger>

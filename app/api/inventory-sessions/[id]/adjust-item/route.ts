@@ -77,7 +77,7 @@ export async function POST(
         await tx
           .update(stock)
           .set({
-            quantityOnHand: physicalQty,
+            quantityOnHand: physicalQty.toString(),
             lastCountedDate: new Date(),
             updatedAt: new Date(),
           })
@@ -86,8 +86,8 @@ export async function POST(
         await tx.insert(stock).values({
           productId,
           locationId: session.locationId || (await tx.select({ id: locations.id }).from(locations).limit(1))[0]?.id || "",
-          quantityOnHand: physicalQty,
-          quantityReserved: 0,
+          quantityOnHand: physicalQty.toString(),
+          quantityReserved: "0",
           reorderLevel: Number(product.minStock || 10),
           reorderQuantity: 20,
           lastCountedDate: new Date(),
@@ -95,7 +95,7 @@ export async function POST(
         })
       }
 
-      await tx.update(products).set({ stock: physicalQty }).where(eq(products.id, productId))
+      await tx.update(products).set({ stock: physicalQty.toString() }).where(eq(products.id, productId))
 
       if (variance !== 0) {
         await tx.insert(stockMovements).values({

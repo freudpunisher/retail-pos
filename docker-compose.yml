@@ -1,46 +1,31 @@
 services:
+  # ── Next.js Application ────────────────────────────────────────────────────
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: smartpos_app
+    container_name: retail-pos-app
     restart: unless-stopped
+    
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    # Charge toutes les variables du fichier .env
+    env_file:
+      - .env
+
+    environment:
+      # On surcharge seulement DATABASE_URL pour Docker
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres2025}@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-retail_pos_db}
+      
+      NODE_ENV: production
+      SESSION_SECRET: ${SESSION_SECRET}
+
     ports:
       - "${APP_PORT:-3000}:3000"
-    environment:
-      NODE_ENV: production
-      NEXT_TELEMETRY_DISABLED: 1
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-smart_pos}
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - smart-pos-network
 
-  db:
-    image: postgres:16-alpine
-    container_name: smartpos_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-smart_pos}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    ports:
-      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - smart-pos-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-networks:
-  smart-pos-network:
-    driver: bridge
+      - app_uploads:/app/public/uploads
 
 volumes:
-  postgres_data:
-    driver: local
+  app_uploads:

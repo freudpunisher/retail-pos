@@ -14,6 +14,10 @@ export async function GET(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams
         const dateFrom = searchParams.get("dateFrom")
         const dateTo = searchParams.get("dateTo")
+        const productId = searchParams.get("productId")
+        const locationId = searchParams.get("locationId")
+        const type = searchParams.get("type")
+        const search = searchParams.get("search")
 
         const conditions: any[] = []
         if (dateFrom) conditions.push(gte(stockMovements.date, new Date(dateFrom)))
@@ -22,6 +26,10 @@ export async function GET(request: NextRequest) {
             end.setHours(23, 59, 59, 999)
             conditions.push(lte(stockMovements.date, end))
         }
+        if (productId) conditions.push(eq(stockMovements.productId, productId))
+        if (locationId) conditions.push(eq(stockMovements.locationId, locationId))
+        if (type && type !== "all") conditions.push(eq(stockMovements.type, type))
+        if (search) conditions.push(sql`${stockMovements.productName} ILIKE ${`%${search}%`}`)
 
         const allMovements = await db.query.stockMovements.findMany({
             where: conditions.length ? and(...conditions) : undefined,

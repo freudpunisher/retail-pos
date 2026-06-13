@@ -24,6 +24,8 @@ export const expenseCategoryEnum = pgEnum("expense_category", [
 ])
 export const cashFlowTypeEnum = pgEnum("cash_flow_type", ["inflow", "outflow"])
 export const cashFlowCategoryEnum = pgEnum("cash_flow_category", ["sale", "purchase", "expense", "other"])
+export const caisseSessionStatusEnum = pgEnum("caisse_session_status", ["open", "closed"])
+export const caisseMovementTypeEnum = pgEnum("caisse_movement_type", ["in", "out"])
 
 // Tables
 export const users = pgTable("users", {
@@ -60,7 +62,7 @@ export const products = pgTable("products", {
     type: text("type"),
     unit: text("unit"),
     cost: numeric("cost", { precision: 12, scale: 2 }),
-    stock: integer("stock").notNull().default(0), // Kept for backward compatibility/simplicity
+    stock: numeric("stock", { precision: 12, scale: 6 }).notNull().default("0"),
     minStock: integer("min_stock").notNull().default(0),
     trackStock: boolean("track_stock").notNull().default(false),
     image: text("image"),
@@ -72,6 +74,17 @@ export const locations = pgTable("locations", {
     name: text("name").notNull(),
     type: locationTypeEnum("type").notNull().default("bar"),
     isActive: boolean("is_active").notNull().default(true),
+})
+
+export const productSellingUnits = pgTable("product_selling_units", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    unitId: uuid("unit_id").references(() => measurementUnits.id),
+    price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+    conversionFactor: numeric("conversion_factor", { precision: 12, scale: 6 }).notNull().default("1"),
+    isDefault: boolean("is_default").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
 })
 
 export const measurementUnits = pgTable("measurement_units", {
@@ -87,8 +100,8 @@ export const stock = pgTable("stock", {
     id: uuid("id").primaryKey().defaultRandom(),
     productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
     locationId: uuid("location_id").notNull().references(() => locations.id),
-    quantityOnHand: integer("quantity_on_hand").notNull().default(0),
-    quantityReserved: integer("quantity_reserved").notNull().default(0),
+    quantityOnHand: numeric("quantity_on_hand", { precision: 12, scale: 6 }).notNull().default("0"),
+    quantityReserved: numeric("quantity_reserved", { precision: 12, scale: 6 }).notNull().default("0"),
     reorderLevel: integer("reorder_level").notNull().default(10),
     reorderQuantity: integer("reorder_quantity").notNull().default(20),
     lastCountedDate: timestamp("last_counted_date"),
@@ -369,6 +382,18 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     inventoryItems: many(inventoryItems),
     recipes: many(recipes), // Products that are produced via recipes
     ingredientIn: many(recipeIngredients), // Products used as ingredients
+    sellingUnits: many(productSellingUnits),
+}))
+
+export const productSellingUnitsRelations = relations(productSellingUnits, ({ one }) => ({
+    product: one(products, {
+        fields: [productSellingUnits.productId],
+        references: [products.id],
+    }),
+    unit: one(measurementUnits, {
+        fields: [productSellingUnits.unitId],
+        references: [measurementUnits.id],
+    }),
 }))
 
 export const stockRelations = relations(stock, ({ one }) => ({
@@ -560,6 +585,50 @@ export const creditPaymentsRelations = relations(creditPayments, ({ one }) => ({
     creditRecord: one(creditRecords, {
         fields: [creditPayments.creditRecordId],
         references: [creditRecords.id],
+    }),
+}))
+
+// Caisse / Cash Register sessions
+export const caisseSessions = pgTable("caisse_sessions", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    openedAt: timestamp("opened_at").notNull().defaultNow(),
+    closedAt: timestamp("closed_at"),
+    openingBalance: numeric("opening_balance", { precision: 12, scale: 2 }).notNull().default("0"),
+    closingBalance: numeric("closing_balance", { precision: 12, scale: 2 }),
+    expectedBalance: numeric("expected_balance", { precision: 12, scale: 2 }),
+    difference: numeric("difference", { precision: 12, scale: 2 }),
+    status: caisseSessionStatusEnum("status").notNull().default("open"),
+    notes: text("notes"),
+    locationId: uuid("location_id").references(() => locations.id),
+})
+
+export const caisseMovements = pgTable("caisse_movements", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id").notNull().references(() => caisseSessions.id, { onDelete: "cascade" }),
+    type: caisseMovementTypeEnum("type").notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    reason: text("reason").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
+// Relations for caisse
+export const caisseSessionsRelations = relations(caisseSessions, ({ one, many }) => ({
+    user: one(users, {
+        fields: [caisseSessions.userId],
+        references: [users.id],
+    }),
+    location: one(locations, {
+        fields: [caisseSessions.locationId],
+        references: [locations.id],
+    }),
+    movements: many(caisseMovements),
+}))
+
+export const caisseMovementsRelations = relations(caisseMovements, ({ one }) => ({
+    session: one(caisseSessions, {
+        fields: [caisseMovements.sessionId],
+        references: [caisseSessions.id],
     }),
 }))
 

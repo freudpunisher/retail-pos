@@ -86,40 +86,40 @@ export default function StaffTablesPage() {
   const handleStaffSubmit = async (data: any) => {
     if (staffDialog.staff) {
       await updateUser(staffDialog.staff.id, data)
-      toast.success("Staff updated")
+      toast.success("Personnel mis à jour")
     } else {
       await createUser(data)
-      toast.success("Staff added")
+      toast.success("Personnel ajouté")
     }
   }
 
   const handleTableSubmit = async (data: any) => {
     if (tableDialog.table) {
       await updateTable(tableDialog.table.id, data)
-      toast.success("Table updated")
+      toast.success("Table mise à jour")
     } else {
       await createTable(data)
-      toast.success("Table added")
+      toast.success("Table ajoutée")
     }
   }
 
   const handleDeleteStaff = async (id: string, name: string) => {
-    if (!window.confirm(`Delete "${name}"?`)) return
+    if (!window.confirm(`Supprimer "${name}" ?`)) return
     try {
       await deleteUser(id)
-      toast.success("Staff deleted")
+      toast.success("Personnel supprimé")
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete")
+      toast.error(err.message || "Échec de la suppression")
     }
   }
 
   const handleDeleteTable = async (id: string, number: number) => {
-    if (!window.confirm(`Delete Table ${number}?`)) return
+    if (!window.confirm(`Supprimer la table ${number} ?`)) return
     try {
       await deleteTable(id)
-      toast.success("Table deleted")
+      toast.success("Table supprimée")
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete")
+      toast.error(err.message || "Échec de la suppression")
     }
   }
 
@@ -139,14 +139,14 @@ export default function StaffTablesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Staff & Tables</h2>
-        <p className="text-muted-foreground">Manage waiters, staff, and floor tables</p>
+        <h2 className="text-2xl font-bold text-foreground">Personnel & Tables</h2>
+        <p className="text-muted-foreground">Gérer les serveurs, le personnel et les tables</p>
       </div>
 
       <Tabs defaultValue="staff" className="space-y-6">
         <TabsList>
           <TabsTrigger value="staff" className="flex items-center gap-2">
-            <Users className="h-4 w-4" /> Staff ({users.length})
+            <Users className="h-4 w-4" /> Personnel ({users.length})
           </TabsTrigger>
           <TabsTrigger value="tables" className="flex items-center gap-2">
             <Table2 className="h-4 w-4" /> Tables ({tables.length})
@@ -160,22 +160,22 @@ export default function StaffTablesPage() {
               <div className="relative w-56">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder="Rechercher par nom ou email..."
                   value={staffSearch}
                   onChange={(e) => { setStaffSearch(e.target.value); setStaffPage(1) }}
                   className="pl-10"
                 />
               </div>
               <Select value={staffRoleFilter} onValueChange={(v) => { setStaffRoleFilter(v); setStaffPage(1) }}>
-                <SelectTrigger className="w-32"><SelectValue placeholder="Role" /></SelectTrigger>
+                <SelectTrigger className="w-32"><SelectValue placeholder="Rôle" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="all">Tous les rôles</SelectItem>
                   {allRoles.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <Button onClick={() => setStaffDialog({ open: true, staff: null })}>
-              <Plus className="h-4 w-4 mr-2" /> Add Staff
+              <Plus className="h-4 w-4 mr-2" /> Ajouter du personnel
             </Button>
           </div>
 
@@ -186,7 +186,7 @@ export default function StaffTablesPage() {
           ) : filteredStaff.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-muted-foreground">
               <Users className="h-16 w-16 mb-4 opacity-20" />
-              <p className="text-lg font-medium">No staff found</p>
+              <p className="text-lg font-medium">Aucun personnel trouvé</p>
             </div>
           ) : (
             <>
@@ -194,10 +194,10 @@ export default function StaffTablesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
-                      <TableHead>Name</TableHead>
+                      <TableHead>Nom</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Role</TableHead>
+                      <TableHead>Téléphone</TableHead>
+                      <TableHead>Rôle</TableHead>
                       <TableHead className="w-24 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -243,7 +243,7 @@ export default function StaffTablesPage() {
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{(staffPage - 1) * staffPageSize + 1}&ndash;{Math.min(staffPage * staffPageSize, filteredStaff.length)} of {filteredStaff.length}</span>
+                  <span>{(staffPage - 1) * staffPageSize + 1}&ndash;{Math.min(staffPage * staffPageSize, filteredStaff.length)} sur {filteredStaff.length}</span>
                   <Select value={String(staffPageSize)} onValueChange={(v) => { setStaffPageSize(Number(v)); setStaffPage(1) }}>
                     <SelectTrigger className="w-20 h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -252,9 +252,9 @@ export default function StaffTablesPage() {
                   </Select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" disabled={staffPage <= 1} onClick={() => setStaffPage((p) => Math.max(1, p - 1))}>Previous</Button>
-                  <span className="text-sm text-muted-foreground">Page {staffPage} of {staffTotalPages}</span>
-                  <Button variant="outline" size="sm" disabled={staffPage >= staffTotalPages} onClick={() => setStaffPage((p) => Math.min(staffTotalPages, p + 1))}>Next</Button>
+                  <Button variant="outline" size="sm" disabled={staffPage <= 1} onClick={() => setStaffPage((p) => Math.max(1, p - 1))}>Précédent</Button>
+                  <span className="text-sm text-muted-foreground">Page {staffPage} sur {staffTotalPages}</span>
+                  <Button variant="outline" size="sm" disabled={staffPage >= staffTotalPages} onClick={() => setStaffPage((p) => Math.min(staffTotalPages, p + 1))}>Suivant</Button>
                 </div>
               </div>
             </>
@@ -268,7 +268,7 @@ export default function StaffTablesPage() {
               <div className="relative w-48">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search table or section..."
+                  placeholder="Rechercher table ou section..."
                   value={tableSearch}
                   onChange={(e) => { setTableSearch(e.target.value); setTablePage(1) }}
                   className="pl-10"
@@ -277,21 +277,21 @@ export default function StaffTablesPage() {
               <Select value={tableSectionFilter} onValueChange={(v) => { setTableSectionFilter(v); setTablePage(1) }}>
                 <SelectTrigger className="w-36"><SelectValue placeholder="Section" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Sections</SelectItem>
+                  <SelectItem value="all">Toutes les sections</SelectItem>
                   {sections.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={tableStatusFilter} onValueChange={(v) => { setTableStatusFilter(v); setTablePage(1) }}>
-                <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectTrigger className="w-36"><SelectValue placeholder="Statut" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="occupied">Occupied</SelectItem>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  <SelectItem value="free">Libre</SelectItem>
+                  <SelectItem value="occupied">Occupé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <Button onClick={() => setTableDialog({ open: true, table: null })}>
-              <Plus className="h-4 w-4 mr-2" /> Add Table
+              <Plus className="h-4 w-4 mr-2" /> Ajouter une table
             </Button>
           </div>
 
@@ -302,7 +302,7 @@ export default function StaffTablesPage() {
           ) : filteredTables.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-muted-foreground">
               <Table2 className="h-16 w-16 mb-4 opacity-20" />
-              <p className="text-lg font-medium">No tables found</p>
+              <p className="text-lg font-medium">Aucune table trouvée</p>
             </div>
           ) : (
             <>
@@ -324,7 +324,7 @@ export default function StaffTablesPage() {
                           <Users className="h-3 w-3" /> {t.capacity}p
                         </div>
                         <Badge variant="outline" className={`mt-2 ${isOccupied ? "text-destructive border-destructive/30" : "text-green-600 border-green-500/30"}`}>
-                          {isOccupied ? "Occupied" : "Free"}
+                          {isOccupied ? "Occupé" : "Libre"}
                         </Badge>
                         {t.section && <p className="text-xs text-muted-foreground mt-1">{t.section}</p>}
                         <div className="flex justify-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -345,7 +345,7 @@ export default function StaffTablesPage() {
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{(tablePage - 1) * tablePageSize + 1}&ndash;{Math.min(tablePage * tablePageSize, filteredTables.length)} of {filteredTables.length}</span>
+                  <span>{(tablePage - 1) * tablePageSize + 1}&ndash;{Math.min(tablePage * tablePageSize, filteredTables.length)} sur {filteredTables.length}</span>
                   <Select value={String(tablePageSize)} onValueChange={(v) => { setTablePageSize(Number(v)); setTablePage(1) }}>
                     <SelectTrigger className="w-20 h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -354,9 +354,9 @@ export default function StaffTablesPage() {
                   </Select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>Previous</Button>
-                  <span className="text-sm text-muted-foreground">Page {tablePage} of {tableTotalPages}</span>
-                  <Button variant="outline" size="sm" disabled={tablePage >= tableTotalPages} onClick={() => setTablePage((p) => Math.min(tableTotalPages, p + 1))}>Next</Button>
+                  <Button variant="outline" size="sm" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>Précédent</Button>
+                  <span className="text-sm text-muted-foreground">Page {tablePage} sur {tableTotalPages}</span>
+                  <Button variant="outline" size="sm" disabled={tablePage >= tableTotalPages} onClick={() => setTablePage((p) => Math.min(tableTotalPages, p + 1))}>Suivant</Button>
                 </div>
               </div>
             </>

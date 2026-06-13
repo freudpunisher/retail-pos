@@ -13,9 +13,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import { useCategories } from "@/hooks/use-products"
 import { useUnits } from "@/hooks/use-units"
-import { Loader2, Beer, Utensils, Package } from "lucide-react"
+import { Loader2, Beer, Utensils, Package, Plus, Trash2, GripVertical } from "lucide-react"
 import Swal from "sweetalert2"
 
 interface ProductFormDialogProps {
@@ -23,6 +24,13 @@ interface ProductFormDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     onSubmit: (data: any) => Promise<void>
+}
+
+interface SellingUnitForm {
+    name: string
+    unitId: string
+    price: string
+    conversionFactor: string
 }
 
 export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: ProductFormDialogProps) {
@@ -40,6 +48,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
         quantityPerBox: "1",
         image: "",
     })
+    const [sellingUnits, setSellingUnits] = useState<SellingUnitForm[]>([])
 
     useEffect(() => {
         if (product) {
@@ -54,6 +63,18 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 quantityPerBox: product.quantityPerBox?.toString() || "1",
                 image: product.image || "",
             })
+            if (product.sellingUnits && product.sellingUnits.length > 0) {
+                setSellingUnits(
+                    product.sellingUnits.map((su: any) => ({
+                        name: su.name || "",
+                        unitId: su.unitId || "",
+                        price: su.price?.toString() || "",
+                        conversionFactor: su.conversionFactor?.toString() || "1",
+                    }))
+                )
+            } else {
+                setSellingUnits([])
+            }
         } else {
             setFormData({
                 name: "",
@@ -66,6 +87,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 quantityPerBox: "1",
                 image: "",
             })
+            setSellingUnits([])
         }
     }, [product, open])
 
@@ -77,6 +99,20 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
             }
         }
     }, [units])
+
+    const addSellingUnit = () => {
+        setSellingUnits([...sellingUnits, { name: "", unitId: "", price: "", conversionFactor: "1" }])
+    }
+
+    const removeSellingUnit = (index: number) => {
+        setSellingUnits(sellingUnits.filter((_, i) => i !== index))
+    }
+
+    const updateSellingUnit = (index: number, field: keyof SellingUnitForm, value: string) => {
+        const updated = [...sellingUnits]
+        updated[index] = { ...updated[index], [field]: value }
+        setSellingUnits(updated)
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -113,6 +149,20 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 data.minStock = 0
             }
 
+            // Include selling units if any
+            const validSellingUnits = sellingUnits.filter(su => su.name.trim() && su.price)
+            if (validSellingUnits.length > 0) {
+                data.sellingUnits = validSellingUnits.map((su, i) => ({
+                    name: su.name.trim(),
+                    unitId: su.unitId || null,
+                    price: parseFloat(su.price) || 0,
+                    conversionFactor: parseFloat(su.conversionFactor) || 1,
+                    isDefault: i === 0,
+                }))
+            } else {
+                data.sellingUnits = []
+            }
+
             await onSubmit(data)
             onOpenChange(false)
         } catch (error) {
@@ -128,7 +178,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>{product ? "Edit Product" : "Add New Product"}</DialogTitle>
@@ -198,11 +248,12 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                             </Select>
                             {categoriesLoading && <span className="col-span-3 text-xs text-muted-foreground">Loading categories...</span>}
                         </div>
+
                         {/* Selling Price (hidden for ingredients) */}
                         {!isIngredient && (
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="price" className="text-right">
-                                    {isFood ? "Plate Price" : "Sell Price"}
+                                    {isFood ? "Plate Price" : "Default Price"}
                                 </Label>
                                 <Input
                                     id="price"
@@ -299,7 +350,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
 
                         {/* Unit Selection */}
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="unit" className="text-right">Unit</Label>
+                            <Label htmlFor="unit" className="text-right">Base Unit</Label>
                             <Select
                                 value={formData.unit}
                                 onValueChange={(value) => setFormData({ ...formData, unit: value })}
@@ -337,6 +388,102 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                     required
                                 />
                             </div>
+                        )}
+
+                        {/* Selling Units Section */}
+                        {!isIngredient && (
+                            <>
+                                <Separator className="my-2" />
+                                <div className="grid grid-cols-4 items-start gap-4">
+                                    <Label className="text-right pt-1">Selling Units</Label>
+                                    <div className="col-span-3 space-y-3">
+                                        {sellingUnits.length === 0 && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Add different packaging options with their own prices (e.g. Short, Bottle).
+                                            </p>
+                                        )}
+                                        {sellingUnits.map((su, index) => (
+                                            <div key={index} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/20">
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                        <div>
+                                                            <Label className="text-xs">Name</Label>
+                                                            <Input
+                                                                value={su.name}
+                                                                onChange={(e) => updateSellingUnit(index, "name", e.target.value)}
+                                                                placeholder="e.g. Short, Bottle"
+                                                                className="h-8 text-sm"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label className="text-xs">Unit</Label>
+                                                            <Select
+                                                                value={su.unitId}
+                                                                onValueChange={(value) => updateSellingUnit(index, "unitId", value)}
+                                                            >
+                                                                <SelectTrigger className="h-8 text-sm">
+                                                                    <SelectValue placeholder="Unit" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {units.map((unit) => (
+                                                                        <SelectItem key={unit.id} value={unit.id}>
+                                                                            {unit.name} ({unit.symbol || unit.code})
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div>
+                                                            <Label className="text-xs">Price</Label>
+                                                            <Input
+                                                                type="number"
+                                                                step="0.01"
+                                                                min="0"
+                                                                value={su.price}
+                                                                onChange={(e) => updateSellingUnit(index, "price", e.target.value)}
+                                                                placeholder="Price"
+                                                                className="h-8 text-sm"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label className="text-xs">Conv.</Label>
+                                                            <Input
+                                                                type="number"
+                                                                step="0.001"
+                                                                min="0.001"
+                                                                value={su.conversionFactor}
+                                                                onChange={(e) => updateSellingUnit(index, "conversionFactor", e.target.value)}
+                                                                placeholder="e.g. 1, 0.05"
+                                                                className="h-8 text-sm"
+                                                                title="How many stock units this selling unit represents. E.g. 1 bottle = 1, 1 short = 0.05"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => removeSellingUnit(index)}
+                                                    className="h-8 w-8 mt-5 shrink-0 text-destructive"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={addSellingUnit}
+                                            className="w-full"
+                                        >
+                                            <Plus className="h-4 w-4 mr-1" />
+                                            Add Selling Unit
+                                        </Button>
+                                    </div>
+                                </div>
+                            </>
                         )}
                     </div>
                     <DialogFooter>

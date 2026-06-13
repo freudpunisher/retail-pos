@@ -56,10 +56,10 @@ export default function TablesPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-foreground">Tables</h2>
-                    <p className="text-muted-foreground">Floor management</p>
+                    <p className="text-muted-foreground">Gestion des salles</p>
                 </div>
                 <Button onClick={() => setShowAdd(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Add Table
+                    <Plus className="h-4 w-4 mr-2" /> Ajouter une table
                 </Button>
             </div>
 
@@ -81,8 +81,8 @@ export default function TablesPage() {
                 {tableStatus.length === 0 ? (
                     <div className="col-span-full flex flex-col items-center py-12 text-muted-foreground">
                         <Table2 className="h-12 w-12 mb-3 opacity-50" />
-                        <p>No tables configured</p>
-                        <p className="text-sm">Add your first table to get started</p>
+                        <p>Aucune table configurée</p>
+                        <p className="text-sm">Ajoutez votre première table pour commencer</p>
                     </div>
                 ) : (
                     tableStatus.map((table) => (
@@ -120,7 +120,7 @@ export default function TablesPage() {
                                     variant="outline"
                                     className={`mt-2 ${table.isOccupied ? "text-destructive border-destructive/30" : "text-green-600 border-green-500/30"}`}
                                 >
-                                    {table.isOccupied ? "Occupied" : "Free"}
+                                    {table.isOccupied ? "Occupée" : "Libre"}
                                 </Badge>
                                 {table.section && (
                                     <p className="text-xs text-muted-foreground mt-1">{table.section}</p>
@@ -134,20 +134,20 @@ export default function TablesPage() {
             <Dialog open={showAdd} onOpenChange={setShowAdd}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Add Table</DialogTitle>
+                        <DialogTitle>Ajouter une table</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Table Number</Label>
+                            <Label>Numéro de table</Label>
                             <Input
                                 type="number"
                                 value={form.number}
                                 onChange={(e) => setForm({ ...form, number: e.target.value })}
-                                placeholder="e.g. 1"
+                                placeholder="ex: 1"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Capacity</Label>
+                            <Label>Capacité</Label>
                             <Input
                                 type="number"
                                 value={form.capacity}
@@ -155,17 +155,17 @@ export default function TablesPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Section (optional)</Label>
+                            <Label>Section (optionnelle)</Label>
                             <Input
                                 value={form.section}
                                 onChange={(e) => setForm({ ...form, section: e.target.value })}
-                                placeholder="e.g. Terrace, Indoor, VIP"
+                                placeholder="ex: Terrasse, Intérieur, VIP"
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
-                        <Button onClick={handleAdd} disabled={!form.number}>Add</Button>
+                        <Button variant="outline" onClick={() => setShowAdd(false)}>Annuler</Button>
+                        <Button onClick={handleAdd} disabled={!form.number}>Ajouter</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { transactions, products, stock, stockMovements, locations } from "@/lib/db/schema"
+import { caisseSessions, transactions, products, stock, stockMovements, locations, productSellingUnits } from "@/lib/db/schema"
 import { eq, and, desc, sql, max } from "drizzle-orm"
 
 export async function GET() {
@@ -30,6 +30,19 @@ export async function POST(request: Request) {
 
         if (!items || items.length === 0 || !userId) {
             return NextResponse.json({ error: "Items and userId are required" }, { status: 400 })
+        }
+
+        // Require an open caisse session before any sale
+        const [openSession] = await db
+            .select()
+            .from(caisseSessions)
+            .where(eq(caisseSessions.status, "open"))
+            .limit(1)
+        if (!openSession) {
+            return NextResponse.json(
+                { error: "Aucune session caisse ouverte. Veuillez ouvrir la caisse avant d'effectuer une vente." },
+                { status: 400 }
+            )
         }
 
         const total = items.reduce(
@@ -63,6 +76,49 @@ export async function POST(request: Request) {
         // Insert transaction items and deduct stock
         const { transactionItems } = await import("@/lib/db/schema")
         for (const item of items) {
+            // Look up conversion factor if selling unit is specified
+            let conversionFactor = 1
+            if (item.sellingUnitId) {
+                const [su] = await db
+                    .select()
+                    .from(productSellingUnits)
+                    .where(eq(productSellingUnits.id, item.sellingUnitId))
+                    .limit(1)
+                if (su) {
+                    conversionFactor = Number(su.conversionFactor)
+                }
+            }
+            const stockQty = item.quantity * conversionFactor
+
+            // Look up bar location and validate stock before inserting
+            let [saleLocation] = await db
+                .select()
+                .from(locations)
+                .where(eq(locations.type, "bar"))
+                .limit(1)
+
+            // Validate bar stock for tracked products
+            const [productInfo] = await db
+                .select({ trackStock: products.trackStock, name: products.name })
+                .from(products)
+                .where(eq(products.id, item.productId))
+                .limit(1)
+
+            if (productInfo?.trackStock && saleLocation) {
+                const [barStock] = await db
+                    .select({ quantityOnHand: stock.quantityOnHand })
+                    .from(stock)
+                    .where(and(eq(stock.productId, item.productId), eq(stock.locationId, saleLocation.id)))
+                    .limit(1)
+
+                const availableQty = Number(barStock?.quantityOnHand ?? 0)
+                if (availableQty < stockQty) {
+                    return NextResponse.json({
+                        error: `Stock insuffisant au bar pour ${productInfo.name}. Disponible: ${availableQty}, requis: ${stockQty}`
+                    }, { status: 400 })
+                }
+            }
+
             await db.insert(transactionItems).values({
                 transactionId: newOrder.id,
                 productId: item.productId,
@@ -72,49 +128,45 @@ export async function POST(request: Request) {
                 discount: (item.discount || 0).toString(),
             })
 
-            // Deduct stock
+            // Deduct stock using converted quantity
             await db
                 .update(products)
-                .set({ stock: sql`${products.stock} - ${item.quantity}` })
+                .set({ stock: sql`${products.stock} - ${stockQty}` })
                 .where(eq(products.id, item.productId))
 
             // Deduct per-location stock from bar location only
-            let [saleLocation] = await db
-                .select()
-                .from(locations)
-                .where(eq(locations.type, "bar"))
-                .limit(1)
-            if (!saleLocation) continue
-            const [existingStock] = await db
-                .select()
-                .from(stock)
-                .where(and(eq(stock.productId, item.productId), eq(stock.locationId, saleLocation.id)))
-                .limit(1)
-            if (existingStock) {
-                await db
-                    .update(stock)
-                    .set({ quantityOnHand: sql`${stock.quantityOnHand} - ${item.quantity}`, updatedAt: new Date() })
-                    .where(eq(stock.id, existingStock.id))
-            } else {
-                await db.insert(stock).values({
+            if (saleLocation) {
+                const [existingStock] = await db
+                    .select()
+                    .from(stock)
+                    .where(and(eq(stock.productId, item.productId), eq(stock.locationId, saleLocation.id)))
+                    .limit(1)
+                if (existingStock) {
+                    await db
+                        .update(stock)
+                        .set({ quantityOnHand: sql`${stock.quantityOnHand} - ${stockQty}`, updatedAt: new Date() })
+                        .where(eq(stock.id, existingStock.id))
+                } else {
+                    await db.insert(stock).values({
+                        productId: item.productId,
+                        locationId: saleLocation.id,
+                        quantityOnHand: String(-stockQty),
+                    })
+                }
+
+                // Record stock movement
+                await db.insert(stockMovements).values({
                     productId: item.productId,
+                    productName: item.productName,
+                    type: "out",
+                    quantity: String(-stockQty),
+                    userId,
                     locationId: saleLocation.id,
-                    quantityOnHand: -item.quantity,
+                    referenceId: newOrder.id,
+                    referenceType: "order",
+                    notes: `Order ${newOrder.id}`,
                 })
             }
-
-            // Record stock movement
-            await db.insert(stockMovements).values({
-                productId: item.productId,
-                productName: item.productName,
-                type: "out",
-                quantity: String(-item.quantity),
-                userId,
-                locationId: saleLocation.id,
-                referenceId: newOrder.id,
-                referenceType: "order",
-                notes: `Order ${newOrder.id}`,
-            })
         }
 
         // No longer marking table as occupied — a table can have multiple bills simultaneously

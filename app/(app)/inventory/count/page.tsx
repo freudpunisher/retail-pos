@@ -98,11 +98,11 @@ export default function InventoryCountPage() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "reconciled":
-                return <Badge className="bg-accent/20 text-accent font-bold ring-1 ring-accent/30 lowercase"><CheckCircle2 className="mr-1 h-3 w-3" /> Reconciled</Badge>
+                return <Badge className="bg-accent/20 text-accent font-bold ring-1 ring-accent/30 lowercase"><CheckCircle2 className="mr-1 h-3 w-3" /> Réconcilié</Badge>
             case "completed":
-                return <Badge className="bg-primary/20 text-primary font-bold ring-1 ring-primary/30 lowercase">Completed</Badge>
+                return <Badge className="bg-primary/20 text-primary font-bold ring-1 ring-primary/30 lowercase">Terminé</Badge>
             case "in_progress":
-                return <Badge className="bg-warning/20 text-warning font-bold ring-1 ring-warning/30 lowercase"><Clock className="mr-1 h-3 w-3" /> In Progress</Badge>
+                return <Badge className="bg-warning/20 text-warning font-bold ring-1 ring-warning/30 lowercase"><Clock className="mr-1 h-3 w-3" /> En cours</Badge>
             default:
                 return <Badge variant="outline">{status}</Badge>
         }
@@ -112,20 +112,20 @@ export default function InventoryCountPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Physical Inventory Counts</h2>
-                    <p className="text-muted-foreground">Start and manage physical stock verification sessions</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Comptages d'inventaire physique</h2>
+                    <p className="text-muted-foreground">Démarrer et gérer les sessions de vérification physique du stock</p>
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
                             <Plus className="mr-2 h-4 w-4" />
-                            New Count Session
+                            Nouvelle session de comptage
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                         <form onSubmit={handleStartSession}>
                             <DialogHeader>
-                                <DialogTitle>Start Count Session</DialogTitle>
+                                <DialogTitle>Démarrer une session de comptage</DialogTitle>
                                 <DialogDescription>
                                     Session créée avec l'utilisateur connecté.
                                 </DialogDescription>
@@ -136,9 +136,9 @@ export default function InventoryCountPage() {
                                     <span className="font-semibold">{user?.name || "Utilisateur connecté"}</span>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Notes (Optional)</Label>
+                                    <Label>Notes (Optionnel)</Label>
                                     <Textarea
-                                        placeholder="Reason for count, specific instructions, etc."
+                                        placeholder="Motif du comptage, instructions spécifiques, etc."
                                         value={formData.notes}
                                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                                         className="h-24 resize-none"
@@ -220,11 +220,11 @@ export default function InventoryCountPage() {
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                                    Cancel
+                                    Annuler
                                 </Button>
                                 <Button type="submit" disabled={isStarting || !user?.id}>
                                     {isStarting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Begin Count
+                                    Commencer le comptage
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -236,19 +236,19 @@ export default function InventoryCountPage() {
                 <CardHeader className="bg-secondary/10 border-b border-border/50">
                     <CardTitle className="text-lg font-bold flex items-center gap-2">
                         <HistoryIcon className="h-5 w-5 text-primary" />
-                        Session History
+                        Historique des sessions
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-secondary/5 border-border/50">
-                                <TableHead className="py-4 px-6 font-bold">Session ID</TableHead>
+                                <TableHead className="py-4 px-6 font-bold">ID Session</TableHead>
                                 <TableHead className="py-4 px-6 font-bold">Date</TableHead>
-                                <TableHead className="py-4 px-6 font-bold">Location</TableHead>
-                                <TableHead className="py-4 px-6 font-bold">Staff</TableHead>
-                                <TableHead className="py-4 px-6 font-bold">Items</TableHead>
-                                <TableHead className="py-4 px-6 font-bold">Status</TableHead>
+                                <TableHead className="py-4 px-6 font-bold">Emplacement</TableHead>
+                                <TableHead className="py-4 px-6 font-bold">Personnel</TableHead>
+                                <TableHead className="py-4 px-6 font-bold">Articles</TableHead>
+                                <TableHead className="py-4 px-6 font-bold">Statut</TableHead>
                                 <TableHead className="py-4 px-6 font-bold text-right">Action</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -257,14 +257,14 @@ export default function InventoryCountPage() {
                                 <TableRow>
                                     <TableCell colSpan={8} className="h-32 text-center">
                                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                                        <p className="mt-2 text-sm text-muted-foreground">Fetching sessions...</p>
+                                        <p className="mt-2 text-sm text-muted-foreground">Récupération des sessions...</p>
                                     </TableCell>
                                 </TableRow>
                             )}
                             {!loading && sessions.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={8} className="h-32 text-center text-muted-foreground italic">
-                                        No count sessions recorded yet.
+                                        Aucune session de comptage enregistrée.
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -304,7 +304,7 @@ export default function InventoryCountPage() {
                                             className="group/btn hover:text-primary transition-all font-bold"
                                             onClick={() => router.push(`/inventory/count/${session.id}`)}
                                         >
-                                            {session.status === "reconciled" ? "View Details" : "Continue Count"}
+                                            {session.status === "reconciled" ? "Voir les détails" : "Continuer le comptage"}
                                             <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                                         </Button>
                                     </TableCell>

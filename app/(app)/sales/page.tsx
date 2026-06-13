@@ -44,7 +44,7 @@ export default function SalesPage() {
     if (stockItems.length > 0) {
       const map: Record<string, number> = {}
       for (const si of stockItems) {
-        map[si.productId] = si.quantityOnHand
+        map[si.productId] = Number(si.quantityOnHand)
       }
       setProductStocks(map)
     }
@@ -54,7 +54,7 @@ export default function SalesPage() {
     if (principalStock.length > 0) {
       const map: Record<string, number> = {}
       for (const si of principalStock) {
-        map[si.productId] = si.quantityOnHand
+        map[si.productId] = Number(si.quantityOnHand)
       }
       setPrincipalStocks(map)
     }
@@ -92,10 +92,11 @@ export default function SalesPage() {
       const order = await createOrder({
         items: items.map((item) => ({
           productId: item.id,
-          productName: item.name,
+          productName: item.sellingUnitName ? `${item.name} (${item.sellingUnitName})` : item.name,
           quantity: item.quantity,
           price: item.price,
           discount: item.discount,
+          sellingUnitId: item.sellingUnitId || null,
         })),
         userId: user.id,
         waiterId: selectedWaiterId || user.id,
@@ -107,7 +108,7 @@ export default function SalesPage() {
 
       // Print bill
       const billItems = items.map((item) => ({
-        name: item.name,
+        name: item.sellingUnitName ? `${item.name} (${item.sellingUnitName})` : item.name,
         quantity: item.quantity,
         price: Number(item.price),
         total: Number(item.price) * item.quantity,
@@ -132,9 +133,9 @@ export default function SalesPage() {
         billReference: order.reference || "BL-" + order.id.slice(0, 8).toUpperCase(),
       })
 
-      toast.success("Order created! Bill printed.")
+      toast.success("Commande créée ! Facture imprimée.")
     } catch (err: any) {
-      toast.error(err.message || "Failed to create order")
+      toast.error(err.message || "Échec de la création de la commande")
     } finally {
       setCreating(false)
     }
@@ -156,7 +157,7 @@ export default function SalesPage() {
               {mode === "dinein" && <Utensils className="h-3.5 w-3.5 mr-1" />}
               {mode === "counter" && <Wine className="h-3.5 w-3.5 mr-1" />}
               {mode === "takeaway" && <ShoppingBag className="h-3.5 w-3.5 mr-1" />}
-              {mode === "dinein" ? "Dine-in" : mode === "counter" ? "Counter" : "Takeaway"}
+              {mode === "dinein" ? "Sur place" : mode === "counter" ? "Comptoir" : "À emporter"}
             </Button>
           ))}
         </div>
@@ -166,11 +167,11 @@ export default function SalesPage() {
           {orderMode === "dinein" ? (
             <Select value={selectedTableId} onValueChange={setSelectedTableId}>
               <SelectTrigger className="w-28 h-8">
-                <SelectValue placeholder="Table" />
-              </SelectTrigger>
-              <SelectContent>
-                {freeTables.length === 0 ? (
-                  <SelectItem value="none" disabled>No free tables</SelectItem>
+<SelectValue placeholder="Table" />
+               </SelectTrigger>
+               <SelectContent>
+                 {freeTables.length === 0 ? (
+                   <SelectItem value="none" disabled>Aucune table libre</SelectItem>
                 ) : (
                   freeTables.map((t) => (
                     <SelectItem key={t.id} value={t.id}>T{t.number} ({t.capacity}p)</SelectItem>
@@ -179,9 +180,9 @@ export default function SalesPage() {
               </SelectContent>
             </Select>
           ) : orderMode === "counter" ? (
-            <span className="text-xs font-medium text-muted-foreground">Counter</span>
+            <span className="text-xs font-medium text-muted-foreground">Comptoir</span>
           ) : (
-            <span className="text-xs text-muted-foreground">Takeaway</span>
+            <span className="text-xs text-muted-foreground">À emporter</span>
           )}
         </div>
 
@@ -189,14 +190,14 @@ export default function SalesPage() {
           <User className="h-3.5 w-3.5 text-muted-foreground" />
           <Select value={selectedWaiterId} onValueChange={setSelectedWaiterId}>
             <SelectTrigger className="w-32 h-8">
-              <SelectValue placeholder="Waiter" />
-            </SelectTrigger>
-            <SelectContent>
-              {waiters.map((w) => (
-                <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+<SelectValue placeholder="Serveur" />
+             </SelectTrigger>
+             <SelectContent>
+               {waiters.map((w) => (
+                 <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+               ))}
+             </SelectContent>
+           </Select>
         </div>
       </div>
 
@@ -219,9 +220,9 @@ export default function SalesPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-amber-500" />
-              Complete Order Details
+              Détails de la commande
             </DialogTitle>
-            <DialogDescription>Select the required fields to continue</DialogDescription>
+            <DialogDescription>Sélectionnez les champs requis pour continuer</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {orderMode === "dinein" && (
@@ -229,11 +230,11 @@ export default function SalesPage() {
                 <Label>Table</Label>
                 <Select value={selectedTableId} onValueChange={setSelectedTableId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a table" />
+                    <SelectValue placeholder="Sélectionnez une table" />
                   </SelectTrigger>
                   <SelectContent>
                     {freeTables.length === 0 ? (
-                      <SelectItem value="none" disabled>No free tables</SelectItem>
+                      <SelectItem value="none" disabled>Aucune table libre</SelectItem>
                     ) : (
                       freeTables.map((t) => (
                         <SelectItem key={t.id} value={t.id}>T{t.number} ({t.capacity}p)</SelectItem>
@@ -244,14 +245,14 @@ export default function SalesPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label>Waiter</Label>
+              <Label>Serveur</Label>
               <Select value={selectedWaiterId} onValueChange={setSelectedWaiterId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a waiter" />
-                </SelectTrigger>
-                <SelectContent>
-                  {waiters.length === 0 ? (
-                    <SelectItem value="none" disabled>No waiters available</SelectItem>
+<SelectValue placeholder="Sélectionnez un serveur" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {waiters.length === 0 ? (
+                     <SelectItem value="none" disabled>Aucun serveur disponible</SelectItem>
                   ) : (
                     waiters.map((w) => (
                       <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
@@ -262,9 +263,9 @@ export default function SalesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowValidation(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowValidation(false)}>Annuler</Button>
             <Button onClick={() => { setShowValidation(false); proceedOrder() }} disabled={(orderMode === "dinein" && !selectedTableId) || !selectedWaiterId}>
-              Confirm & Create Order
+              Confirmer et créer la commande
             </Button>
           </DialogFooter>
         </DialogContent>

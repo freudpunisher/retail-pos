@@ -31,13 +31,13 @@ export default function LoginPage() {
         try {
             const success = await login(email, password)
             if (success) {
-                toast.success("Login successful!")
+                toast.success("Connexion réussie !")
                 router.push("/dashboard")
             } else {
-                toast.error("Invalid email or password")
+                toast.error("Email ou mot de passe invalide")
             }
         } catch (error) {
-            toast.error("An error occurred during login")
+            toast.error("Une erreur est survenue lors de la connexion")
         } finally {
             setLoading(false)
         }
@@ -52,7 +52,7 @@ export default function LoginPage() {
                     </div>
                     <div>
                         <CardTitle className="text-3xl font-bold">SmartPOS</CardTitle>
-                        <CardDescription className="text-base">Sign in to your account</CardDescription>
+                        <CardDescription className="text-base">Connectez-vous à votre compte</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -74,13 +74,13 @@ export default function LoginPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">Mot de passe</Label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     id="password"
                                     type="password"
-                                    placeholder="Enter your password"
+                                    placeholder="Entrez votre mot de passe"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="pl-10"
@@ -91,7 +91,7 @@ export default function LoginPage() {
                         </div>
                         <Button type="submit" className="w-full" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Sign In
+                            Connexion
                         </Button>
                     </form>
                 </CardContent>
