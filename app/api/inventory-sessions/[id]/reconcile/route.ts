@@ -44,7 +44,7 @@ export async function POST(
                         eq(stock.locationId, session.locationId)
                     ))
                     : await tx.select().from(stock).where(eq(stock.productId, item.productId))
-                if (stockRow && physicalQty < stockRow.quantityReserved) {
+                if (stockRow && physicalQty < Number(stockRow.quantityReserved)) {
                     errors.push(
                         `${item.product?.name}: physical count (${physicalQty}) is less than reserved stock (${stockRow.quantityReserved})`
                     )
@@ -74,7 +74,7 @@ export async function POST(
                         await tx
                             .update(stock)
                             .set({
-                                quantityOnHand: physicalQty,
+                                quantityOnHand: physicalQty.toString(),
                                 lastCountedDate: new Date(),
                                 updatedAt: new Date(),
                             })
@@ -83,8 +83,8 @@ export async function POST(
                         await tx.insert(stock).values({
                             productId: item.productId,
                             locationId: session.locationId,
-                            quantityOnHand: physicalQty,
-                            quantityReserved: 0,
+                            quantityOnHand: physicalQty.toString(),
+                            quantityReserved: "0",
                             reorderLevel: Number(item.product?.minStock || 10),
                             reorderQuantity: 20,
                             lastCountedDate: new Date(),
@@ -96,7 +96,7 @@ export async function POST(
                     const [product] = await tx.select().from(products).where(eq(products.id, item.productId))
                     if (product) {
                         await tx.update(products).set({
-                            stock: physicalQty
+                            stock: physicalQty.toString()
                         }).where(eq(products.id, item.productId))
                     }
 
@@ -136,8 +136,8 @@ export async function POST(
                         await tx.insert(stock).values({
                             productId: item.productId,
                             locationId: session.locationId,
-                            quantityOnHand: physicalQty,
-                            quantityReserved: 0,
+                            quantityOnHand: physicalQty.toString(),
+                            quantityReserved: "0",
                             reorderLevel: Number(item.product?.minStock || 10),
                             reorderQuantity: 20,
                             lastCountedDate: new Date(),

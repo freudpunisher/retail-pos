@@ -39,7 +39,7 @@ export function PaymentDialog({ open, onOpenChange, order, onPay }: PaymentDialo
 
   const handleCreateClient = async () => {
     if (!newClient.name || !newClient.email || !newClient.phone || !newClient.address) {
-      toast.error("All fields are required")
+      toast.error("Tous les champs sont requis")
       return
     }
     setCreating(true)
@@ -48,9 +48,9 @@ export function PaymentDialog({ open, onOpenChange, order, onPay }: PaymentDialo
       setClientId(created.id)
       setShowNewClient(false)
       setNewClient({ name: "", email: "", phone: "", address: "" })
-      toast.success("Client created")
+      toast.success("Client créé")
     } catch (err: any) {
-      toast.error(err.message || "Failed to create client")
+      toast.error(err.message || "Échec de la création du client")
     } finally {
       setCreating(false)
     }
@@ -58,7 +58,7 @@ export function PaymentDialog({ open, onOpenChange, order, onPay }: PaymentDialo
 
   const handlePay = async () => {
     if (paymentMethod === "credit" && !clientId) {
-      toast.error("Select a client for credit payment")
+      toast.error("Sélectionnez un client pour le paiement à crédit")
       return
     }
     setPaying(true)
@@ -74,9 +74,9 @@ export function PaymentDialog({ open, onOpenChange, order, onPay }: PaymentDialo
     <Dialog open={open} onOpenChange={(open) => { if (!open) reset(); onOpenChange(open) }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Process Payment</DialogTitle>
+          <DialogTitle>Traiter le paiement</DialogTitle>
           <DialogDescription>
-            Order #{order?.id?.slice(0, 8)} &middot; {order?.table ? `Table ${order.table.number || order.table}` : "Takeaway"}
+            Commande #{order?.id?.slice(0, 8)} &middot; {order?.table ? `Table ${order.table.number || order.table}` : "À emporter"}
           </DialogDescription>
         </DialogHeader>
 
@@ -96,21 +96,21 @@ export function PaymentDialog({ open, onOpenChange, order, onPay }: PaymentDialo
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Payment Method</label>
+            <label className="text-sm font-medium">Mode de paiement</label>
             <div className="flex gap-2">
               <Button
                 variant={paymentMethod === "cash" ? "default" : "outline"}
                 className="flex-1"
                 onClick={() => setPaymentMethod("cash")}
               >
-                <Banknote className="h-4 w-4 mr-2" /> Cash
+                <Banknote className="h-4 w-4 mr-2" /> Espèces
               </Button>
               <Button
                 variant={paymentMethod === "credit" ? "default" : "outline"}
                 className="flex-1"
                 onClick={() => setPaymentMethod("credit")}
               >
-                <CreditCard className="h-4 w-4 mr-2" /> Credit
+                <CreditCard className="h-4 w-4 mr-2" /> Crédit
               </Button>
             </div>
           </div>
@@ -121,14 +121,14 @@ export function PaymentDialog({ open, onOpenChange, order, onPay }: PaymentDialo
                 <label className="text-sm font-medium">Client</label>
                 <Button size="sm" variant="ghost" onClick={() => setShowNewClient(!showNewClient)}>
                   {showNewClient ? <X className="h-3.5 w-3.5 mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
-                  {showNewClient ? "Cancel" : "New Client"}
+                  {showNewClient ? "Annuler" : "Nouveau client"}
                 </Button>
               </div>
 
               {showNewClient ? (
                 <div className="space-y-2">
                   <Input
-                    placeholder="Name"
+                    placeholder="Nom"
                     value={newClient.name}
                     onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
                   />
@@ -139,28 +139,28 @@ export function PaymentDialog({ open, onOpenChange, order, onPay }: PaymentDialo
                     onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
                   />
                   <Input
-                    placeholder="Phone"
+                    placeholder="Téléphone"
                     value={newClient.phone}
                     onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
                   />
                   <Input
-                    placeholder="Address"
+                    placeholder="Adresse"
                     value={newClient.address}
                     onChange={(e) => setNewClient({ ...newClient, address: e.target.value })}
                   />
                   <Button size="sm" className="w-full" onClick={handleCreateClient} disabled={creating}>
                     {creating && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}
-                    Create Client
+                    Créer le client
                   </Button>
                 </div>
               ) : (
                 <Select value={clientId} onValueChange={setClientId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a client" />
+                    <SelectValue placeholder="Sélectionner un client" />
                   </SelectTrigger>
                   <SelectContent>
                     {activeClients.length === 0 ? (
-                      <SelectItem value="none" disabled>No clients found</SelectItem>
+                      <SelectItem value="none" disabled>Aucun client trouvé</SelectItem>
                     ) : (
                       activeClients.map((c: any) => (
                         <SelectItem key={c.id} value={c.id}>
@@ -180,11 +180,11 @@ export function PaymentDialog({ open, onOpenChange, order, onPay }: PaymentDialo
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => { reset(); onOpenChange(false) }}>
-            Cancel
+            Annuler
           </Button>
           <Button onClick={handlePay} disabled={paying}>
             {paying && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {paying ? "Processing..." : `Pay ${formatCurrency(Number(order?.total || 0))}`}
+            {paying ? "Traitement..." : `Payer ${formatCurrency(Number(order?.total || 0))}`}
           </Button>
         </DialogFooter>
       </DialogContent>

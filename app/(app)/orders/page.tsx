@@ -27,6 +27,15 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-500/20 text-red-700 dark:text-red-400",
 }
 
+const statusLabels: Record<string, string> = {
+  pending: "En attente",
+  preparing: "En préparation",
+  ready: "Prêt",
+  served: "Servi",
+  paid: "Payé",
+  cancelled: "Annulé",
+}
+
 const statusIcons: Record<string, any> = {
   pending: Clock,
   preparing: ChefHat,
@@ -45,13 +54,13 @@ export default function OrdersPage() {
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; order: any | null }>({ open: false, order: null })
 
   const statusTabs = [
-    { key: "active", label: "Active", icon: ChefHat },
-    { key: "pending", label: "Pending", icon: Clock },
-    { key: "preparing", label: "Preparing", icon: ChefHat },
-    { key: "ready", label: "Ready", icon: Bell },
-    { key: "served", label: "Served", icon: Utensils },
-    { key: "paid", label: "Paid", icon: CheckCircle },
-    { key: "cancelled", label: "Cancelled", icon: XCircle },
+    { key: "active", label: "Actif", icon: ChefHat },
+    { key: "pending", label: "En attente", icon: Clock },
+    { key: "preparing", label: "En préparation", icon: ChefHat },
+    { key: "ready", label: "Prêt", icon: Bell },
+    { key: "served", label: "Servi", icon: Utensils },
+    { key: "paid", label: "Payé", icon: CheckCircle },
+    { key: "cancelled", label: "Annulé", icon: XCircle },
   ]
 
   const activeOrders = useMemo(() => {
@@ -80,9 +89,9 @@ export default function OrdersPage() {
   const handleStatus = async (id: string, status: string) => {
     try {
       await updateOrderStatus(id, { orderStatus: status })
-      toast.success(`Order marked as ${status}`)
+      toast.success(`Commande : ${statusLabels[status] || status}`)
     } catch (err: any) {
-      toast.error(err.message || "Failed to update status")
+      toast.error(err.message || "Échec de la mise à jour du statut")
     }
   }
 
@@ -90,10 +99,10 @@ export default function OrdersPage() {
     if (!paymentDialog.order || !user) return
     try {
       await updateOrderStatus(paymentDialog.order.id, { orderStatus: "paid", paymentMethod, clientId })
-      toast.success(`Payment of ${formatCurrency(Number(paymentDialog.order.total))} received via ${paymentMethod}`)
+      toast.success(`Paiement de ${formatCurrency(Number(paymentDialog.order.total))} reçu par ${paymentMethod}`)
       setPaymentDialog({ open: false, order: null })
     } catch (err: any) {
-      toast.error(err.message || "Payment failed")
+      toast.error(err.message || "Paiement échoué")
     }
   }
 
@@ -134,8 +143,8 @@ export default function OrdersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Orders</h2>
-          <p className="text-muted-foreground">Kitchen & bar order management</p>
+          <h2 className="text-2xl font-bold text-foreground">Commandes</h2>
+          <p className="text-muted-foreground">Gestion des commandes cuisine & bar</p>
         </div>
       </div>
 
@@ -143,7 +152,7 @@ export default function OrdersPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search orders, waiter, table..."
+            placeholder="Rechercher commandes, serveur, table..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -173,8 +182,8 @@ export default function OrdersPage() {
         {filteredOrders.length === 0 ? (
           <div className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground">
             <CheckCircle className="h-16 w-16 mb-4 opacity-20" />
-            <p className="text-lg font-medium">No {filter} orders</p>
-            <p className="text-sm">Orders will appear here once created</p>
+            <p className="text-lg font-medium">Aucune commande {filter === "active" ? "active" : statusLabels[filter]?.toLowerCase() || filter}</p>
+            <p className="text-sm">Les commandes apparaîtront ici une fois créées</p>
           </div>
         ) : (
           filteredOrders.map((order) => {
@@ -208,7 +217,7 @@ export default function OrdersPage() {
                     </div>
                     <Badge className={statusColors[order.orderStatus]}>
                       <StatusIcon className="h-3 w-3 mr-1" />
-                      {order.orderStatus}
+                      {statusLabels[order.orderStatus] || order.orderStatus}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -224,7 +233,7 @@ export default function OrdersPage() {
                       </div>
                     ))}
                     {items.length > 5 && (
-                      <p className="text-xs text-muted-foreground">+{items.length - 5} more items</p>
+                      <p className="text-xs text-muted-foreground">+{items.length - 5} articles supplémentaires</p>
                     )}
                   </div>
 
@@ -233,28 +242,28 @@ export default function OrdersPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-bold">{formatCurrency(Number(order.total))}</span>
                     <div className="flex gap-1.5">
-                      <Button size="sm" variant="ghost" onClick={() => handlePrintBill(order)} title="Print bill">
+                      <Button size="sm" variant="ghost" onClick={() => handlePrintBill(order)} title="Imprimer la facture">
                         <Printer className="h-3.5 w-3.5" />
                       </Button>
 
                       {order.orderStatus === "pending" && (
                         <Button size="sm" onClick={() => handleStatus(order.id, "preparing")}>
-                          <ChefHat className="h-3.5 w-3.5 mr-1" /> Prepare
+                          <ChefHat className="h-3.5 w-3.5 mr-1" /> Préparer
                         </Button>
                       )}
                       {order.orderStatus === "preparing" && (
                         <Button size="sm" onClick={() => handleStatus(order.id, "ready")}>
-                          <Bell className="h-3.5 w-3.5 mr-1" /> Ready
+                          <Bell className="h-3.5 w-3.5 mr-1" /> Prêt
                         </Button>
                       )}
                       {order.orderStatus === "ready" && (
                         <Button size="sm" onClick={() => handleStatus(order.id, "served")}>
-                          <Utensils className="h-3.5 w-3.5 mr-1" /> Serve
+                          <Utensils className="h-3.5 w-3.5 mr-1" /> Servir
                         </Button>
                       )}
                       {order.orderStatus === "served" && (
                         <Button size="sm" onClick={() => setPaymentDialog({ open: true, order })}>
-                          <CreditCard className="h-3.5 w-3.5 mr-1" /> Payment
+                          <CreditCard className="h-3.5 w-3.5 mr-1" /> Paiement
                         </Button>
                       )}
                       {!["paid", "cancelled"].includes(order.orderStatus) && (

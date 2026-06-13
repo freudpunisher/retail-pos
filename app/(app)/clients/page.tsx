@@ -138,10 +138,10 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Clients</h2>
-          <p className="text-muted-foreground">Manage your customer database</p>
+          <p className="text-muted-foreground">Gérez votre base de données clients</p>
         </div>
         <Button onClick={handleOpenCreate} className="bg-primary hover:bg-primary/90">
-          <Plus className="mr-2 h-4 w-4" /> Add New Client
+                            <Plus className="mr-2 h-4 w-4" /> Ajouter un nouveau client
         </Button>
       </div>
 
@@ -151,7 +151,7 @@ export default function ClientsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Clients</p>
+                <p className="text-sm text-muted-foreground">Total clients</p>
                 <p className="text-2xl font-bold">{clientsLoading ? "..." : totalClients}</p>
               </div>
               <Users className="h-8 w-8 text-primary" />
@@ -162,7 +162,7 @@ export default function ClientsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Credit Balance</p>
+                <p className="text-sm text-muted-foreground">Solde total des crédits</p>
                 <p className="text-2xl font-bold text-warning">{clientsLoading ? "..." : formatCurrency(totalCreditBalance)}</p>
               </div>
               <CreditCard className="h-8 w-8 text-warning" />
@@ -173,7 +173,7 @@ export default function ClientsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Clients with Credit</p>
+                <p className="text-sm text-muted-foreground">Clients avec crédit</p>
                 <p className="text-2xl font-bold">{clientsLoading ? "..." : clientsWithCredit}</p>
               </div>
               <DollarSign className="h-8 w-8 text-primary" />
@@ -188,7 +188,7 @@ export default function ClientsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search clients by name, email or phone..."
+              placeholder="Rechercher des clients par nom, email ou téléphone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -200,7 +200,7 @@ export default function ClientsPage() {
       {/* Clients Table */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle>Client List</CardTitle>
+          <CardTitle>Liste des clients</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="rounded-md border border-border">
@@ -209,10 +209,10 @@ export default function ClientsPage() {
                 <TableRow className="hover:bg-transparent border-border">
                   <TableHead className="text-muted-foreground">Client</TableHead>
                   <TableHead className="text-muted-foreground">Contact</TableHead>
-                  <TableHead className="text-muted-foreground">Status</TableHead>
-                  <TableHead className="text-muted-foreground">Credit Balance</TableHead>
-                  <TableHead className="text-muted-foreground">Credit Limit</TableHead>
-                  <TableHead className="text-muted-foreground">Utilization</TableHead>
+                  <TableHead className="text-muted-foreground">Statut</TableHead>
+                  <TableHead className="text-muted-foreground">Solde crédit</TableHead>
+                  <TableHead className="text-muted-foreground">Limite de crédit</TableHead>
+                  <TableHead className="text-muted-foreground">Utilisation</TableHead>
                   <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -222,14 +222,14 @@ export default function ClientsPage() {
                     <TableCell colSpan={7} className="h-24 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        <span>Loading clients...</span>
+                        <span>Chargement des clients...</span>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : clients.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      No clients found
+                      Aucun client trouvé
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -257,14 +257,14 @@ export default function ClientsPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant={client.isActive ? "default" : "secondary"} className={client.isActive ? "bg-accent/20 text-accent font-bold ring-1 ring-accent/30" : ""}>
-                            {client.isActive ? "Active" : "Inactive"}
+                            {client.isActive ? "Actif" : "Inactif"}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           {Number.parseFloat(client.creditBalance) > 0 ? (
                             <span className="font-medium text-warning">{formatCurrency(Number.parseFloat(client.creditBalance))}</span>
                           ) : (
-                            <Badge className="bg-accent/20 text-accent" variant="outline">No Balance</Badge>
+                            <Badge className="bg-accent/20 text-accent" variant="outline">Pas de solde</Badge>
                           )}
                         </TableCell>
                         <TableCell className="font-medium">{formatCurrency(Number.parseFloat(client.creditLimit))}</TableCell>
@@ -287,16 +287,16 @@ export default function ClientsPage() {
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={(e) => handleOpenEdit(client, e)}>
-                                <Edit2 className="mr-2 h-4 w-4" /> Edit Details
+                                <Edit2 className="mr-2 h-4 w-4" /> Modifier les détails
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={(e) => handleToggleStatus(client, e)}
                                 className={client.isActive ? "text-destructive" : "text-accent"}
                               >
                                 {client.isActive ? (
-                                  <><Ban className="mr-2 h-4 w-4" /> Deactivate</>
+                                  <><Ban className="mr-2 h-4 w-4" /> Désactiver</>
                                 ) : (
-                                  <><CheckCircle className="mr-2 h-4 w-4" /> Activate</>
+                                  <><CheckCircle className="mr-2 h-4 w-4" /> Activer</>
                                 )}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -317,19 +317,19 @@ export default function ClientsPage() {
         <DialogContent className="sm:max-w-[425px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>{isEditing ? "Edit Client" : "Add New Client"}</DialogTitle>
+              <DialogTitle>{isEditing ? "Modifier le client" : "Ajouter un nouveau client"}</DialogTitle>
               <DialogDescription>
-                Fill in the client details below. Click save when you're done.
+                Remplissez les détails du client ci-dessous. Cliquez sur enregistrer lorsque vous avez terminé.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Nom</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Full Name"
+                  placeholder="Nom complet"
                   required
                 />
               </div>
@@ -345,7 +345,7 @@ export default function ClientsPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Numéro de téléphone</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
@@ -355,7 +355,7 @@ export default function ClientsPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="creditLimit">Credit Limit</Label>
+                <Label htmlFor="creditLimit">Limite de crédit</Label>
                 <Input
                   id="creditLimit"
                   type="number"
@@ -366,12 +366,12 @@ export default function ClientsPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">Adresse</Label>
                 <Textarea
                   id="address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Physical Address"
+                  placeholder="Adresse physique"
                   className="h-20"
                   required
                 />
@@ -379,11 +379,11 @@ export default function ClientsPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowUpsertDialog(false)}>
-                Cancel
+                Annuler
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? "Save Changes" : "Create Client"}
+                {isEditing ? "Enregistrer les modifications" : "Créer le client"}
               </Button>
             </DialogFooter>
           </form>
@@ -397,15 +397,15 @@ export default function ClientsPage() {
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                Client Profile
+                Profil du client
               </div>
               {selectedClient && (
                 <Badge variant={selectedClient.isActive ? "default" : "secondary"}>
-                  {selectedClient.isActive ? "Active" : "Inactive"}
+                  {selectedClient.isActive ? "Actif" : "Inactif"}
                 </Badge>
               )}
             </DialogTitle>
-            <DialogDescription>Detailed client information and transaction history</DialogDescription>
+            <DialogDescription>Informations détaillées du client et historique des transactions</DialogDescription>
           </DialogHeader>
 
           {selectedClient && (
@@ -418,7 +418,7 @@ export default function ClientsPage() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-semibold">{selectedClient.name}</h3>
                     <Button variant="outline" size="sm" onClick={(e) => handleOpenEdit(selectedClient, e)}>
-                      <Edit2 className="mr-2 h-3 w-3" /> Edit Profile
+                      <Edit2 className="mr-2 h-3 w-3" /> Modifier le profil
                     </Button>
                   </div>
                   <div className="mt-2 space-y-1 text-sm text-muted-foreground">
@@ -436,7 +436,7 @@ export default function ClientsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      <span>Client since {new Date(selectedClient.createdAt).toLocaleDateString()}</span>
+                      <span>Client depuis {new Date(selectedClient.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
@@ -446,7 +446,7 @@ export default function ClientsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-lg border border-border bg-secondary/30 p-4">
-                  <p className="text-sm text-muted-foreground">Credit Balance</p>
+                  <p className="text-sm text-muted-foreground">Solde crédit</p>
                   <p className="text-2xl font-bold text-warning">{formatCurrency(Number.parseFloat(selectedClient.creditBalance))}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-secondary/30 p-4">
@@ -456,10 +456,10 @@ export default function ClientsPage() {
               </div>
 
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Credit Utilization</p>
+                <p className="text-sm text-muted-foreground mb-2">Utilisation du crédit</p>
                 <Progress value={getCreditUtilization(selectedClient)} className="h-3" />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {getCreditUtilization(selectedClient).toFixed(1)}% of credit limit used
+                  {getCreditUtilization(selectedClient).toFixed(1)}% de la limite de crédit utilisée
                 </p>
               </div>
 
@@ -468,7 +468,7 @@ export default function ClientsPage() {
               <div>
                 <h4 className="font-medium flex items-center gap-2 mb-3">
                   <History className="h-4 w-4" />
-                  Recent Transactions
+                  Transactions récentes
                 </h4>
                 {txLoading ? (
                   <div className="flex items-center justify-center py-8">
@@ -499,7 +499,7 @@ export default function ClientsPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-center text-muted-foreground py-4">No transactions yet</p>
+                  <p className="text-center text-muted-foreground py-4">Aucune transaction pour le moment</p>
                 )}
               </div>
             </div>

@@ -48,7 +48,7 @@ export default function SuppliersPage() {
       <div className="flex h-96 items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Loading suppliers...</p>
+          <p className="text-muted-foreground">Chargement des fournisseurs...</p>
         </div>
       </div>
     )
@@ -61,8 +61,8 @@ export default function SuppliersPage() {
           <CardContent className="p-6 text-center space-y-4">
             <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
             <div className="space-y-2">
-              <h3 className="text-lg font-bold text-destructive">Data Load Error</h3>
-              <p className="text-sm text-muted-foreground">Could not load suppliers. Check connection or contact support.</p>
+              <h3 className="text-lg font-bold text-destructive">Erreur de chargement</h3>
+              <p className="text-sm text-muted-foreground">Impossible de charger les fournisseurs. Vérifiez la connexion ou contactez le support.</p>
             </div>
           </CardContent>
         </Card>
@@ -74,12 +74,12 @@ export default function SuppliersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Suppliers</h2>
-          <p className="text-muted-foreground">Manage your suppliers</p>
+          <h2 className="text-2xl font-bold text-foreground">Fournisseurs</h2>
+          <p className="text-muted-foreground">Gérer vos fournisseurs</p>
         </div>
         <Button onClick={handleAddSupplier} className="gap-2 bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4" />
-          Add Supplier
+          Ajouter un fournisseur
         </Button>
       </div>
 
@@ -127,7 +127,7 @@ export default function SuppliersPage() {
                         : "bg-gray-100 text-gray-600 border-gray-300"
                     }`}
                   >
-                    {supplier.isActive ? "Active" : "Inactive"}
+                    {supplier.isActive ? "Actif" : "Inactif"}
                   </Badge>
 
                   <div className="flex gap-1">

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { expenses } from "@/lib/db/schema"
+import { expenses, caisseSessions, caisseMovements } from "@/lib/db/schema"
 import { eq, desc } from "drizzle-orm"
 
 export async function GET() {
@@ -23,6 +23,19 @@ export async function POST(request: Request) {
         if (!name || !amount || !category || !userId) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
         }
+        // Require an open caisse session
+        const [openCaisse] = await db
+            .select({ id: caisseSessions.id })
+            .from(caisseSessions)
+            .where(eq(caisseSessions.status, "open"))
+            .limit(1)
+        if (!openCaisse) {
+            return NextResponse.json(
+                { error: "Aucune session caisse ouverte. Veuillez ouvrir la caisse avant d'enregistrer une dépense." },
+                { status: 400 }
+            )
+        }
+
         const [expense] = await db.insert(expenses).values({
             name,
             amount: amount.toString(),
@@ -31,6 +44,15 @@ export async function POST(request: Request) {
             date: date ? new Date(date) : new Date(),
             userId,
         }).returning()
+
+        // Auto-create caisse movement (out) for the expense
+        await db.insert(caisseMovements).values({
+            sessionId: openCaisse.id,
+            type: "out",
+            amount: amount.toString(),
+            reason: `Dépense : ${name}`,
+        })
+
         return NextResponse.json(expense)
     } catch (error) {
         console.error("Failed to create expense:", error)

@@ -33,7 +33,7 @@ export function StatsCard({ title, value, description, icon: Icon, trend, varian
             {trend && (
               <p className={cn("text-xs font-medium", trend.positive ? "text-accent" : "text-destructive")}>
                 {trend.positive ? "+" : "-"}
-                {Math.abs(trend.value)}% from last period
+                {Math.abs(trend.value)}% par rapport à la période précédente
               </p>
             )}
           </div>

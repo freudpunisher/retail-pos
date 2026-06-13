@@ -232,7 +232,7 @@ export async function receive(request: Request) {
           await tx.insert(stock).values({
             productId: item.productId,
             locationId: warehouse.id,
-            quantityOnHand: Math.round(Number(item.quantity) || 0),
+            quantityOnHand: String(Math.round(Number(item.quantity) || 0)),
           });
         }
 

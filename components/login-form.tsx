@@ -29,7 +29,7 @@ export function LoginForm() {
     if (success) {
       router.push("/dashboard")
     } else {
-      setError("Invalid email or password")
+      setError("Email ou mot de passe invalide")
     }
     setLoading(false)
   }
@@ -42,7 +42,7 @@ export function LoginForm() {
             <Warehouse className="h-8 w-8 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold">SmartPOS</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
+          <CardDescription>Connectez-vous à votre compte</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -56,18 +56,18 @@ export function LoginForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Entrez votre email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Entrez votre mot de passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -75,7 +75,7 @@ export function LoginForm() {
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign In
+              Connexion
             </Button>
           </form>
         </CardContent>

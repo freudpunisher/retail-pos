@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { creditRecords, creditPayments, clients, transactions, cashFlow } from "@/lib/db/schema"
+import { creditRecords, creditPayments, clients, transactions, cashFlow, caisseSessions, caisseMovements } from "@/lib/db/schema"
 import { and, eq, gte, lt, sql } from "drizzle-orm"
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -15,6 +15,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
     if (!method) {
       return NextResponse.json({ error: "Payment method is required" }, { status: 400 })
+    }
+
+    // Require an open caisse session
+    const [openCaisse] = await db
+      .select({ id: caisseSessions.id })
+      .from(caisseSessions)
+      .where(eq(caisseSessions.status, "open"))
+      .limit(1)
+    if (!openCaisse) {
+      return NextResponse.json(
+        { error: "Aucune session caisse ouverte. Veuillez ouvrir la caisse avant d'effectuer un paiement." },
+        { status: 400 }
+      )
     }
 
     const result = await db.transaction(async (tx) => {
@@ -65,11 +78,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         date: new Date(),
         amount: numericAmount.toString(),
         type: "inflow",
-        category: "sales",
+        category: "sale",
         description: `Paiement crédit ${linkedTransaction?.invoiceRef || record.transactionId} (${method})`,
         referenceId: payment.id,
         referenceType: "credit_payment",
       })
+
+      // Auto-create caisse movement if payment is in cash
+      if (method === "cash") {
+        await tx.insert(caisseMovements).values({
+          sessionId: openCaisse.id,
+          type: "in",
+          amount: numericAmount.toString(),
+          reason: `Paiement facture ${linkedTransaction?.invoiceRef || record.transactionId}`,
+        })
+      }
 
       const newPaidAmount = paidNum + numericAmount
       const newStatus = newPaidAmount >= amountNum ? "paid" : "partial"

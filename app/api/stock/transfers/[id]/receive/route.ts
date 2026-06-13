@@ -48,7 +48,7 @@ export async function PATCH(
                     .from(stock)
                     .where(sql`${stock.productId} = ${productId} AND ${stock.locationId} = ${fromLocationId}`)
 
-                if (!sourceStock || sourceStock.quantityOnHand < quantity) {
+                if (!sourceStock || Number(sourceStock.quantityOnHand) < quantity) {
                     throw new Error(`Insufficient stock for ${product?.name || productId}. Available: ${sourceStock?.quantityOnHand || 0}, needed: ${quantity}`)
                 }
 
@@ -77,7 +77,7 @@ export async function PATCH(
                     await tx.insert(stock).values({
                         productId,
                         locationId: toLocationId,
-                        quantityOnHand: quantity,
+                        quantityOnHand: String(quantity),
                     })
                 }
 

@@ -28,11 +28,11 @@ export default function LocationsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-foreground">Locations</h2>
-                    <p className="text-muted-foreground">Manage warehouse and bar locations</p>
+                    <h2 className="text-2xl font-bold text-foreground">Emplacements</h2>
+                    <p className="text-muted-foreground">Gérer les emplacements d'entrepôt et de bar</p>
                 </div>
                 <Button onClick={() => setShowAdd(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Add Location
+                    <Plus className="h-4 w-4 mr-2" /> Ajouter un emplacement
                 </Button>
             </div>
 
@@ -48,12 +48,12 @@ export default function LocationsPage() {
                                     <div>
                                         <p className="font-semibold">{loc.name}</p>
                                         <Badge variant="outline" className="text-xs mt-1">
-                                            {loc.type === "principal" ? "Principal Stock" : "Secondary"}
+                                            {loc.type === "principal" ? "Stock principal" : "Secondaire"}
                                         </Badge>
                                     </div>
                                 </div>
                                 <Badge className={loc.isActive ? "bg-green-500/20 text-green-700" : "bg-red-500/20 text-red-700"}>
-                                    {loc.isActive ? "Active" : "Inactive"}
+                                    {loc.isActive ? "Actif" : "Inactif"}
                                 </Badge>
                             </div>
                         </CardContent>
@@ -63,28 +63,28 @@ export default function LocationsPage() {
 
             <Dialog open={showAdd} onOpenChange={setShowAdd}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Add Location</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>Ajouter un emplacement</DialogTitle></DialogHeader>
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <Label>Name</Label>
-                            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Main Bar" />
+                            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="p. ex. Bar principal" />
                         </div>
                         <div className="space-y-2">
                             <Label>Type</Label>
                             <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="principal">Principal Stock (Warehouse)</SelectItem>
-                                    <SelectItem value="transitional">Transitional Stock</SelectItem>
-                                    <SelectItem value="bar">Bar (Service Point)</SelectItem>
-                                    <SelectItem value="kitchen">Kitchen</SelectItem>
+                                    <SelectItem value="principal">Stock principal (Entrepôt)</SelectItem>
+                                    <SelectItem value="transitional">Stock transitoire</SelectItem>
+                                    <SelectItem value="bar">Bar (Point de service)</SelectItem>
+                                    <SelectItem value="kitchen">Cuisine</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
-                        <Button onClick={handleAdd} disabled={!form.name}>Add</Button>
+                        <Button variant="outline" onClick={() => setShowAdd(false)}>Annuler</Button>
+                        <Button onClick={handleAdd} disabled={!form.name}>Ajouter</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

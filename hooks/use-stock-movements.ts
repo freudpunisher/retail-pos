@@ -7,12 +7,23 @@ export function useStockMovements() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    const fetchMovements = useCallback(async (dateFrom?: string, dateTo?: string) => {
+    const fetchMovements = useCallback(async (filters?: {
+        dateFrom?: string
+        dateTo?: string
+        productId?: string
+        locationId?: string
+        type?: string
+        search?: string
+    }) => {
         setLoading(true)
         try {
             const params = new URLSearchParams()
-            if (dateFrom) params.append("dateFrom", dateFrom)
-            if (dateTo) params.append("dateTo", dateTo)
+            if (filters?.dateFrom) params.append("dateFrom", filters.dateFrom)
+            if (filters?.dateTo) params.append("dateTo", filters.dateTo)
+            if (filters?.productId) params.append("productId", filters.productId)
+            if (filters?.locationId) params.append("locationId", filters.locationId)
+            if (filters?.type && filters.type !== "all") params.append("type", filters.type)
+            if (filters?.search) params.append("search", filters.search)
             const url = `/api/stock-movements${params.toString() ? `?${params.toString()}` : ""}`
             const response = await fetch(url)
             if (!response.ok) throw new Error("Failed to fetch stock movements")

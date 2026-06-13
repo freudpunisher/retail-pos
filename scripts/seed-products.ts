@@ -337,7 +337,7 @@ async function seedProducts() {
       name: product.name,
       categoryId: categoryMap.get(product.categoryName),
       price: product.price.toString(),
-      stock: product.stock,
+      stock: product.stock.toString(),
       minStock: product.minStock,
       image: product.image || null
     }))

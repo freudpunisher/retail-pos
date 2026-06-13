@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/hooks/use-settings"
 import { PaymentDialog } from "@/components/pos/payment-dialog"
 import { printThermal, type ReceiptData } from "@/lib/thermal-print"
+import { printReport } from "@/lib/print-report"
 import { toast } from "sonner"
 import {
   Receipt, Search, DollarSign, Banknote, ShoppingCart,
@@ -151,12 +152,45 @@ export default function SalesHistoryPage() {
         const err = await res.json()
         throw new Error(err.error || "Payment failed")
       }
-      toast.success(`Payment of ${formatCurrency(Number(paymentDialog.order.total))} received via ${paymentMethod}`)
+      toast.success(`Paiement de ${formatCurrency(Number(paymentDialog.order.total))} reçu`)
       setPaymentDialog({ open: false, order: null })
       fetchTransactions()
     } catch (err: any) {
-      toast.error(err.message || "Payment failed")
+      toast.error(err.message || "Échec du paiement")
     }
+  }
+
+  const handlePrintA4Invoice = (txn: any) => {
+    const origin = window.location.origin
+    const items = (txn.items || []).map((item: any) => ({
+      designation: item.productName,
+      quantite: String(item.quantity),
+      prix: Number(item.price),
+      total: Number(item.price) * item.quantity,
+    }))
+    const totalHt = items.reduce((s: number, i: any) => s + i.total, 0)
+    const contactLine = [settings?.address, settings?.phone].filter(Boolean).join(" · ")
+    printReport({
+      title: "FACTURE",
+      subtitle: settings?.name || "SmartPOS",
+      period: `N° ${txn.reference || txn.id.slice(0, 8).toUpperCase()}`,
+      logoUrl: `${origin}/ahava.png`,
+      metrics: [
+        { label: "Date", value: new Date(txn.date).toLocaleDateString() },
+        { label: "Client", value: txn.client?.name || "Client libre" },
+        { label: "Contact", value: contactLine || "—" },
+        { label: "Caissier", value: txn.user?.name || "—" },
+        { label: "Statut", value: txn.status === "completed" ? "Payé" : "Non payé", highlight: txn.status !== "completed" },
+        { label: "Total", value: formatCurrency(totalHt), highlight: true },
+      ],
+      columns: [
+        { header: "Désignation", key: "designation" },
+        { header: "Qté", key: "quantite", align: "center" },
+        { header: "Prix unit.", key: "prix", format: "currency", align: "right" },
+        { header: "Total", key: "total", format: "currency", align: "right" },
+      ],
+      rows: items,
+    })
   }
 
   const handlePrintThermal = (txn?: any) => {
@@ -208,12 +242,12 @@ export default function SalesHistoryPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Sales History</h2>
-          <p className="text-muted-foreground">Manage and review all sales transactions</p>
+          <h2 className="text-2xl font-bold tracking-tight">Historique des ventes</h2>
+          <p className="text-muted-foreground">Consultez et gérez toutes les ventes effectuées</p>
         </div>
         <Button variant="outline" onClick={() => setShowReport(true)} disabled={filteredTransactions.length === 0}>
           <Printer className="h-4 w-4 mr-2" />
-          Print Report
+          Imprimer le rapport
         </Button>
       </div>
 
@@ -226,7 +260,7 @@ export default function SalesHistoryPage() {
                 <ShoppingCart className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Completed</p>
+                <p className="text-xs text-muted-foreground font-medium">Terminées</p>
                 <p className="text-xl font-bold">{loading ? "—" : stats.totalSales}</p>
               </div>
             </div>
@@ -239,7 +273,7 @@ export default function SalesHistoryPage() {
                 <DollarSign className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Revenue</p>
+                <p className="text-xs text-muted-foreground font-medium">Revenus</p>
                 <p className="text-xl font-bold text-green-600">{loading ? "—" : formatCurrency(stats.totalRevenue)}</p>
               </div>
             </div>
@@ -252,7 +286,7 @@ export default function SalesHistoryPage() {
                 <Banknote className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Cash</p>
+                <p className="text-xs text-muted-foreground font-medium">Espèces</p>
                 <p className="text-xl font-bold">{loading ? "—" : stats.cashSales}</p>
               </div>
             </div>
@@ -265,7 +299,7 @@ export default function SalesHistoryPage() {
                 <CreditCard className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Credit</p>
+                <p className="text-xs text-muted-foreground font-medium">Crédit</p>
                 <p className="text-xl font-bold">{loading ? "—" : stats.creditSales}</p>
               </div>
             </div>
@@ -278,7 +312,7 @@ export default function SalesHistoryPage() {
                 <Receipt className={`h-5 w-5 ${stats.pendingCount > 0 ? "text-red-500" : "text-muted-foreground"}`} />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Pending</p>
+                <p className="text-xs text-muted-foreground font-medium">En attente</p>
                 <p className={`text-xl font-bold ${stats.pendingCount > 0 ? "text-red-500" : ""}`}>
                   {loading ? "—" : stats.pendingCount}
                 </p>
@@ -295,7 +329,7 @@ export default function SalesHistoryPage() {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by ID, client, or cashier..."
+                placeholder="Rechercher par ID, client ou caissier..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 h-10"
@@ -304,10 +338,10 @@ export default function SalesHistoryPage() {
             <div className="flex items-center gap-3 flex-wrap">
               <Select value={waiterFilter} onValueChange={setWaiterFilter}>
                 <SelectTrigger className="w-36 h-10">
-                  <SelectValue placeholder="Waiter" />
+                  <SelectValue placeholder="Serveur" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Waiters</SelectItem>
+                  <SelectItem value="all">Tous les serveurs</SelectItem>
                   {waiters.map((name) => (
                     <SelectItem key={name} value={name}>{name}</SelectItem>
                   ))}
@@ -316,12 +350,12 @@ export default function SalesHistoryPage() {
 
               <Select value={tableFilter} onValueChange={setTableFilter}>
                 <SelectTrigger className="w-32 h-10">
-                  <SelectValue placeholder="Table" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tables</SelectItem>
-                  {tables.map((num) => (
-                    <SelectItem key={num} value={num}>Table {num}</SelectItem>
+<SelectValue placeholder="Table" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">Toutes les tables</SelectItem>
+                   {tables.map((num) => (
+                     <SelectItem key={num} value={num}>Table {num}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -347,19 +381,19 @@ export default function SalesHistoryPage() {
         <div className="flex items-center justify-between">
           <TabsList>
             <TabsTrigger value="all" className="relative">
-              All
+              Tous
               <Badge variant="secondary" className="ml-2 text-xs px-1.5">{statusCounts.all}</Badge>
             </TabsTrigger>
             <TabsTrigger value="paid">
-              Paid
+              Payé
               <Badge variant="secondary" className="ml-2 text-xs px-1.5 bg-green-500/10 text-green-700">{statusCounts.paid}</Badge>
             </TabsTrigger>
             <TabsTrigger value="pending">
-              Pending
+              En attente
               <Badge variant="secondary" className="ml-2 text-xs px-1.5 bg-amber-500/10 text-amber-700">{statusCounts.pending}</Badge>
             </TabsTrigger>
             <TabsTrigger value="cancelled">
-              Cancelled
+              Annulé
               <Badge variant="secondary" className="ml-2 text-xs px-1.5 bg-red-500/10 text-red-700">{statusCounts.cancelled}</Badge>
             </TabsTrigger>
           </TabsList>
@@ -374,13 +408,13 @@ export default function SalesHistoryPage() {
                   <TableHeader>
                     <TableRow className="bg-muted/30 border-border">
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ID</TableHead>
-                      <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date & Time</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date et heure</TableHead>
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client</TableHead>
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Table</TableHead>
-                      <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Items</TableHead>
-                      <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Payment</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Articles</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Paiement</TableHead>
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">Total</TableHead>
-                      <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Statut</TableHead>
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -390,7 +424,7 @@ export default function SalesHistoryPage() {
                         <TableCell colSpan={9} className="h-48 text-center">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                            <span className="text-sm text-muted-foreground">Loading transactions...</span>
+                            <span className="text-sm text-muted-foreground">Chargement des transactions...</span>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -399,8 +433,8 @@ export default function SalesHistoryPage() {
                         <TableCell colSpan={9} className="h-48 text-center">
                           <div className="flex flex-col items-center justify-center">
                             <Receipt className="h-12 w-12 text-muted-foreground/30 mb-3" />
-                            <p className="text-sm font-medium text-muted-foreground">No transactions found</p>
-                            <p className="text-xs text-muted-foreground/60 mt-1">Try adjusting your search or filters</p>
+                            <p className="text-sm font-medium text-muted-foreground">Aucune transaction trouvée</p>
+                            <p className="text-xs text-muted-foreground/60 mt-1">Essayez de modifier votre recherche ou vos filtres</p>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -426,7 +460,7 @@ export default function SalesHistoryPage() {
                                 <span className="text-sm font-medium">{txn.client.name}</span>
                               </div>
                             ) : (
-                              <span className="text-sm text-muted-foreground italic">Walk-in</span>
+                              <span className="text-sm text-muted-foreground italic">Client libre</span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -440,7 +474,7 @@ export default function SalesHistoryPage() {
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-xs font-normal">
-                              {txn.items?.length || 0} {txn.items?.length === 1 ? "item" : "items"}
+                              {txn.items?.length || 0} {txn.items?.length === 1 ? "article" : "articles"}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -471,24 +505,25 @@ export default function SalesHistoryPage() {
                                     : "border-amber-500/30 bg-amber-500/10 text-amber-700 text-xs"
                               }
                             >
-                              {txn.status === "completed" ? "Paid" : txn.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
+{txn.status === "completed" ? "Payé" : txn.status}
+                             </Badge>
+                           </TableCell>
+                           <TableCell className="text-right">
+                             <div className="flex items-center justify-end gap-1">
                               {txn.status !== "completed" && txn.status !== "cancelled" && (
-                                <Button size="sm" className="h-8" onClick={() => setPaymentDialog({ open: true, order: txn })}>
-                                  <CreditCard className="h-3.5 w-3.5 mr-1" /> Pay
-                                </Button>
-                              )}
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetails(txn)}>
-                                <Eye className="h-4 w-4" />
+                                  <Button size="sm" className="h-8" onClick={() => setPaymentDialog({ open: true, order: txn })}>
+                                    <CreditCard className="h-3.5 w-3.5 mr-1" /> Payer
+                                 </Button>
+                               )}
+                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetails(txn)}>
+                                 <Eye className="h-4 w-4" />
+                               </Button>
+                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrintThermal(txn)} title="Réimpression ticket">
+                                 <Printer className="h-4 w-4" />
+                               </Button>
+                               <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => handlePrintA4Invoice(txn)} title="Facture A4">
+                                <Receipt className="h-4 w-4" />
                               </Button>
-                              {txn.status === "completed" && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrintThermal(txn)}>
-                                  <Printer className="h-4 w-4" />
-                                </Button>
-                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -500,7 +535,7 @@ export default function SalesHistoryPage() {
               {filteredTransactions.length > 0 && (
                 <div className="flex items-center justify-between px-4 py-3 border-t border-border">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Rows per page:</span>
+                    <span>Lignes par page :</span>
                     <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1) }}>
                       <SelectTrigger className="h-8 w-16">
                         <SelectValue />
@@ -513,7 +548,7 @@ export default function SalesHistoryPage() {
                       </SelectContent>
                     </Select>
                     <span className="ml-auto">
-                      {Math.min((page - 1) * pageSize + 1, filteredTransactions.length)}–{Math.min(page * pageSize, filteredTransactions.length)} of {filteredTransactions.length}
+                      {Math.min((page - 1) * pageSize + 1, filteredTransactions.length)}–{Math.min(page * pageSize, filteredTransactions.length)} sur {filteredTransactions.length}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -538,16 +573,16 @@ export default function SalesHistoryPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5 text-primary" />
-              Transaction Details
+              Détails de la transaction
             </DialogTitle>
-            <DialogDescription>Full details of this sale transaction</DialogDescription>
+            <DialogDescription>Détails complets de cette transaction</DialogDescription>
           </DialogHeader>
 
           {selectedTransaction && (
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Reference</p>
+                  <p className="text-xs text-muted-foreground font-medium">Référence</p>
                   <p className="font-mono text-xs mt-0.5">{selectedTransaction.reference || selectedTransaction.id}</p>
                 </div>
                 <div>
@@ -555,11 +590,11 @@ export default function SalesHistoryPage() {
                   <p className="mt-0.5">{new Date(selectedTransaction.date).toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Client</p>
-                  <p className="mt-0.5">{selectedTransaction.client?.name || <span className="italic text-muted-foreground">Walk-in</span>}</p>
+<p className="text-xs text-muted-foreground font-medium">Client</p>
+                   <p className="mt-0.5">{selectedTransaction.client?.name || <span className="italic text-muted-foreground">Client libre</span>}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Cashier</p>
+                  <p className="text-xs text-muted-foreground font-medium">Caissier</p>
                   <p className="mt-0.5">{selectedTransaction.user?.name || "—"}</p>
                 </div>
                 <div>
@@ -567,46 +602,46 @@ export default function SalesHistoryPage() {
                   <p className="mt-0.5">{selectedTransaction.table ? `T${selectedTransaction.table.number}` : "—"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Payment</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {selectedTransaction.paymentMethod ? (
-                      <>
-                        {selectedTransaction.paymentMethod === "cash" ? (
-                          <Banknote className="h-3.5 w-3.5 text-green-600" />
-                        ) : (
-                          <CreditCard className="h-3.5 w-3.5 text-blue-600" />
-                        )}
-                        <span className="capitalize">{selectedTransaction.paymentMethod}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground">Not paid</span>
-                    )}
-                  </div>
+<p className="text-xs text-muted-foreground font-medium">Paiement</p>
+                   <div className="flex items-center gap-1.5 mt-0.5">
+                     {selectedTransaction.paymentMethod ? (
+                       <>
+                         {selectedTransaction.paymentMethod === "cash" ? (
+                           <Banknote className="h-3.5 w-3.5 text-green-600" />
+                         ) : (
+                           <CreditCard className="h-3.5 w-3.5 text-blue-600" />
+                         )}
+                         <span className="capitalize">{selectedTransaction.paymentMethod}</span>
+                       </>
+                     ) : (
+                       <span className="text-muted-foreground">Non payé</span>
+                     )}
+                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Status</p>
-                  <Badge
-                    variant="outline"
-                    className={
-                      selectedTransaction.status === "completed"
-                        ? "border-green-500/30 bg-green-500/10 text-green-700 mt-0.5"
-                        : selectedTransaction.status === "cancelled"
-                          ? "border-red-500/30 bg-red-500/10 text-red-700 mt-0.5"
-                          : "border-amber-500/30 bg-amber-500/10 text-amber-700 mt-0.5"
-                    }
-                  >
-                    {selectedTransaction.status === "completed" ? "Paid" : selectedTransaction.status}
-                  </Badge>
+<p className="text-xs text-muted-foreground font-medium">Statut</p>
+                   <Badge
+                     variant="outline"
+                     className={
+                       selectedTransaction.status === "completed"
+                         ? "border-green-500/30 bg-green-500/10 text-green-700 mt-0.5"
+                         : selectedTransaction.status === "cancelled"
+                           ? "border-red-500/30 bg-red-500/10 text-red-700 mt-0.5"
+                           : "border-amber-500/30 bg-amber-500/10 text-amber-700 mt-0.5"
+                     }
+                   >
+                     {selectedTransaction.status === "completed" ? "Payé" : selectedTransaction.status}
+                   </Badge>
                 </div>
               </div>
 
               <Separator />
 
               <div>
-                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  Items
-                </h4>
+<h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                   <Package className="h-4 w-4 text-muted-foreground" />
+                   Articles
+                 </h4>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
                   {selectedTransaction.items?.map((item: any, idx: number) => (
                     <div key={idx} className="flex justify-between text-sm items-center">
@@ -619,7 +654,7 @@ export default function SalesHistoryPage() {
                     </div>
                   ))}
                   {(!selectedTransaction.items || selectedTransaction.items.length === 0) && (
-                    <p className="text-sm text-muted-foreground text-center py-2">No items</p>
+                    <p className="text-sm text-muted-foreground text-center py-2">Aucun article</p>
                   )}
                 </div>
               </div>
@@ -642,25 +677,27 @@ export default function SalesHistoryPage() {
                     setPaymentDialog({ open: true, order: selectedTransaction })
                   }}
                 >
-                  <CreditCard className="h-4 w-4 mr-2" /> Process Payment
+                  <CreditCard className="h-4 w-4 mr-2" /> Traiter le paiement
                 </Button>
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setShowDetails(false)}>Close</Button>
-                {selectedTransaction.status === "completed" && (
-                  <Button onClick={() => handlePrintThermal()}>
-                    <Printer className="h-4 w-4 mr-2" />
-                    Print Receipt
-                  </Button>
-                )}
+                <Button variant="outline" onClick={() => setShowDetails(false)}>Fermer</Button>
+                <Button variant="outline" onClick={() => handlePrintThermal()}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Réimpression ticket
+                </Button>
+                <Button onClick={() => handlePrintA4Invoice(selectedTransaction)}>
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Facture A4
+                </Button>
               </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+             </div>
+           )}
+         </DialogContent>
+       </Dialog>
 
-      {/* Payment Dialog */}
+       {/* Payment Dialog */}
       <PaymentDialog
         open={paymentDialog.open}
         onOpenChange={(open) => setPaymentDialog({ open, order: open ? paymentDialog.order : null })}
@@ -672,8 +709,8 @@ export default function SalesHistoryPage() {
       <Dialog open={showReport} onOpenChange={setShowReport}>
         <DialogContent className="sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] h-[95vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Sales Report</DialogTitle>
-            <DialogDescription>Review and print the sales report</DialogDescription>
+            <DialogTitle>Rapport des ventes</DialogTitle>
+            <DialogDescription>Consultez et imprimez le rapport des ventes</DialogDescription>
           </DialogHeader>
 
           <div id="printable-report" className="space-y-6 p-6">
@@ -681,11 +718,11 @@ export default function SalesHistoryPage() {
             <div className="text-center border-b border-double border-gray-400 pb-4 mb-2">
               <h1 className="text-2xl font-black tracking-tight uppercase">{settings?.name || "SmartPOS"}</h1>
               <p className="text-xs text-muted-foreground">{settings?.address || ""}{settings?.address && settings?.phone ? " · " : ""}{settings?.phone || ""}</p>
-              <h2 className="text-lg font-bold tracking-tight mt-3">SALES ACTIVITY REPORT</h2>
-              <p className="text-sm text-muted-foreground">Generated {new Date().toLocaleString()}</p>
+              <h2 className="text-lg font-bold tracking-tight mt-3">RAPPORT D'ACTIVITÉ DES VENTES</h2>
+              <p className="text-sm text-muted-foreground">Généré {new Date().toLocaleString()}</p>
               {(startDate || endDate) && (
                 <p className="text-sm font-medium mt-1">
-                  Period: {startDate || "—"} to {endDate || "—"}
+                  Période : {startDate || "—"} au {endDate || "—"}
                 </p>
               )}
             </div>
@@ -701,14 +738,14 @@ export default function SalesHistoryPage() {
                 const creditTotal = creditTxns.reduce((a: number, t: any) => a + Number.parseFloat(t.total), 0)
                 const totalItems = completed.reduce((a: number, t: any) => a + (t.items?.length || 0), 0)
                 const stats = [
-                  { label: "Transactions", value: String(filteredTransactions.length), sub: `${completed.length} completed`, hl: false },
-                  { label: "Total Revenue", value: formatCurrency(totalRevenue), sub: `Avg ${formatCurrency(completed.length ? totalRevenue / completed.length : 0)}`, hl: true },
-                  { label: "Cash", value: `${cashTxns.length} txns`, sub: formatCurrency(cashTotal), hl: false },
-                  { label: "Credit", value: `${creditTxns.length} txns`, sub: formatCurrency(creditTotal), hl: false },
-                  { label: "Items Sold", value: String(totalItems), sub: `Across ${completed.length} orders`, hl: false },
-                  { label: "Pending", value: String(filteredTransactions.filter((t: any) => t.status !== "completed" && t.status !== "cancelled").length), sub: "", hl: false },
-                  { label: "Cancelled", value: String(filteredTransactions.filter((t: any) => t.status === "cancelled").length), sub: "", hl: false },
-                  { label: "Waiters Active", value: String(new Set(completed.filter((t: any) => t.user?.name).map((t: any) => t.user.name)).size), sub: `${new Set(completed.filter((t: any) => t.table?.number).map((t: any) => t.table.number)).size} tables`, hl: false },
+                  { label: "Transactions", value: String(filteredTransactions.length), sub: `${completed.length} terminées`, hl: false },
+                  { label: "Revenus totaux", value: formatCurrency(totalRevenue), sub: `Moy. ${formatCurrency(completed.length ? totalRevenue / completed.length : 0)}`, hl: true },
+                  { label: "Espèces", value: `${cashTxns.length} txns`, sub: formatCurrency(cashTotal), hl: false },
+                  { label: "Crédit", value: `${creditTxns.length} txns`, sub: formatCurrency(creditTotal), hl: false },
+                  { label: "Articles vendus", value: String(totalItems), sub: `Sur ${completed.length} commandes`, hl: false },
+                  { label: "En attente", value: String(filteredTransactions.filter((t: any) => t.status !== "completed" && t.status !== "cancelled").length), sub: "", hl: false },
+                  { label: "Annulés", value: String(filteredTransactions.filter((t: any) => t.status === "cancelled").length), sub: "", hl: false },
+                  { label: "Serveurs actifs", value: String(new Set(completed.filter((t: any) => t.user?.name).map((t: any) => t.user.name)).size), sub: `${new Set(completed.filter((t: any) => t.table?.number).map((t: any) => t.table.number)).size} tables`, hl: false },
                 ]
                 return (
                   <>
@@ -728,15 +765,15 @@ export default function SalesHistoryPage() {
             {(() => {
               const completed = filteredTransactions.filter((t: any) => t.status === "completed")
               const methods = ["cash", "credit", "credit_card", "mobile_money", "other"]
-              const methodLabels: Record<string, string> = { cash: "Cash", credit: "Credit", credit_card: "Credit Card", mobile_money: "Mobile Money", other: "Other" }
+              const methodLabels: Record<string, string> = { cash: "Espèces", credit: "Crédit", credit_card: "Carte de crédit", mobile_money: "Mobile Money", other: "Autre" }
               return (
                 <div className="border rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Payment Method Breakdown</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Répartition des modes de paiement</h3>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border text-left">
-                        <th className="py-1.5 font-medium text-muted-foreground">Method</th>
-                        <th className="py-1.5 font-medium text-muted-foreground text-right">Count</th>
+                        <th className="py-1.5 font-medium text-muted-foreground">Méthode</th>
+                        <th className="py-1.5 font-medium text-muted-foreground text-right">Nombre</th>
                         <th className="py-1.5 font-medium text-muted-foreground text-right">Total</th>
                         <th className="py-1.5 font-medium text-muted-foreground text-right">%</th>
                       </tr>
@@ -764,21 +801,21 @@ export default function SalesHistoryPage() {
             {/* Transactions Table */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Transactions List
+                Liste des transactions
                 <span className="font-normal text-xs ml-2">({filteredTransactions.length} total)</span>
               </h3>
               <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr className="bg-muted/50 print:bg-gray-200 border-b border-border">
-                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Ref</th>
+                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Réf</th>
                     <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
                     <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Client</th>
-                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Cashier</th>
+                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Caissier</th>
                     <th className="text-center py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Table</th>
-                    <th className="text-center py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Items</th>
-                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Payment</th>
+                    <th className="text-center py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Articles</th>
+                    <th className="text-left py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Paiement</th>
                     <th className="text-right py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Total</th>
-                    <th className="text-center py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="text-center py-2 px-2 font-semibold text-muted-foreground uppercase tracking-wider">Statut</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -786,11 +823,11 @@ export default function SalesHistoryPage() {
                     <tr key={txn.id} className="border-b border-border/50">
                       <td className="py-1.5 px-2 font-mono font-medium">{txn.reference || `#${txn.id.slice(0, 8)}`}</td>
                       <td className="py-1.5 px-2 whitespace-nowrap">{new Date(txn.date).toLocaleDateString()} {new Date(txn.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
-                      <td className="py-1.5 px-2">{txn.client?.name || "Walk-in"}</td>
+                      <td className="py-1.5 px-2">{txn.client?.name || "Client libre"}</td>
                       <td className="py-1.5 px-2">{txn.user?.name || "—"}</td>
                       <td className="py-1.5 px-2 text-center">{txn.table ? `T${txn.table.number}` : "—"}</td>
                       <td className="py-1.5 px-2 text-center">{txn.items?.length || 0}</td>
-                      <td className="py-1.5 px-2 capitalize">{txn.paymentMethod || "Unpaid"}</td>
+                      <td className="py-1.5 px-2 capitalize">{txn.paymentMethod || "Non payé"}</td>
                       <td className="py-1.5 px-2 text-right font-medium">{formatCurrency(Number.parseFloat(txn.total))}</td>
                       <td className="py-1.5 px-2 text-center">
                         <span className={
@@ -798,8 +835,8 @@ export default function SalesHistoryPage() {
                           txn.status === "cancelled" ? "text-red-600 font-semibold" :
                           "text-amber-600 font-semibold"
                         }>
-                          {txn.status === "completed" ? "Paid" : txn.status}
-                        </span>
+{txn.status === "completed" ? "Payé" : txn.status}
+                         </span>
                       </td>
                     </tr>
                   ))}
@@ -809,13 +846,13 @@ export default function SalesHistoryPage() {
 
             {/* Footer */}
             <div className="text-center text-xs text-muted-foreground border-t border-double border-gray-400 pt-3 mt-4">
-              <p>{settings?.name || "SmartPOS"} — End of Report — Page 1</p>
-              <p className="mt-0.5">Generated automatically. This report is a summary of sales transactions.</p>
+              <p>{settings?.name || "SmartPOS"} — Fin du rapport — Page 1</p>
+              <p className="mt-0.5">Généré automatiquement. Ce rapport est un résumé des transactions de vente.</p>
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setShowReport(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setShowReport(false)}>Fermer</Button>
             <Button onClick={() => {
               const w = window.open("", "_blank")
               if (!w) return
@@ -826,13 +863,13 @@ export default function SalesHistoryPage() {
                   return Array.from(s.cssRules || []).map((r) => r.cssText).join("\n")
                 } catch { return "" }
               }).join("\n")
-              w.document.write(`<!DOCTYPE html><html><head><title>Sales Report</title><style>body{margin:0;padding:20px;font-family:system-ui,-apple-system,sans-serif;color:#1a1a2e}table{width:100%;border-collapse:collapse;font-size:11px}th{text-align:left;padding:6px 8px;border-bottom:2px solid #d1d5db;font-size:10px;text-transform:uppercase;color:#6b7280;font-weight:600}td{padding:5px 8px;border-bottom:1px solid #e5e7eb}tr:last-child td{border-bottom:none}.text-right{text-align:right}.text-center{text-align:center}.font-mono{font-family:'Courier New',monospace}.font-bold{font-weight:700}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.tracking-wider{letter-spacing:0.05em}.text-muted{color:#6b7280}.text-xs{font-size:11px}.text-sm{font-size:12px}.text-lg{font-size:16px}.text-2xl{font-size:22px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.p-3{padding:12px}.p-4{padding:16px}.p-6{padding:24px}.rounded-lg{border-radius:8px}.border{border:1px solid #e5e7eb}.border-b{border-bottom:1px solid #e5e7eb}.border-t{border-top:1px solid #e5e7eb}.border-double{border-style:double}.border-gray-400{border-color:#9ca3af}.gap-3{gap:12px}.gap-4{gap:16px}.grid{display:grid}.grid-cols-2{grid-template-columns:1fr 1fr}.bg-muted{background-color:#f3f4f6}.bg-gray-100{background-color:#f3f4f6}.text-primary{color:#2563eb}.text-green-700{color:#15803d}.text-red-600{color:#dc2626}.text-amber-600{color:#d97706}.capitalize{text-transform:capitalize}.whitespace-nowrap{white-space:nowrap}.space-y-6>*+*{margin-top:24px}.space-y-4>*+*{margin-top:16px}.space-y-3>*+*{margin-top:12px}@media print{body{padding:0}table{page-break-inside:avoid}tr{page-break-inside:avoid}}</style></head><body>${reportEl.innerHTML}</body></html>`)
+              w.document.write(`<!DOCTYPE html><html><head><title>Rapport des ventes</title><style>body{margin:0;padding:20px;font-family:system-ui,-apple-system,sans-serif;color:#1a1a2e}table{width:100%;border-collapse:collapse;font-size:11px}th{text-align:left;padding:6px 8px;border-bottom:2px solid #d1d5db;font-size:10px;text-transform:uppercase;color:#6b7280;font-weight:600}td{padding:5px 8px;border-bottom:1px solid #e5e7eb}tr:last-child td{border-bottom:none}.text-right{text-align:right}.text-center{text-align:center}.font-mono{font-family:'Courier New',monospace}.font-bold{font-weight:700}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.tracking-wider{letter-spacing:0.05em}.text-muted{color:#6b7280}.text-xs{font-size:11px}.text-sm{font-size:12px}.text-lg{font-size:16px}.text-2xl{font-size:22px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.p-3{padding:12px}.p-4{padding:16px}.p-6{padding:24px}.rounded-lg{border-radius:8px}.border{border:1px solid #e5e7eb}.border-b{border-bottom:1px solid #e5e7eb}.border-t{border-top:1px solid #e5e7eb}.border-double{border-style:double}.border-gray-400{border-color:#9ca3af}.gap-3{gap:12px}.gap-4{gap:16px}.grid{display:grid}.grid-cols-2{grid-template-columns:1fr 1fr}.bg-muted{background-color:#f3f4f6}.bg-gray-100{background-color:#f3f4f6}.text-primary{color:#2563eb}.text-green-700{color:#15803d}.text-red-600{color:#dc2626}.text-amber-600{color:#d97706}.capitalize{text-transform:capitalize}.whitespace-nowrap{white-space:nowrap}.space-y-6>*+*{margin-top:24px}.space-y-4>*+*{margin-top:16px}.space-y-3>*+*{margin-top:12px}@media print{body{padding:0}table{page-break-inside:avoid}tr{page-break-inside:avoid}}</style></head><body>${reportEl.innerHTML}</body></html>`)
               w.document.close()
               w.focus()
               setTimeout(() => { w.print(); w.close() }, 300)
             }}>
               <Printer className="h-4 w-4 mr-2" />
-              Print
+              Imprimer
             </Button>
           </div>
         </DialogContent>

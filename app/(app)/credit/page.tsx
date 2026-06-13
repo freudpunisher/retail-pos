@@ -52,13 +52,13 @@ export default function CreditManagementPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "paid":
-        return <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-none">Paid</Badge>
+        return <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-none">Payé</Badge>
       case "partial":
-        return <Badge className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-none">Partial</Badge>
+        return <Badge className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-none">Partiel</Badge>
       case "pending":
-        return <Badge className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border-none">Pending</Badge>
+        return <Badge className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border-none">En attente</Badge>
       case "overdue":
-        return <Badge className="bg-rose-500/20 text-rose-600 dark:text-rose-400 border-none">Overdue</Badge>
+        return <Badge className="bg-rose-500/20 text-rose-600 dark:text-rose-400 border-none">En retard</Badge>
       default:
         return null
     }
@@ -87,7 +87,7 @@ export default function CreditManagementPage() {
           {sector ? "Payement credit Boulangerie" : "Payement credit"}
         </h2>
         <p className="text-muted-foreground">
-          {sector ? "Suivi des payement credit de la boulangerie" : "Track and manage credit sales and payments"}
+          {sector ? "Suivi des payement credit de la boulangerie" : "Suivez et gérez les ventes à crédit et les paiements"}
         </p>
       </div>
 
@@ -97,7 +97,7 @@ export default function CreditManagementPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Outstanding</p>
+                <p className="text-sm text-muted-foreground">Total impayé</p>
                 <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{formatCurrency(totalOutstanding)}</p>
               </div>
               <DollarSign className="h-8 w-8 text-amber-600 dark:text-amber-400" />
@@ -108,7 +108,7 @@ export default function CreditManagementPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pending / Partial</p>
+                <p className="text-sm text-muted-foreground">En attente / Partiel</p>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{pendingCount}</p>
               </div>
               <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
@@ -119,7 +119,7 @@ export default function CreditManagementPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Overdue</p>
+                <p className="text-sm text-muted-foreground">En retard</p>
                 <p className="text-2xl font-bold text-destructive">{overdueCount}</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-destructive" />
@@ -130,7 +130,7 @@ export default function CreditManagementPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Paid</p>
+                <p className="text-sm text-muted-foreground">Payé</p>
                 <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{paidCount}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
@@ -143,17 +143,17 @@ export default function CreditManagementPage() {
       <Card className="border-border bg-card">
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Filter by status:</span>
+            <span className="text-sm text-muted-foreground">Filtrer par statut :</span>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder="Statut" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="partial">Partial</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="all">Tous les statuts</SelectItem>
+                <SelectItem value="pending">En attente</SelectItem>
+                <SelectItem value="partial">Partiel</SelectItem>
+                <SelectItem value="overdue">En retard</SelectItem>
+                <SelectItem value="paid">Payé</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -165,7 +165,7 @@ export default function CreditManagementPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Credit Records
+            Enregistrements de crédit
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -176,11 +176,11 @@ export default function CreditManagementPage() {
                   <TableHead className="text-muted-foreground">ID</TableHead>
                   <TableHead className="text-muted-foreground">Client</TableHead>
                   <TableHead className="text-muted-foreground">Transaction</TableHead>
-                  <TableHead className="text-muted-foreground text-right">Amount</TableHead>
-                  <TableHead className="text-muted-foreground text-right">Paid</TableHead>
-                  <TableHead className="text-muted-foreground text-right">Remaining</TableHead>
-                  <TableHead className="text-muted-foreground">Due Date</TableHead>
-                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Montant</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Payé</TableHead>
+                  <TableHead className="text-muted-foreground text-right">Restant</TableHead>
+                  <TableHead className="text-muted-foreground">Date d'échéance</TableHead>
+                  <TableHead className="text-muted-foreground">Statut</TableHead>
                   <TableHead className="text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -188,13 +188,13 @@ export default function CreditManagementPage() {
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                      Loading credit records...
+                      Chargement des enregistrements de crédit...
                     </TableCell>
                   </TableRow>
                 ) : filteredRecords.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                      No credit records found
+                      Aucun enregistrement de crédit trouvé
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -209,7 +209,7 @@ export default function CreditManagementPage() {
                     return (
                       <TableRow key={record.id} className="border-border">
                         <TableCell className="font-mono text-sm">{record.id}</TableCell>
-                        <TableCell className="font-medium">{record.clientName || "Unknown"}</TableCell>
+                        <TableCell className="font-medium">{record.clientName || "Inconnu"}</TableCell>
                         <TableCell className="font-mono text-sm text-muted-foreground">
                           {record.transactionId}
                         </TableCell>
@@ -271,8 +271,8 @@ export default function CreditManagementPage() {
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Record Payment</DialogTitle>
-            <DialogDescription>Record a payment for credit record {selectedRecord?.id}</DialogDescription>
+            <DialogTitle>Enregistrer le paiement</DialogTitle>
+            <DialogDescription>Enregistrer un paiement pour l'enregistrement de crédit {selectedRecord?.id}</DialogDescription>
           </DialogHeader>
 
           {selectedRecord && (
@@ -280,18 +280,18 @@ export default function CreditManagementPage() {
               <div className="rounded-lg border border-border bg-secondary/30 p-4">
                 <div className="flex justify-between mb-2">
                   <span className="text-muted-foreground">Client</span>
-                  <span className="font-medium">{(selectedRecord as any).clientName || "Unknown"}</span>
+                  <span className="font-medium">{(selectedRecord as any).clientName || "Inconnu"}</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-muted-foreground">Total Amount</span>
+                  <span className="text-muted-foreground">Montant total</span>
                   <span className="font-medium">{formatCurrency(Number(selectedRecord.amount))}</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-muted-foreground">Already Paid</span>
+                  <span className="text-muted-foreground">Déjà payé</span>
                   <span className="font-medium text-accent">{formatCurrency(Number(selectedRecord.paidAmount))}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Remaining</span>
+                  <span className="text-muted-foreground">Restant</span>
                   <span className="font-bold text-warning">
                     {formatCurrency(Number(selectedRecord.amount) - Number(selectedRecord.paidAmount))}
                   </span>
@@ -299,7 +299,7 @@ export default function CreditManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="amount">Payment Amount</Label>
+                <Label htmlFor="amount">Montant du paiement</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -310,14 +310,14 @@ export default function CreditManagementPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="method">Payment Method</Label>
+                <Label htmlFor="method">Moyen de paiement</Label>
                 <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as "cash" | "card")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select method" />
+                    <SelectValue placeholder="Sélectionner un moyen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="cash">Espèces</SelectItem>
+                    <SelectItem value="card">Carte</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -326,10 +326,10 @@ export default function CreditManagementPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
-              Cancel
+              Annuler
             </Button>
             <Button onClick={handleRecordPayment} disabled={!paymentAmount || Number(paymentAmount) <= 0}>
-              Record Payment
+              Enregistrer le paiement
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -339,19 +339,19 @@ export default function CreditManagementPage() {
       <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Payment History</DialogTitle>
-            <DialogDescription>Payment history for {selectedRecord?.id}</DialogDescription>
+            <DialogTitle>Historique des paiements</DialogTitle>
+            <DialogDescription>Historique des paiements pour {selectedRecord?.id}</DialogDescription>
           </DialogHeader>
 
           {selectedRecord && (
             <div className="space-y-4 py-4">
               <div className="rounded-lg border border-border bg-secondary/30 p-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Amount:</span>
+                  <span className="text-muted-foreground">Montant total :</span>
                   <span className="font-medium">{formatCurrency(Number(selectedRecord.amount))}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Paid:</span>
+                  <span className="text-muted-foreground">Payé :</span>
                   <span className="font-medium text-accent">{formatCurrency(Number(selectedRecord.paidAmount))}</span>
                 </div>
               </div>
@@ -377,7 +377,7 @@ export default function CreditManagementPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground py-4">No payments recorded yet</p>
+                <p className="text-center text-muted-foreground py-4">Aucun paiement enregistré</p>
               )}
             </div>
           )}

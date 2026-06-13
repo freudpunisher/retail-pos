@@ -27,6 +27,7 @@ interface POItem {
 
 export default function CreatePurchaseOrderPage() {
   const router = useRouter()
+  const [sector, setSector] = useState("Alimentation")
   const [supplierId, setSupplierId] = useState("")
   const [items, setItems] = useState<POItem[]>([])
   const [selectedProductId, setSelectedProductId] = useState("")
@@ -37,7 +38,7 @@ export default function CreatePurchaseOrderPage() {
   const { createOrder } = usePurchases()
 
   const purchasableProducts = products.filter(
-    (p) => p.productType === "ingredient" || (p.productType === "drink" && p.trackStock)
+    (p) => p.sector === sector && p.trackStock
   )
 
   const addProduct = () => {
@@ -136,11 +137,11 @@ export default function CreatePurchaseOrderPage() {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      await createOrder({ supplierId, items, total, sector: "Alimentation" })
-      toast({ title: "Order created", description: "New purchase order saved as pending." })
+      await createOrder({ supplierId, items, total, sector })
+      toast({ title: "Commande créée", description: "Nouveau bon de commande sauvegardé comme en attente." })
       router.push("/purchases")
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message || "Could not create order" })
+      toast({ variant: "destructive", title: "Erreur", description: err.message || "Impossible de créer la commande" })
     } finally {
       setIsSubmitting(false)
     }
@@ -150,12 +151,12 @@ export default function CreatePurchaseOrderPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Create Purchase Order</h2>
-          <p className="text-muted-foreground">Will be saved as pending until marked received</p>
+          <h2 className="text-3xl font-bold tracking-tight">Créer un bon de commande</h2>
+          <p className="text-muted-foreground">Sera sauvegardé comme en attente jusqu'à réception</p>
         </div>
         <Button variant="outline" onClick={() => router.push("/purchases")} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Back
+          Retour
         </Button>
       </div>
 
@@ -168,8 +169,8 @@ export default function CreatePurchaseOrderPage() {
                 <p className="text-4xl font-black text-primary">{formatCurrency(total)}</p>
               </div>
               <div className="text-right space-y-1">
-                <p><span className="font-bold text-lg">{items.length}</span> products</p>
-                <p><span className="font-bold text-lg">{totalBoxes}</span> boxes / <span className="font-bold text-lg">{totalUnits}</span> units</p>
+                <p><span className="font-bold text-lg">{items.length}</span> produits</p>
+                <p><span className="font-bold text-lg">{totalBoxes}</span> caisses / <span className="font-bold text-lg">{totalUnits}</span> unités</p>
               </div>
             </div>
           </CardContent>
@@ -180,26 +181,41 @@ export default function CreatePurchaseOrderPage() {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
-              Order Information
+              Informations de commande
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="supplier" className="text-base">Supplier *</Label>
-              <Select value={supplierId} onValueChange={setSupplierId} required>
-                <SelectTrigger>
-                  <SelectValue placeholder={suppliersLoading ? "Loading..." : "Select supplier"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers
-                    .filter((s) => s.isActive)
-                    .map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="supplier" className="text-base">Fournisseur *</Label>
+                <Select value={supplierId} onValueChange={setSupplierId} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder={suppliersLoading ? "Chargement..." : "Sélectionner un fournisseur"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers
+                      .filter((s) => s.isActive)
+                      .map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sector" className="text-base">Secteur *</Label>
+                <Select value={sector} onValueChange={setSector} required>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Alimentation">Alimentation</SelectItem>
+                    <SelectItem value="Bar">Bar</SelectItem>
+                    <SelectItem value="Cuisine">Cuisine</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -209,16 +225,16 @@ export default function CreatePurchaseOrderPage() {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Line Items
+              Articles
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
-                <Label htmlFor="product">Add Product</Label>
+                <Label htmlFor="product">Ajouter un produit</Label>
                 <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                   <SelectTrigger>
-                    <SelectValue placeholder={productsLoading ? "Loading..." : "Choose product"} />
+                    <SelectValue placeholder={productsLoading ? "Chargement..." : "Choisir un produit"} />
                   </SelectTrigger>
                   <SelectContent>
                     {purchasableProducts.map((p) => (
@@ -236,7 +252,7 @@ export default function CreatePurchaseOrderPage() {
                 className="mt-8 sm:mt-0 self-end"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add
+                Ajouter
               </Button>
             </div>
 
@@ -245,10 +261,10 @@ export default function CreatePurchaseOrderPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead>Product</TableHead>
-                      <TableHead className="text-right w-44">Cost</TableHead>
-                      <TableHead className="text-center w-56">Quantity</TableHead>
-                      <TableHead className="text-right w-32">Subtotal</TableHead>
+                      <TableHead>Produit</TableHead>
+                      <TableHead className="text-right w-44">Coût</TableHead>
+                      <TableHead className="text-center w-56">Quantité</TableHead>
+                      <TableHead className="text-right w-32">Sous-total</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -269,7 +285,7 @@ export default function CreatePurchaseOrderPage() {
                             {isDrink ? (
                               <div className="flex flex-col gap-1 items-end">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-muted-foreground whitespace-nowrap">Unit:</span>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">Unité :</span>
                                   <Input
                                     type="number"
                                     step="0.01"
@@ -280,7 +296,7 @@ export default function CreatePurchaseOrderPage() {
                                   />
                                 </div>
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-muted-foreground whitespace-nowrap">Box:</span>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">Caisse :</span>
                                   <Input
                                     type="number"
                                     step="0.01"
@@ -313,14 +329,14 @@ export default function CreatePurchaseOrderPage() {
                                     onChange={(e) => updateBoxes(item.productId, Number(e.target.value))}
                                     className="w-20 text-center h-8"
                                   />
-                                  <span className="text-sm font-medium">Boxes</span>
+                                  <span className="text-sm font-medium">Caisses</span>
                                 </div>
                                 <div className="text-xs text-muted-foreground flex gap-1.5 items-center mt-0.5">
                                   <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-                                    {item.quantityPerBox} units/box
+                                    {item.quantityPerBox} unités/caisse
                                   </Badge>
                                   <span>=</span>
-                                  <span className="font-semibold text-foreground">{item.quantity} total units</span>
+                                  <span className="font-semibold text-foreground">{item.quantity} total unités</span>
                                 </div>
                               </div>
                             ) : (
@@ -332,7 +348,7 @@ export default function CreatePurchaseOrderPage() {
                                   onChange={(e) => updateQuantity(item.productId, Number(e.target.value))}
                                   className="w-20 text-center h-8"
                                 />
-                                <span className="text-sm font-medium text-muted-foreground">units</span>
+                                <span className="text-sm font-medium text-muted-foreground">unités</span>
                               </div>
                             )}
                           </TableCell>
@@ -358,8 +374,8 @@ export default function CreatePurchaseOrderPage() {
             ) : (
               <div className="flex flex-col items-center justify-center h-48 border border-dashed rounded-lg text-muted-foreground">
                 <Package className="h-10 w-10 mb-3 opacity-50" />
-                <p className="font-medium">No items added yet</p>
-                <p className="text-sm">Select a product and click Add</p>
+                <p className="font-medium">Aucun article ajouté</p>
+                <p className="text-sm">Sélectionnez un produit et cliquez sur Ajouter</p>
               </div>
             )}
           </CardContent>
@@ -367,7 +383,7 @@ export default function CreatePurchaseOrderPage() {
 
        <div className="flex gap-4 pt-4">
           <Button type="button" variant="outline" onClick={() => router.push("/purchases")} className="flex-1">
-            Cancel
+            Annuler
           </Button>
           <Button
             type="submit"
@@ -375,7 +391,7 @@ export default function CreatePurchaseOrderPage() {
             className="flex-1 gap-2"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Create Pending Order
+            Créer la commande en attente
           </Button>
         </div>
       </form>

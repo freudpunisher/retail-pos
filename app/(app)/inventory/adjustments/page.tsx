@@ -109,14 +109,14 @@ export default function StockAdjustmentsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Stock Adjustments</h2>
-                    <p className="text-muted-foreground">Record and audit manual stock modifications</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Ajustements de stock</h2>
+                    <p className="text-muted-foreground">Enregistrer et auditer les modifications manuelles de stock</p>
                 </div>
                 <Dialog open={showAdjustmentDialog} onOpenChange={setShowAdjustmentDialog}>
                     <DialogTrigger asChild>
                         <Button className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                             <Plus className="mr-2 h-4 w-4" />
-                            Record Adjustment
+                            Enregistrer un ajustement
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[500px] border-border/50 shadow-2xl backdrop-blur-xl bg-card/90">
@@ -126,20 +126,20 @@ export default function StockAdjustmentsPage() {
                                     <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                                         <RefreshCw className="h-6 w-6 text-primary" />
                                     </div>
-                                    Manual Adjustment
+                                    Ajustement manuel
                                 </DialogTitle>
-                                <DialogDescription className="text-base italic">Ensure accuracy when recording inventory changes for the audit trail.</DialogDescription>
+                                <DialogDescription className="text-base italic">Assurez la précision lors de l'enregistrement des changements d'inventaire.</DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-6 py-6">
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-primary/80">Select Product</Label>
+                                    <Label className="text-sm font-bold text-primary/80">Sélectionner le produit</Label>
                                     <Select
                                         value={formData.productId}
                                         onValueChange={(val) => setFormData({ ...formData, productId: val })}
                                         required
                                     >
                                         <SelectTrigger className="bg-background/50 border-border/50 hover:border-primary/50 transition-colors">
-                                            <SelectValue placeholder="Which product are you adjusting?" />
+                                            <SelectValue placeholder="Quel produit ajustez-vous ?" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {products.map(p => (
@@ -149,14 +149,14 @@ export default function StockAdjustmentsPage() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-primary/80">Location</Label>
+                                    <Label className="text-sm font-bold text-primary/80">Emplacement</Label>
                                     <Select
                                         value={formData.locationId}
                                         onValueChange={(val) => setFormData({ ...formData, locationId: val })}
                                         required
                                     >
                                         <SelectTrigger className="bg-background/50 border-border/50 hover:border-primary/50 transition-colors">
-                                            <SelectValue placeholder="Select location" />
+                                            <SelectValue placeholder="Sélectionner l'emplacement" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {locations.map(l => (
@@ -172,7 +172,7 @@ export default function StockAdjustmentsPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-primary/80">Adjustment Type</Label>
+                                        <Label className="text-sm font-bold text-primary/80">Type d'ajustement</Label>
                                         <Select
                                             value={formData.adjustmentType}
                                             onValueChange={(val) => setFormData({ ...formData, adjustmentType: val })}
@@ -181,21 +181,21 @@ export default function StockAdjustmentsPage() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="stock_count">Stock Count</SelectItem>
-                                                <SelectItem value="damage">Damage</SelectItem>
-                                                <SelectItem value="loss">Loss</SelectItem>
-                                                <SelectItem value="return">Return</SelectItem>
-                                                <SelectItem value="transfer">Transfer</SelectItem>
+                                                <SelectItem value="stock_count">Comptage</SelectItem>
+                                                <SelectItem value="damage">Dommage</SelectItem>
+                                                <SelectItem value="loss">Perte</SelectItem>
+                                                <SelectItem value="return">Retour</SelectItem>
+                                                <SelectItem value="transfer">Transfert</SelectItem>
                                                 <SelectItem value="correction">Correction</SelectItem>
-                                                <SelectItem value="opening_stock">Opening Stock</SelectItem>
+                                                <SelectItem value="opening_stock">Stock d'ouverture</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-primary/80">Quantity Change</Label>
+                                        <Label className="text-sm font-bold text-primary/80">Changement de quantité</Label>
                                         <Input
                                             type="number"
-                                            placeholder="Use -ive for loss"
+                                            placeholder="Utilisez - pour les pertes"
                                             value={formData.quantityChange}
                                             onChange={(e) => setFormData({ ...formData, quantityChange: e.target.value })}
                                             className="bg-background/50 border-border/50 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-bold"
@@ -204,9 +204,9 @@ export default function StockAdjustmentsPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-primary/80">Reason</Label>
+                                    <Label className="text-sm font-bold text-primary/80">Motif</Label>
                                     <Input
-                                        placeholder="Detailed reason for the audit trail"
+                                        placeholder="Raison détaillée pour la piste d'audit"
                                         value={formData.reason}
                                         onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                                         className="bg-background/50 border-border/50 hover:border-primary/50 transition-colors"
@@ -215,23 +215,23 @@ export default function StockAdjustmentsPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-primary/80">Ref # (Optional)</Label>
+                                        <Label className="text-sm font-bold text-primary/80">Réf # (Optionnel)</Label>
                                         <Input
-                                            placeholder="e.g. INV-2024"
+                                            placeholder="ex. INV-2024"
                                             value={formData.referenceNumber}
                                             onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
                                             className="bg-background/50 border-border/50"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-primary/80">Performed By</Label>
+                                        <Label className="text-sm font-bold text-primary/80">Effectué par</Label>
                                         <Select
                                             value={formData.createdBy}
                                             onValueChange={(val) => setFormData({ ...formData, createdBy: val })}
                                             required
                                         >
                                             <SelectTrigger className="bg-background/50 border-border/50 text-xs hover:border-primary/50 transition-colors">
-                                                <SelectValue placeholder="Assign user" />
+                                                <SelectValue placeholder="Assigner un utilisateur" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {users.map(u => (
@@ -244,11 +244,11 @@ export default function StockAdjustmentsPage() {
                             </div>
                             <DialogFooter className="bg-secondary/5 -mx-6 -mb-6 p-6 rounded-b-lg border-t border-border/50">
                                 <Button type="button" variant="outline" onClick={() => setShowAdjustmentDialog(false)} className="border-border/50">
-                                    Cancel
+                                    Annuler
                                 </Button>
                                 <Button type="submit" disabled={isSubmitting} className="min-w-[170px] bg-gradient-to-r from-primary to-primary/80 hover:shadow-primary/30 shadow-lg transition-all">
                                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                    Sync Stock
+                                    Synchroniser le stock
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -263,13 +263,13 @@ export default function StockAdjustmentsPage() {
                             <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
                                 <History className="h-5 w-5 text-primary" />
                             </div>
-                            Adjustment Audit Trail
+                            Piste d'audit des ajustements
                         </CardTitle>
                         <div className="flex items-center gap-4">
                             <div className="relative group">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                 <Input
-                                    placeholder="Search audits..."
+                                    placeholder="Rechercher dans les audits..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="pl-10 w-full md:w-64 bg-background/50 border-border/50 focus:w-80 transition-all duration-300"
@@ -286,13 +286,13 @@ export default function StockAdjustmentsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-secondary/5 hover:bg-secondary/5 border-border/50">
-                                    <TableHead className="font-bold py-5 px-6">Timeline</TableHead>
-                                    <TableHead className="font-bold py-5 px-6">Product</TableHead>
-                                    <TableHead className="font-bold py-5 px-6">Category Type</TableHead>
-                                    <TableHead className="text-right font-bold py-5 px-6">Quantity Change</TableHead>
-                                    <TableHead className="font-bold py-5 px-6">Auditor</TableHead>
-                                    <TableHead className="font-bold py-5 px-6">Audit Reason</TableHead>
-                                    <TableHead className="font-bold py-5 px-6">Reference</TableHead>
+                                    <TableHead className="font-bold py-5 px-6">Chronologie</TableHead>
+                                    <TableHead className="font-bold py-5 px-6">Produit</TableHead>
+                                    <TableHead className="font-bold py-5 px-6">Type de catégorie</TableHead>
+                                    <TableHead className="text-right font-bold py-5 px-6">Changement de quantité</TableHead>
+                                    <TableHead className="font-bold py-5 px-6">Auditeur</TableHead>
+                                    <TableHead className="font-bold py-5 px-6">Motif d'audit</TableHead>
+                                    <TableHead className="font-bold py-5 px-6">Référence</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -303,8 +303,8 @@ export default function StockAdjustmentsPage() {
                                                 <div className="p-4 rounded-full bg-primary/10 border border-primary/20 animate-pulse">
                                                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
                                                 </div>
-                                                <p className="text-lg font-bold text-foreground/80">Synchronizing database items...</p>
-                                                <p className="text-sm text-muted-foreground max-w-xs">Retrieving full historical audit logs for stock modifications.</p>
+                                                <p className="text-lg font-bold text-foreground/80">Synchronisation des éléments de la base de données...</p>
+                                                <p className="text-sm text-muted-foreground max-w-xs">Récupération de l'historique complet des audits.</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -314,8 +314,8 @@ export default function StockAdjustmentsPage() {
                                         <TableCell colSpan={7} className="h-48 text-center text-muted-foreground bg-background/5 italic px-6">
                                             <div className="flex flex-col items-center gap-2">
                                                 <History className="h-12 w-12 opacity-10" />
-                                                <p className="text-lg font-medium">No audit entries found</p>
-                                                <p className="text-sm">Try adjusting your filters or search query.</p>
+                                                <p className="text-lg font-medium">Aucune entrée d'audit trouvée</p>
+                                                <p className="text-sm">Essayez de modifier vos filtres ou votre recherche.</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>

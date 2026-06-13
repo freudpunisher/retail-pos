@@ -90,7 +90,7 @@ export function Header() {
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6">
       <div className="flex items-center gap-4">
-        <h1 className="text-lg font-medium text-foreground">Point of Sale System</h1>
+        <h1 className="text-lg font-medium text-foreground">Système de Point de Vente</h1>
       </div>
 
       <div className="flex items-center gap-4">
@@ -102,7 +102,7 @@ export function Header() {
           {mounted && (
             <>
               {resolvedTheme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-              <span className="sr-only">Toggle theme</span>
+              <span className="sr-only">Changer le thème</span>
             </>
           )}
         </Button>
@@ -124,7 +124,7 @@ export function Header() {
                 <span className="text-sm font-bold text-foreground">Notifications</span>
                 <div className="flex gap-1">
                   {unreadCount > 0 && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={markAllRead} title="Mark all read">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={markAllRead} title="Tout marquer comme lu">
                       <CheckCheck className="h-4 w-4" />
                     </Button>
                   )}
@@ -136,7 +136,7 @@ export function Header() {
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 && (
                   <div className="p-6 text-center text-sm text-muted-foreground italic">
-                    No notifications yet
+                    Aucune notification pour le moment
                   </div>
                 )}
                 {notifications.map((n) => (
@@ -182,20 +182,20 @@ export function Header() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push("/profile")}>
               <User className="mr-2 h-4 w-4" />
-              Profile
+              Profil
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push("/settings")}>
               <Settings className="mr-2 h-4 w-4" />
-              Settings
+              Paramètres
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
-              Logout
+              Déconnexion
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
