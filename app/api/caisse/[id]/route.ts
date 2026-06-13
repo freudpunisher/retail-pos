@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { caisseSessions, caisseMovements, transactions, transactionItems, expenses, creditRecords, creditPayments, clients } from "@/lib/db/schema"
-import { eq, and, gte, lte, gt, sql } from "drizzle-orm"
+import { eq, and, gte, lte, gt, ne, sql } from "drizzle-orm"
 import { requireAuth } from "@/lib/auth-guard"
 
 export async function GET(
@@ -25,20 +25,28 @@ export async function GET(
 
         // Compute expected balance
         const openedAt = new Date(session.openedAt)
-        const closedAt = session.closedAt ? new Date(session.closedAt) : new Date()
+        const isClosed = session.status === "closed"
+        const closedAt = session.closedAt ? new Date(session.closedAt) : null
 
-        // Get cash sales made during this session by this user
+        // Helper to build date conditions
+        const getDateConditions = (dateColumn: any) => {
+            const conds = [gte(dateColumn, openedAt)]
+            if (isClosed && closedAt) {
+                conds.push(lte(dateColumn, closedAt))
+            }
+            return conds
+        }
+
+        // Get cash sales made during this session
         const cashSalesResult = await db
             .select({ total: transactions.total })
             .from(transactions)
             .where(
                 and(
-                    eq(transactions.userId, session.userId),
                     eq(transactions.paymentMethod, "cash"),
                     eq(transactions.type, "sale"),
-                    eq(transactions.status, "completed"),
-                    gte(transactions.date, openedAt),
-                    lte(transactions.date, closedAt)
+                    ne(transactions.status, "cancelled"),
+                    ...getDateConditions(transactions.date)
                 )
             )
 
@@ -52,12 +60,10 @@ export async function GET(
             .from(transactions)
             .where(
                 and(
-                    eq(transactions.userId, session.userId),
                     eq(transactions.paymentMethod, "card"),
                     eq(transactions.type, "sale"),
-                    eq(transactions.status, "completed"),
-                    gte(transactions.date, openedAt),
-                    lte(transactions.date, closedAt)
+                    ne(transactions.status, "cancelled"),
+                    ...getDateConditions(transactions.date)
                 )
             )
 
@@ -72,8 +78,7 @@ export async function GET(
             .where(
                 and(
                     eq(creditPayments.method, "cash"),
-                    gte(creditPayments.date, openedAt),
-                    lte(creditPayments.date, closedAt)
+                    ...getDateConditions(creditPayments.date)
                 )
             )
         const creditCashPayments = creditCashResult.reduce(
@@ -86,8 +91,7 @@ export async function GET(
             .where(
                 and(
                     eq(creditPayments.method, "card"),
-                    gte(creditPayments.date, openedAt),
-                    lte(creditPayments.date, closedAt)
+                    ...getDateConditions(creditPayments.date)
                 )
             )
         const creditCardPayments = creditCardResult.reduce(
@@ -103,15 +107,13 @@ export async function GET(
             .where(gt(creditRecords.amount, creditRecords.paidAmount))
         const unpaidDebts = Number(unpaidDebtsResult[0]?.total || 0)
 
-        // Get expenses recorded by this user during the session
+        // Get expenses recorded during the session - use createdAt for accurate session matching
         const expensesResult = await db
             .select({ amount: expenses.amount })
             .from(expenses)
             .where(
                 and(
-                    eq(expenses.userId, session.userId),
-                    gte(expenses.date, openedAt),
-                    lte(expenses.date, closedAt)
+                    ...getDateConditions(expenses.createdAt)
                 )
             )
 
@@ -119,8 +121,8 @@ export async function GET(
             (sum, e) => sum + Number.parseFloat(e.amount || "0"), 0
         )
 
-        // Get manual movements
-        const movements = session.movements || []
+        // Get manual movements (excluding automatic expense movements to avoid double counting)
+        const movements = (session.movements || []).filter(m => !m.reason.startsWith("Dépense :"))
         const manualIn = movements
             .filter((m) => m.type === "in")
             .reduce((sum, m) => sum + Number.parseFloat(m.amount), 0)
@@ -179,20 +181,17 @@ export async function PUT(
 
             // Calculate expected balance and difference
             const openedAt = new Date(session.openedAt)
-            const closedAt = new Date()
 
-            // Get cash sales
+            // Get cash sales - no upper bound needed during closure calculation
             const cashSalesResult = await db
                 .select({ total: transactions.total })
                 .from(transactions)
                 .where(
                     and(
-                        eq(transactions.userId, session.userId),
                         eq(transactions.paymentMethod, "cash"),
                         eq(transactions.type, "sale"),
-                        eq(transactions.status, "completed"),
-                        gte(transactions.date, openedAt),
-                        lte(transactions.date, closedAt)
+                        ne(transactions.status, "cancelled"),
+                        gte(transactions.date, openedAt)
                     )
                 )
 
@@ -207,23 +206,20 @@ export async function PUT(
                 .where(
                     and(
                         eq(creditPayments.method, "cash"),
-                        gte(creditPayments.date, openedAt),
-                        lte(creditPayments.date, closedAt)
+                        gte(creditPayments.date, openedAt)
                     )
                 )
             const creditCashPayments = creditCashResult.reduce(
                 (sum, p) => sum + Number.parseFloat(p.amount || "0"), 0
             )
 
-            // Get expenses
+            // Get expenses - use createdAt for accurate session matching
             const expensesResult = await db
                 .select({ amount: expenses.amount })
                 .from(expenses)
                 .where(
                     and(
-                        eq(expenses.userId, session.userId),
-                        gte(expenses.date, openedAt),
-                        lte(expenses.date, closedAt)
+                        gte(expenses.createdAt, openedAt)
                     )
                 )
 
@@ -231,11 +227,13 @@ export async function PUT(
                 (sum, e) => sum + Number.parseFloat(e.amount || "0"), 0
             )
 
-            // Get manual movements
-            const movements = await db
+            // Get manual movements (excluding automatic expense movements)
+            const allMovements = await db
                 .select()
                 .from(caisseMovements)
                 .where(eq(caisseMovements.sessionId, id))
+
+            const movements = allMovements.filter(m => !m.reason.startsWith("Dépense :"))
 
             const manualIn = movements
                 .filter((m) => m.type === "in")
@@ -253,7 +251,7 @@ export async function PUT(
                 .update(caisseSessions)
                 .set({
                     status: "closed",
-                    closedAt: new Date(),
+                    closedAt: sql`now()`,
                     closingBalance: physicalBalance.toString(),
                     expectedBalance: expectedBalance.toString(),
                     difference: diff.toString(),

@@ -67,7 +67,10 @@ export default function TransferToKitchenPage() {
 
     const availableProducts = useMemo(() =>
         stockByLocation
-            .filter((s: any) => s.product?.productType === "ingredient")
+            .filter((s: any) => 
+                (s.product?.productType === "ingredient" || s.product?.productType === "food") &&
+                s.product?.sector === "Cuisine"
+            )
             .map((s: any) => ({ ...s.product, availableQty: s.quantityOnHand })),
         [stockByLocation]
     )

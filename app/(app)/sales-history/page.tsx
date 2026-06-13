@@ -215,7 +215,7 @@ export default function SalesHistoryPage() {
       items,
       total: Number(data.total),
       paymentMethod: data.paymentMethod,
-      currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", FBU: "FBU " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "FBU",
+      currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", Fbu: "Fbu " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "Fbu",
       billReference: data.reference || "BL-" + data.id.slice(0, 8).toUpperCase(),
     })
   }

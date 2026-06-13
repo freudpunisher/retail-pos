@@ -17,7 +17,7 @@ export interface ReceiptData {
 
 export function printThermal(data: ReceiptData): void {
   const fmt = (n: number) =>
-    `${n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} ${data.currencySymbol || "FBU"}`
+    `${n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} ${data.currencySymbol || "Fbu"}`
   const w = window.open("", "_blank", "width=400,height=650")
   if (!w) return
 
