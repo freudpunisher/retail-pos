@@ -542,7 +542,7 @@ export default function SettingsPage() {
                         USD: "$",
                         EUR: "€",
                         GBP: "£",
-                        FBU: "FBU ",
+                        Fbu: "Fbu ",
                       }
                       setStoreInfo({ ...storeInfo, currency: value, currencySymbol: symbolMap[value] || value })
                     }}
@@ -554,7 +554,7 @@ export default function SettingsPage() {
                       <SelectItem value="USD">USD ($)</SelectItem>
                       <SelectItem value="EUR">EUR (€)</SelectItem>
                       <SelectItem value="GBP">GBP (£)</SelectItem>
-                      <SelectItem value="FBU">FBU (FBU)</SelectItem>
+                      <SelectItem value="Fbu">Fbu (Fbu)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

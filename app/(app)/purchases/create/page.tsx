@@ -37,9 +37,10 @@ export default function CreatePurchaseOrderPage() {
   const { products, loading: productsLoading } = useProducts()
   const { createOrder } = usePurchases()
 
-  const purchasableProducts = products.filter(
-    (p) => p.sector === sector && p.trackStock
-  )
+  const purchasableProducts = products.filter((p) => {
+    const pSector = p.sector || (p.productType === "drink" ? "Bar" : "Alimentation")
+    return pSector === sector && p.trackStock
+  })
 
   const addProduct = () => {
     if (!selectedProductId) return

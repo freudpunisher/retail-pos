@@ -86,7 +86,7 @@ export function useCaisse() {
         }
     }
 
-    const getSessionDetails = async (id: string) => {
+    const getSessionDetails = useCallback(async (id: string) => {
         try {
             const response = await fetch(`/api/caisse/${id}`)
             if (!response.ok) throw new Error("Failed to fetch session details")
@@ -95,7 +95,7 @@ export function useCaisse() {
             setError(err.message)
             throw err
         }
-    }
+    }, [])
 
     const openSession_ = sessions.find((s) => s.status === "open")
 

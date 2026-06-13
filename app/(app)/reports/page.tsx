@@ -54,8 +54,27 @@ export default function ReportsPage() {
   const { purchaseOrders, loading: poLoading, refresh: fetchPurchaseOrders } = usePurchaseOrders()
   const { movements, loading: moveLoading, refresh: fetchStockMovements } = useStockMovements()
   const { clients, loading: clientLoading, refresh: fetchClients } = useClients()
+  const { products } = useProducts()
 
   const isLoading = txLoading || poLoading || moveLoading || clientLoading
+
+  // Helper function to check if a date is within the selected range
+  const isInRange = (dateStr: string) => {
+    if (!dateFrom || !dateTo) return true
+    const date = new Date(dateStr)
+    const start = new Date(dateFrom)
+    const end = new Date(dateTo)
+    end.setHours(23, 59, 59, 999)
+    return date >= start && date <= end
+  }
+
+  // Create a map of product sectors for quick lookup
+  const productSectorById = new Map(products.map((p: any) => [p.id, p.sector]))
+
+  // Helper to check if a transaction belongs to the bakery sector
+  const isBakeryTransaction = (txn: any) => {
+    return (txn.items || []).some((item: any) => productSectorById.get(item.productId) === "Boulangerie")
+  }
 
   const fetchAllData = useCallback((from?: string, to?: string) => {
     fetchTransactions(from, to)

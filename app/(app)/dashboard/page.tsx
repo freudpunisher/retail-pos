@@ -16,8 +16,10 @@ import {
   ChefHat, Bell, Utensils, ArrowUpRight, ArrowDownRight, BarChart3,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { useSettings } from "@/hooks/use-settings"
 
 export default function DashboardPage() {
+  const { settings } = useSettings()
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("today")
   const { stats, loading: statsLoading, refresh: refreshStats } = useDashboardStats(timePeriod)
   const { transactions, fetchTransactions, loading: txLoading } = useTransactions()
@@ -59,6 +61,8 @@ export default function DashboardPage() {
   }
 
   const activeOrders = orderStatusCounts.pending + orderStatusCounts.preparing + orderStatusCounts.ready + orderStatusCounts.served
+
+  const currencySymbol = settings?.currencySymbol || "Fbu"
 
   return (
     <div className="space-y-6">
@@ -120,7 +124,7 @@ export default function DashboardPage() {
                   {timePeriod === "month" ? "Revenus mensuels" : timePeriod === "week" ? "Revenus hebdomadaires" : "Revenus du jour"}
                 </p>
                 <p className="text-2xl font-bold tracking-tight">
-                  {statsLoading ? <span className="text-muted-foreground animate-pulse">---</span> : formatCurrency(stats?.monthlyRevenue || 0)}
+                  {statsLoading ? <span className="text-muted-foreground animate-pulse">---</span> : formatCurrency(stats?.monthlyRevenue || 0, { symbol: currencySymbol })}
                 </p>
                 <p className="text-xs text-muted-foreground">{stats?.productsCount || 0} produits vendus</p>
               </div>

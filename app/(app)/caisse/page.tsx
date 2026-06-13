@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,6 +51,28 @@ export default function CaisseManagementPage() {
     const [selectedSession, setSelectedSession] = useState<any>(null)
     const [sessionDetails, setSessionDetails] = useState<any>(null)
     const [detailsLoading, setDetailsLoading] = useState(false)
+    const [activeSessionDetails, setActiveSessionDetails] = useState<any>(null)
+
+    // Fetch details for active session automatically with polling
+    useEffect(() => {
+        let interval: any
+        const fetchDetails = () => {
+            if (openSession) {
+                getSessionDetails(openSession.id)
+                    .then(data => setActiveSessionDetails(data))
+                    .catch(err => console.error("Error fetching active session details:", err))
+            }
+        }
+
+        fetchDetails()
+        if (openSession) {
+            interval = setInterval(fetchDetails, 5000) // Poll every 5 seconds
+        }
+
+        return () => {
+            if (interval) clearInterval(interval)
+        }
+    }, [openSession, getSessionDetails])
 
     // Open form
     const [openBalance, setOpenBalance] = useState("0")
@@ -252,21 +274,39 @@ export default function CaisseManagementPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="rounded-lg bg-card p-3 border">
-                                <p className="text-xs text-muted-foreground">Solde d&apos;ouverture</p>
-                                <p className="text-lg font-bold">{formatCurrency(Number(openSession.openingBalance))}</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                            <div className="rounded-lg bg-card p-2 border">
+                                <p className="text-[10px] text-muted-foreground uppercase font-semibold">Ouverture</p>
+                                <p className="text-sm font-bold">{formatCurrency(Number(openSession.openingBalance))}</p>
                             </div>
-                            <div className="rounded-lg bg-card p-3 border">
-                                <p className="text-xs text-muted-foreground">Caissier</p>
-                                <p className="text-lg font-bold">{openSession.user?.name || user?.name}</p>
+                            <div className="rounded-lg bg-card p-2 border">
+                                <p className="text-[10px] text-muted-foreground uppercase font-semibold text-green-600">Ventes espèces</p>
+                                <p className="text-sm font-bold text-green-700">+{formatCurrency(activeSessionDetails?.computedCashSales || 0)}</p>
                             </div>
-                            {openSession.location && (
-                                <div className="rounded-lg bg-card p-3 border">
-                                    <p className="text-xs text-muted-foreground">Point de vente</p>
-                                    <p className="text-lg font-bold">{openSession.location.name}</p>
-                                </div>
-                            )}
+                            <div className="rounded-lg bg-card p-2 border">
+                                <p className="text-[10px] text-muted-foreground uppercase font-semibold text-emerald-600">Factures (Esp)</p>
+                                <p className="text-sm font-bold text-emerald-700">+{formatCurrency(activeSessionDetails?.computedCreditCashPayments || 0)}</p>
+                            </div>
+                            <div className="rounded-lg bg-card p-2 border">
+                                <p className="text-[10px] text-muted-foreground uppercase font-semibold text-blue-600">Ventes carte</p>
+                                <p className="text-sm font-bold text-blue-700">{formatCurrency(activeSessionDetails?.computedCardSales || 0)}</p>
+                            </div>
+                            <div className="rounded-lg bg-card p-2 border">
+                                <p className="text-[10px] text-muted-foreground uppercase font-semibold text-indigo-600">Factures (Carte)</p>
+                                <p className="text-sm font-bold text-indigo-700">{formatCurrency(activeSessionDetails?.computedCreditCardPayments || 0)}</p>
+                            </div>
+                            <div className="rounded-lg bg-card p-2 border">
+                                <p className="text-[10px] text-muted-foreground uppercase font-semibold text-red-600">Dépenses</p>
+                                <p className="text-sm font-bold text-red-700">-{formatCurrency(activeSessionDetails?.computedExpenses || 0)}</p>
+                            </div>
+                            <div className="rounded-lg bg-card p-2 border">
+                                <p className="text-[10px] text-muted-foreground uppercase font-semibold">Caissier</p>
+                                <p className="text-sm font-bold truncate">{openSession.user?.name || user?.name}</p>
+                            </div>
+                            <div className="rounded-lg bg-card p-2 border">
+                                <p className="text-[10px] text-muted-foreground uppercase font-semibold">Attendu (Esp)</p>
+                                <p className="text-sm font-bold text-primary">{formatCurrency(activeSessionDetails?.computedExpectedBalance || 0)}</p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -744,6 +784,18 @@ export default function CaisseManagementPage() {
                         </div>
                     ) : null}
                     <DialogFooter>
+                        {sessionDetails?.status === "open" && (
+                            <Button
+                                variant="destructive"
+                                onClick={() => {
+                                    setShowDetailsDialog(false)
+                                    setShowCloseDialog(true)
+                                }}
+                            >
+                                <Square className="mr-2 h-4 w-4" />
+                                Clôturer la Caisse
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={() => handlePrintSession(selectedSession, sessionDetails)}>
                             <Printer className="mr-2 h-4 w-4" />
                             Imprimer

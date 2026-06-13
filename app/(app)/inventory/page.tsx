@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse, Store, Save } from "lucide-react"
+import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse, Store, Save, Utensils } from "lucide-react"
 import { useStock } from "@/hooks/use-stock"
 import { useLocations } from "@/hooks/use-locations"
 import { useAuth } from "@/lib/auth-context"
@@ -35,6 +35,8 @@ export default function InventoryStatusPage() {
       items = items.filter(item => item.product.productType === "drink")
     } else if (productType === "ingredient") {
       items = items.filter(item => item.product.productType === "ingredient")
+    } else if (productType === "food") {
+      items = items.filter(item => item.product.productType === "food")
     }
     if (selectedLocationId) {
       items = items.filter(item => item.locationId === selectedLocationId)
@@ -171,6 +173,14 @@ export default function InventoryStatusPage() {
         >
           <AlertTriangle className="h-4 w-4 mr-1" />
           Ingrédients
+        </Button>
+        <Button
+          variant={productType === "food" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("food")}
+        >
+          <Utensils className="h-4 w-4 mr-1" />
+          Recettes
         </Button>
       </div>
 

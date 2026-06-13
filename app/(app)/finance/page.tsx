@@ -15,15 +15,19 @@ import { Loader2, DollarSign, Package, Truck, TrendingUp, TrendingDown, BarChart
 import { printReport } from "@/lib/print-report"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { useSettings } from "@/hooks/use-settings"
 
 const COLORS = ["#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#ec4899"]
 
 export default function FinanceOverviewPage() {
+    const { settings } = useSettings()
     const today = new Date()
     const [dateFrom, setDateFrom] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1))
     const [dateTo, setDateTo] = useState<Date>(today)
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+
+    const currencySymbol = settings?.currencySymbol || "Fbu"
 
     useEffect(() => {
         fetchData()
@@ -110,7 +114,7 @@ export default function FinanceOverviewPage() {
     ]
 
     const formatCurrency = (val: number) =>
-        val.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " FCFA"
+        val.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ` ${currencySymbol}`
 
     const handlePrint = () => {
         const period = `Période: ${format(dateFrom, "dd/MM/yyyy", { locale: fr })} — ${format(dateTo, "dd/MM/yyyy", { locale: fr })}`

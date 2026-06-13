@@ -68,7 +68,11 @@ export default function TransferToBarPage() {
 
     const availableProducts = useMemo(() =>
         stockByLocation
-            .filter((s: any) => s.product?.productType === "drink" && s.product?.trackStock)
+            .filter((s: any) => 
+                (s.product?.productType === "drink" || s.product?.productType === "ingredient") && 
+                s.product?.trackStock &&
+                s.product?.sector === "Bar"
+            )
             .map((s: any) => ({ ...s.product, availableQty: s.quantityOnHand })),
         [stockByLocation]
     )

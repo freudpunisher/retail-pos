@@ -501,8 +501,8 @@ export const mockStoreSettings: StoreSettings = {
   phone: "+1 555-0000",
   email: "info@smartpos.com",
   taxRate: 8.5,
-  currency: "FBU",
-  currencySymbol: "FBU ",
+  currency: "Fbu",
+  currencySymbol: "Fbu",
 }
 
 // Helper functions
@@ -527,21 +527,23 @@ export function formatCurrency(
   options: {
     decimals?: number;
     fallback?: string;
+    symbol?: string;
   } = {}
 ): string {
-  const { decimals = 0, fallback = '0' } = options;
+  const { decimals = 0, fallback = '0', symbol } = options;
+  const currencySymbol = symbol ?? mockStoreSettings.currencySymbol;
 
   if (value == null || value === '') {
-    return `${fallback} ${mockStoreSettings.currencySymbol}`;
+    return `${fallback} ${currencySymbol}`;
   }
 
   const num = typeof value === 'string' ? Number(value) : value;
 
   if (isNaN(num) || !isFinite(num)) {
-    return `${fallback} ${mockStoreSettings.currencySymbol}`;
+    return `${fallback} ${currencySymbol}`;
   }
 
-  return `${num.toFixed(decimals)} ${mockStoreSettings.currencySymbol}`;
+  return `${num.toFixed(decimals)} ${currencySymbol}`;
 }
 
 export function getStockStatus(product: Product): "in-stock" | "low" | "out" {

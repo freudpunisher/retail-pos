@@ -33,9 +33,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
 import { format } from "date-fns"
+import { useSettings } from "@/hooks/use-settings"
 
 export default function ExpensesPage() {
     const { user } = useAuth()
+    const { settings } = useSettings()
     const [expenses, setExpenses] = useState<any[]>([])
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [formData, setFormData] = useState({
@@ -45,6 +47,8 @@ export default function ExpensesPage() {
         recipient: "",
         reference: ""
     })
+
+    const currencySymbol = settings?.currencySymbol || "Fbu"
 
     useEffect(() => {
         fetchExpenses()
@@ -166,7 +170,7 @@ export default function ExpensesPage() {
                                     <TableCell className="capitalize">{expense.category}</TableCell>
                                     <TableCell>{expense.paidBy}</TableCell>
                                     <TableCell className="text-right font-medium text-destructive">
-                                        - {Number(expense.amount).toLocaleString()} FCFA
+                                        - {Number(expense.amount).toLocaleString()} {currencySymbol}
                                     </TableCell>
                                 </TableRow>
                             ))}

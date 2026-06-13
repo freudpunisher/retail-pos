@@ -129,7 +129,7 @@ export default function SalesPage() {
             : undefined,
         items: billItems,
         total: total,
-        currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", FBU: "FBU " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "FBU",
+        currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", Fbu: "Fbu " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "Fbu",
         billReference: order.reference || "BL-" + order.id.slice(0, 8).toUpperCase(),
       })
 

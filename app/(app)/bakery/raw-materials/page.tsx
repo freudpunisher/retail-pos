@@ -36,15 +36,19 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useUnits } from "@/hooks/use-units"
 import { useCategories } from "@/hooks/use-products"
+import { useSettings } from "@/hooks/use-settings"
 
 export default function RawMaterialsPage() {
     const router = useRouter()
+    const { settings } = useSettings()
     const [materials, setMaterials] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const { categories, loading: categoriesLoading } = useCategories()
     const { units, loading: unitsLoading } = useUnits()
+
+    const currencySymbol = settings?.currencySymbol || "Fbu"
 
     const unitLabel = (code: string) => {
         const unit = units.find((u) => u.code === code)
@@ -245,7 +249,7 @@ export default function RawMaterialsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {materials.reduce((acc, m) => acc + (Number(m.cost) * Number(m.stock)), 0).toLocaleString()} FCFA
+                            {materials.reduce((acc, m) => acc + (Number(m.cost) * Number(m.stock)), 0).toLocaleString()} {currencySymbol}
                         </div>
                     </CardContent>
                 </Card>
@@ -301,7 +305,7 @@ export default function RawMaterialsPage() {
                                     <TableCell className="font-mono text-xs">{item.sku}</TableCell>
                                     <TableCell className="font-medium">{item.name}</TableCell>
                                     <TableCell><Badge variant="outline">{unitLabel(item.unit)}</Badge></TableCell>
-                                    <TableCell className="text-right">{Number(item.cost).toLocaleString()} FCFA</TableCell>
+                                    <TableCell className="text-right">{Number(item.cost).toLocaleString()} {currencySymbol}</TableCell>
                                     <TableCell className="text-right">
                                         <span className={Number(item.stock) <= item.minStock ? "text-destructive font-bold" : ""}>
                                             {Number(item.stock)}
