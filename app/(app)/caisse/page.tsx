@@ -744,6 +744,18 @@ export default function CaisseManagementPage() {
                         </div>
                     ) : null}
                     <DialogFooter>
+                        {sessionDetails?.status === "open" && (
+                            <Button
+                                variant="destructive"
+                                onClick={() => {
+                                    setShowDetailsDialog(false)
+                                    setShowCloseDialog(true)
+                                }}
+                            >
+                                <Square className="mr-2 h-4 w-4" />
+                                Clôturer la Caisse
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={() => handlePrintSession(selectedSession, sessionDetails)}>
                             <Printer className="mr-2 h-4 w-4" />
                             Imprimer

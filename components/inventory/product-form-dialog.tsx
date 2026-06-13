@@ -47,6 +47,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
         trackStock: false,
         quantityPerBox: "1",
         image: "",
+        sector: "",
     })
     const [sellingUnits, setSellingUnits] = useState<SellingUnitForm[]>([])
 
@@ -62,6 +63,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 trackStock: product.trackStock ?? (product.productType === "ingredient" || Number(product.stock) > 0),
                 quantityPerBox: product.quantityPerBox?.toString() || "1",
                 image: product.image || "",
+                sector: product.sector || "",
             })
             if (product.sellingUnits && product.sellingUnits.length > 0) {
                 setSellingUnits(
@@ -86,6 +88,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 trackStock: false,
                 quantityPerBox: "1",
                 image: "",
+                sector: "",
             })
             setSellingUnits([])
         }
@@ -132,6 +135,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 productType: formData.productType,
                 unit: formData.unit,
                 image: formData.image || null,
+                sector: formData.sector || null,
             }
 
             if (formData.productType === "ingredient") {
@@ -247,6 +251,27 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                 </SelectContent>
                             </Select>
                             {categoriesLoading && <span className="col-span-3 text-xs text-muted-foreground">Loading categories...</span>}
+                        </div>
+
+                        {/* Sector */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="sector" className="text-right">
+                                Sector
+                            </Label>
+                            <Select
+                                value={formData.sector}
+                                onValueChange={(value) => setFormData({ ...formData, sector: value })}
+                            >
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Select sector" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Alimentation">Alimentation</SelectItem>
+                                    <SelectItem value="Bar">Bar</SelectItem>
+                                    <SelectItem value="Cuisine">Cuisine</SelectItem>
+                                    <SelectItem value="Boulangerie">Boulangerie</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {/* Selling Price (hidden for ingredients) */}
