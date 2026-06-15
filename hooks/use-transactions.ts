@@ -44,5 +44,47 @@ export function useTransactions(sector?: string) {
         }
     }, [])
 
-    return { transactions, processTransaction, fetchTransactions, loading, error }
+    const updateTransaction = useCallback(async (id: string, data: any) => {
+        setLoading(true)
+        try {
+            const response = await fetch(`/api/transactions/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            })
+            if (!response.ok) {
+                const err = await response.json()
+                throw new Error(err.error || "Failed to update transaction")
+            }
+            const result = await response.json()
+            setTransactions((prev) => prev.map((t: any) => (t.id === id ? result : t)))
+            return result
+        } catch (err: any) {
+            setError(err.message)
+            throw err
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    const deleteTransaction = useCallback(async (id: string) => {
+        setLoading(true)
+        try {
+            const response = await fetch(`/api/transactions/${id}`, {
+                method: "DELETE",
+            })
+            if (!response.ok) {
+                const err = await response.json()
+                throw new Error(err.error || "Failed to delete transaction")
+            }
+            setTransactions((prev) => prev.filter((t: any) => t.id !== id))
+        } catch (err: any) {
+            setError(err.message)
+            throw err
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    return { transactions, processTransaction, fetchTransactions, updateTransaction, deleteTransaction, loading, error }
 }

@@ -22,13 +22,13 @@ import { toast } from "sonner"
 import {
   Receipt, Search, DollarSign, Banknote, ShoppingCart,
   Calendar, User, Package, Loader2, Eye, Printer, CreditCard,
-  TrendingUp, ArrowUpDown, ChevronDown, X,
+  TrendingUp, ArrowUpDown, ChevronDown, X, Pencil, Trash2, AlertTriangle,
 } from "lucide-react"
 
 export default function SalesHistoryPage() {
   const { user } = useAuth()
   const { settings } = useSettings()
-  const { transactions, loading, fetchTransactions } = useTransactions()
+  const { transactions, loading, fetchTransactions, updateTransaction, deleteTransaction } = useTransactions()
   const receiptRef = useRef<HTMLDivElement>(null)
 
   const [search, setSearch] = useState("")
@@ -43,6 +43,10 @@ export default function SalesHistoryPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; order: any | null }>({ open: false, order: null })
+  const [editDialog, setEditDialog] = useState<{ open: boolean; transaction: any | null }>({ open: false, transaction: null })
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; transaction: any | null }>({ open: false, transaction: null })
+  const [editItems, setEditItems] = useState<any[]>([])
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchTransactions()
@@ -157,6 +161,48 @@ export default function SalesHistoryPage() {
       fetchTransactions()
     } catch (err: any) {
       toast.error(err.message || "Échec du paiement")
+    }
+  }
+
+  const handleEditOpen = (txn: any) => {
+    setEditItems((txn.items || []).map((item: any) => ({ ...item })))
+    setEditDialog({ open: true, transaction: txn })
+  }
+
+  const handleEditSave = async () => {
+    if (!editDialog.transaction) return
+    try {
+      await updateTransaction(editDialog.transaction.id, { items: editItems })
+      toast.success("Facture modifiée avec succès")
+      setEditDialog({ open: false, transaction: null })
+    } catch (err: any) {
+      toast.error(err.message || "Échec de la modification")
+    }
+  }
+
+  const handleEditItemChange = (index: number, field: string, value: string) => {
+    setEditItems((prev) => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], [field]: field === "quantity" || field === "price" ? value : value }
+      return updated
+    })
+  }
+
+  const handleEditItemRemove = (index: number) => {
+    setEditItems((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialog.transaction) return
+    setDeleting(true)
+    try {
+      await deleteTransaction(deleteDialog.transaction.id)
+      toast.success("Facture supprimée avec succès")
+      setDeleteDialog({ open: false, transaction: null })
+    } catch (err: any) {
+      toast.error(err.message || "Échec de la suppression")
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -508,24 +554,34 @@ export default function SalesHistoryPage() {
 {txn.status === "completed" ? "Payé" : txn.status}
                              </Badge>
                            </TableCell>
-                           <TableCell className="text-right">
-                             <div className="flex items-center justify-end gap-1">
-                              {txn.status !== "completed" && txn.status !== "cancelled" && (
-                                  <Button size="sm" className="h-8" onClick={() => setPaymentDialog({ open: true, order: txn })}>
-                                    <CreditCard className="h-3.5 w-3.5 mr-1" /> Payer
-                                 </Button>
-                               )}
-                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetails(txn)}>
-                                 <Eye className="h-4 w-4" />
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                               {txn.status !== "completed" && txn.status !== "cancelled" && (
+                                   <Button size="sm" className="h-8" onClick={() => setPaymentDialog({ open: true, order: txn })}>
+                                     <CreditCard className="h-3.5 w-3.5 mr-1" /> Payer
+                                  </Button>
+                                )}
+                                {txn.status !== "completed" && txn.status !== "cancelled" && user?.role === "manager" && (
+                                  <>
+                                    <Button variant="outline" size="sm" className="h-8" onClick={() => handleEditOpen(txn)}>
+                                      <Pencil className="h-3.5 w-3.5 mr-1" /> Modifier
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="h-8 text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteDialog({ open: true, transaction: txn })}>
+                                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Suppr.
+                                    </Button>
+                                  </>
+                                )}
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetails(txn)}>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrintThermal(txn)} title="Réimpression ticket">
+                                  <Printer className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => handlePrintA4Invoice(txn)} title="Facture A4">
+                                 <Receipt className="h-4 w-4" />
                                </Button>
-                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrintThermal(txn)} title="Réimpression ticket">
-                                 <Printer className="h-4 w-4" />
-                               </Button>
-                               <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => handlePrintA4Invoice(txn)} title="Facture A4">
-                                <Receipt className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                             </div>
+                           </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -872,6 +928,120 @@ export default function SalesHistoryPage() {
               Imprimer
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Transaction Dialog */}
+      <Dialog open={editDialog.open} onOpenChange={(open) => { if (!open) setEditDialog({ open: false, transaction: null }) }}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Modifier la facture
+            </DialogTitle>
+            <DialogDescription>Modifiez les articles de cette facture non payée</DialogDescription>
+          </DialogHeader>
+
+          {editDialog.transaction && (
+            <div className="space-y-4">
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {editItems.map((item: any, idx: number) => (
+                  <div key={idx} className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 p-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{item.productName}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-col items-center">
+                        <label className="text-xs text-muted-foreground">Qté</label>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleEditItemChange(idx, "quantity", e.target.value)}
+                          className="h-8 w-16 text-center"
+                          min="0"
+                          step="any"
+                        />
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <label className="text-xs text-muted-foreground">Prix</label>
+                        <Input
+                          type="number"
+                          value={item.price}
+                          onChange={(e) => handleEditItemChange(idx, "price", e.target.value)}
+                          className="h-8 w-20 text-center"
+                          min="0"
+                          step="any"
+                        />
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 shrink-0" onClick={() => handleEditItemRemove(idx)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Total</span>
+                <span className="text-lg font-bold text-primary">
+                  {formatCurrency(editItems.reduce((sum: number, item: any) => sum + Number(item.price) * Number(item.quantity), 0))}
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditDialog({ open: false, transaction: null })}>Annuler</Button>
+                <Button onClick={handleEditSave}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Enregistrer
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => { if (!open) setDeleteDialog({ open: false, transaction: null }) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Confirmer la suppression
+            </DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette facture ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteDialog.transaction && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm space-y-1">
+                <p><span className="text-muted-foreground">Référence :</span> <span className="font-mono font-medium">{deleteDialog.transaction.reference || deleteDialog.transaction.id.slice(0, 8)}</span></p>
+                <p><span className="text-muted-foreground">Date :</span> {new Date(deleteDialog.transaction.date).toLocaleDateString()}</p>
+                <p><span className="text-muted-foreground">Total :</span> <span className="font-semibold">{formatCurrency(Number.parseFloat(deleteDialog.transaction.total))}</span></p>
+                <p><span className="text-muted-foreground">Articles :</span> {deleteDialog.transaction.items?.length || 0}</p>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setDeleteDialog({ open: false, transaction: null })}>Annuler</Button>
+                <Button variant="destructive" onClick={handleDeleteConfirm} disabled={deleting}>
+                  {deleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Suppression...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Supprimer
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
