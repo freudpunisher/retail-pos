@@ -80,6 +80,7 @@ export default function KitchenOrdersPage() {
             total: 0,
         }))
         printThermal({
+            simple: true,
             header: {
                 name: "COMMANDE CUISINE",
                 address: order.table ? `Table T${order.table.number}` : "",
