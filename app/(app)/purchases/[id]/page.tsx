@@ -16,7 +16,8 @@ import { useSuppliers } from "@/hooks/use-suppliers"
 import { useProducts } from "@/hooks/use-products"
 import { usePurchases } from "@/hooks/use-purchases"
 import { formatCurrency } from "@/lib/mock-data"
-import { ArrowLeft, Loader2, Plus, Trash2, Package, ShoppingCart, XCircle, CheckCircle2 } from "lucide-react"
+import { printReport } from "@/lib/print-report"
+import { ArrowLeft, Loader2, Plus, Trash2, Package, ShoppingCart, XCircle, CheckCircle2, Printer } from "lucide-react"
 import Swal from "sweetalert2"
 import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "@/lib/auth-context"
@@ -242,6 +243,37 @@ export default function EditPurchaseOrderPage() {
     } finally {
       setIsActionLoading(false)
     }
+  }
+
+  const handlePrint = () => {
+    const origin = window.location.origin
+    const supplierName = suppliers.find((s) => s.id === supplierId)?.name || "—"
+    printReport({
+      title: "BON D'APPROVISIONNEMENT",
+      subtitle: order?.purchaseRef || `Commande #${orderId.slice(0, 8)}`,
+      period: new Date(order?.date).toLocaleDateString(),
+      logoUrl: `${origin}/ahava.png`,
+      metrics: [
+        { label: "Fournisseur", value: supplierName },
+        { label: "Statut", value: order?.status === "pending" ? "En attente" : order?.status === "received" ? "Reçu" : "Annulé" },
+        { label: "Produits", value: String(items.length), highlight: true },
+        { label: "Total", value: formatCurrency(total), highlight: true },
+      ],
+      columns: [
+        { header: "Produit", key: "product" },
+        { header: "Qté/Caisse", key: "boxes", align: "center" },
+        { header: "Unités", key: "quantity", align: "center" },
+        { header: "Prix unit.", key: "unitPrice", format: "currency", align: "right" },
+        { header: "Total", key: "total", format: "currency", align: "right" },
+      ],
+      rows: items.map((i) => ({
+        product: i.productName,
+        boxes: `${i.boxes || 0}`,
+        quantity: `${i.quantity}`,
+        unitPrice: i.cost,
+        total: i.quantity * i.cost,
+      })),
+    })
   }
 
   if (isLoading || suppliersLoading || productsLoading) {
@@ -499,6 +531,16 @@ export default function EditPurchaseOrderPage() {
             className="flex-1"
           >
             Retour à la liste
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePrint}
+            className="gap-2"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimer
           </Button>
 
           {isEditable ? (

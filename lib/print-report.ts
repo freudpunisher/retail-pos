@@ -21,6 +21,7 @@ interface PrintReportData {
   metrics: PrintReportMetric[]
   columns: PrintReportColumn[]
   rows: Record<string, any>[]
+  cancelled?: boolean
 }
 
 export function printReport(data: PrintReportData) {
@@ -79,6 +80,13 @@ export function printReport(data: PrintReportData) {
     )
     .join("")
 
+  const cancelledOverlay = data.cancelled ? `
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 999;">
+      <div style="font-size: 80px; font-weight: 900; color: rgba(220, 38, 38, 0.15); text-transform: uppercase; transform: rotate(-30deg); letter-spacing: 10px; border: 6px solid rgba(220, 38, 38, 0.2); padding: 20px 40px;">
+        FACTURE ANNULÉE
+      </div>
+    </div>` : ""
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -93,6 +101,7 @@ export function printReport(data: PrintReportData) {
       color: #0f172a;
       line-height: 1.5;
       padding: 20px;
+      position: relative;
     }
     .header {
       text-align: center;
@@ -136,12 +145,13 @@ export function printReport(data: PrintReportData) {
   </style>
 </head>
 <body>
+  ${cancelledOverlay}
   <div class="header">
     ${data.logoUrl ? `<img src="${data.logoUrl}" alt="Logo" class="header-logo" />` : ""}
     <h1>${data.title}</h1>
     ${data.subtitle ? `<div class="subtitle">${data.subtitle}</div>` : ""}
     ${data.period ? `<div class="period">${data.period}</div>` : ""}
-    <div class="period" style="margin-top: 4px;">Generated ${new Date().toLocaleString()}</div>
+    <div class="period" style="margin-top: 4px;">${new Date().toLocaleString()}</div>
   </div>
 
   <div class="metrics">

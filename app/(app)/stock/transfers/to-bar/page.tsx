@@ -23,8 +23,6 @@ interface LineItem {
     productId: string
     productType: string
     quantity: number
-    boxes: number
-    quantityPerBox: number
 }
 
 function uuid(): string {
@@ -48,7 +46,7 @@ export default function TransferToBarPage() {
     const [toLocationId, setToLocationId] = useState("")
     const [notes, setNotes] = useState("")
     const [lineItems, setLineItems] = useState<LineItem[]>([
-        { key: uuid(), productId: "", productType: "", quantity: 0, boxes: 0, quantityPerBox: 1 },
+        { key: uuid(), productId: "", productType: "", quantity: 0 },
     ])
     const [stockByLocation, setStockByLocation] = useState<any[]>([])
     const [loadingStock, setLoadingStock] = useState(false)
@@ -95,35 +93,28 @@ export default function TransferToBarPage() {
         return true
     }, [fromLocationId, toLocationId, lineItems])
 
-    const addLineItem = () => setLineItems([...lineItems, { key: uuid(), productId: "", productType: "", quantity: 0, boxes: 0, quantityPerBox: 1 }])
+    const addLineItem = () => setLineItems([...lineItems, { key: uuid(), productId: "", productType: "", quantity: 0 }])
     const removeLineItem = (key: string) => lineItems.length > 1 && setLineItems(lineItems.filter((i) => i.key !== key))
 
     const handleProductSelect = (key: string, productId: string) => {
         const product = availableProducts.find((p: any) => p.id === productId)
         if (!product) return
-        const qpb = product.quantityPerBox || 1
         setLineItems((prev) =>
             prev.map((i) =>
                 i.key === key
-                    ? { ...i, productId, productType: product.productType, boxes: 1, quantityPerBox: qpb, quantity: qpb }
+                    ? { ...i, productId, productType: product.productType, quantity: 0 }
                     : i
             )
         )
     }
 
-    const updateBoxes = (key: string, newBoxes: number) => {
-        const bxs = Math.max(0, newBoxes)
-        if (bxs === 0) {
-            setLineItems((prev) => prev.filter((i) => i.key !== key))
-        } else {
-            setLineItems((prev) =>
-                prev.map((i) =>
-                    i.key === key
-                        ? { ...i, boxes: bxs, quantity: bxs * i.quantityPerBox }
-                        : i
-                )
+    const updateQuantity = (key: string, newQty: number) => {
+        const qty = Math.max(0, newQty)
+        setLineItems((prev) =>
+            prev.map((i) =>
+                i.key === key ? { ...i, quantity: qty } : i
             )
-        }
+        )
     }
 
     const handleSubmit = async () => {
@@ -225,7 +216,7 @@ export default function TransferToBarPage() {
                             </div>
                         ) : (
                             <div className="border rounded-lg overflow-hidden">
-                                <div className="grid grid-cols-[1fr,11rem,5rem,auto] gap-3 px-4 py-2.5 bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                <div className="grid grid-cols-[1fr,8rem,5rem,auto] gap-3 px-4 py-2.5 bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                     <span>Produit</span>
                                     <span className="text-center">Quantité</span>
                                     <span className="text-right">Stock</span>
@@ -235,7 +226,7 @@ export default function TransferToBarPage() {
                                     {lineItems.map((item) => {
                                         const error = getItemError(item)
                                         return (
-                                            <div key={item.key} className="grid grid-cols-[1fr,11rem,5rem,auto] gap-3 px-4 py-3 items-start">
+                                            <div key={item.key} className="grid grid-cols-[1fr,8rem,5rem,auto] gap-3 px-4 py-3 items-start">
                                                 <Select value={item.productId} onValueChange={(v) => handleProductSelect(item.key, v)}>
                                                     <SelectTrigger className={`h-9 ${error ? "border-destructive" : ""}`}>
                                                         <SelectValue placeholder="Choisir un produit..." />
@@ -251,33 +242,20 @@ export default function TransferToBarPage() {
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
-                                                <div className="space-y-0.5">
+                                                <div className="flex items-center justify-center pt-0.5">
                                                     {item.productId ? (
-                                                        <div className="flex flex-col gap-1 items-center">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <Input
-                                                                    type="number"
-                                                                    min={0}
-                                                                    max={item.productId ? Math.floor(getProductQty(item.productId) / item.quantityPerBox) : undefined}
-                                                                    value={item.boxes}
-                                                                    onChange={(e) => updateBoxes(item.key, Number(e.target.value))}
-                                                                    className={`w-20 text-center h-8 ${error ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                                                                />
-                                                                <span className="text-sm font-medium">Caisses</span>
-                                                            </div>
-                                                            <div className="text-xs text-muted-foreground flex gap-1.5 items-center mt-0.5">
-                                                                <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-                                                                    {item.quantityPerBox} unités/caisse
-                                                                </Badge>
-                                                                <span>=</span>
-                                                                <span className="font-semibold text-foreground">{item.quantity} total unités</span>
-                                                            </div>
-                                                            {error && <p className="text-xs text-destructive text-center">{error}</p>}
+                                                        <div className="flex flex-col items-center gap-0.5">
+                                                            <Input
+                                                                type="number"
+                                                                min={0}
+                                                                value={item.quantity || ""}
+                                                                onChange={(e) => updateQuantity(item.key, Number(e.target.value))}
+                                                                className={`w-24 text-center h-8 ${error ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                                                            />
+                                                            {error && <p className="text-[10px] text-destructive text-center">{error}</p>}
                                                         </div>
                                                     ) : (
-                                                        <div className="flex items-center justify-center py-2">
-                                                            <span className="text-xs text-muted-foreground">Sélectionnez un produit</span>
-                                                        </div>
+                                                        <span className="text-xs text-muted-foreground">—</span>
                                                     )}
                                                 </div>
                                                 <div className="text-sm text-muted-foreground text-right pt-2">
@@ -296,13 +274,7 @@ export default function TransferToBarPage() {
                         {lineItems.some((i) => i.productId && i.quantity > 0) && (
                             <div className="flex items-center justify-between text-sm bg-muted/30 rounded-lg px-4 py-2.5">
                                 <span className="text-muted-foreground">{lineItems.filter((i) => i.productId && i.quantity > 0).length} produit(s)</span>
-                                <span className="font-medium">
-                                    {(() => {
-                                        const totalBoxes = lineItems.reduce((s, i) => s + i.boxes, 0)
-                                        const totalUnits = lineItems.reduce((s, i) => s + i.quantity, 0)
-                                        return totalBoxes > 0 ? `${totalBoxes} caisses / ${totalUnits} unités` : `${totalUnits} unités`
-                                    })()}
-                                </span>
+                                <span className="font-medium">{lineItems.reduce((s, i) => s + i.quantity, 0)} unités</span>
                             </div>
                         )}
                     </CardContent>

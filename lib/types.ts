@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "manager" | "cashier" | "waiter" | "chef"
+export type UserRole = "admin" | "manager" | "cashier" | "waiter" | "chef" | "stock_manager"
 export type CaisseSessionStatus = "open" | "closed"
 export type CaisseMovementType = "in" | "out"
 export type ProductType = "drink" | "food" | "ingredient"

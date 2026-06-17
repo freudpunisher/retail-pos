@@ -13,6 +13,7 @@ import { formatCurrency } from "@/lib/mock-data"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { useTransactions } from "@/hooks/use-transactions"
+import { useClients } from "@/hooks/use-clients"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/hooks/use-settings"
 import { PaymentDialog } from "@/components/pos/payment-dialog"
@@ -23,12 +24,13 @@ import {
   Receipt, Search, DollarSign, Banknote, ShoppingCart,
   Calendar, User, Package, Loader2, Eye, Printer, CreditCard,
   TrendingUp, ArrowUpDown, ChevronDown, X, Pencil, Trash2, AlertTriangle,
+  Upload, Image as ImageIcon,
 } from "lucide-react"
 
 export default function SalesHistoryPage() {
   const { user } = useAuth()
   const { settings } = useSettings()
-  const { transactions, loading, fetchTransactions, updateTransaction, deleteTransaction } = useTransactions()
+  const { transactions, loading, fetchTransactions, updateTransaction, cancelTransaction } = useTransactions()
   const receiptRef = useRef<HTMLDivElement>(null)
 
   const [search, setSearch] = useState("")
@@ -44,9 +46,26 @@ export default function SalesHistoryPage() {
   const [pageSize, setPageSize] = useState(20)
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; order: any | null }>({ open: false, order: null })
   const [editDialog, setEditDialog] = useState<{ open: boolean; transaction: any | null }>({ open: false, transaction: null })
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; transaction: any | null }>({ open: false, transaction: null })
+  const [cancelDialog, setCancelDialog] = useState<{ open: boolean; transaction: any | null }>({ open: false, transaction: null })
   const [editItems, setEditItems] = useState<any[]>([])
-  const [deleting, setDeleting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [proofDialog, setProofDialog] = useState<{ open: boolean; transaction: any | null }>({ open: false, transaction: null })
+  const [proofFile, setProofFile] = useState<string | null>(null)
+  const [creditDialog, setCreditDialog] = useState<{ open: boolean; transaction: any | null }>({ open: false, transaction: null })
+  const [creditClientId, setCreditClientId] = useState("")
+  const [clientSearch, setClientSearch] = useState("")
+  const [converting, setConverting] = useState(false)
+  const { clients: allClients } = useClients()
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearch) return allClients
+    const q = clientSearch.toLowerCase()
+    return allClients.filter((c: any) =>
+      c.name.toLowerCase().includes(q) ||
+      c.phone.toLowerCase().includes(q) ||
+      c.email.toLowerCase().includes(q)
+    )
+  }, [allClients, clientSearch])
 
   useEffect(() => {
     fetchTransactions()
@@ -192,17 +211,76 @@ export default function SalesHistoryPage() {
     setEditItems((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteDialog.transaction) return
-    setDeleting(true)
+  const handleProofOpen = (txn: any) => {
+    setProofFile(txn.clientProof || null)
+    setProofDialog({ open: true, transaction: txn })
+  }
+
+  const handleProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setProofFile(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleProofSave = async () => {
+    if (!proofDialog.transaction) return
     try {
-      await deleteTransaction(deleteDialog.transaction.id)
-      toast.success("Facture supprimée avec succès")
-      setDeleteDialog({ open: false, transaction: null })
+      const res = await fetch(`/api/transactions/${proofDialog.transaction.id}/proof`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientProof: proofFile }),
+      })
+      if (!res.ok) throw new Error("Failed to save proof")
+      toast.success(proofFile ? "Preuve enregistrée" : "Preuve supprimée")
+      setProofDialog({ open: false, transaction: null })
+      fetchTransactions()
     } catch (err: any) {
-      toast.error(err.message || "Échec de la suppression")
+      toast.error(err.message || "Échec de l'enregistrement")
+    }
+  }
+
+  const handleProofRemove = () => {
+    setProofFile(null)
+  }
+
+  const handleCreditConvert = async () => {
+    if (!creditDialog.transaction || !creditClientId) return
+    setConverting(true)
+    try {
+      const res = await fetch(`/api/transactions/${creditDialog.transaction.id}/convert-credit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: creditClientId }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Conversion failed")
+      }
+      toast.success("Facture convertie en crédit")
+      setCreditDialog({ open: false, transaction: null })
+      setCreditClientId("")
+      setClientSearch("")
+      fetchTransactions()
+    } catch (err: any) {
+      toast.error(err.message || "Échec de la conversion")
     } finally {
-      setDeleting(false)
+      setConverting(false)
+    }
+  }
+
+  const handleCancelConfirm = async () => {
+    if (!cancelDialog.transaction) return
+    setCancelling(true)
+    try {
+      await cancelTransaction(cancelDialog.transaction.id)
+      toast.success("Facture annulée avec succès")
+      setCancelDialog({ open: false, transaction: null })
+    } catch (err: any) {
+      toast.error(err.message || "Échec de l'annulation")
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -216,17 +294,27 @@ export default function SalesHistoryPage() {
     }))
     const totalHt = items.reduce((s: number, i: any) => s + i.total, 0)
     const contactLine = [settings?.address, settings?.phone].filter(Boolean).join(" · ")
+    const isCancelled = txn.status === "cancelled"
+    const statusLabel = isCancelled ? "Annulé" : txn.status === "completed" ? "Payé" : "Non payé"
+    const paymentLabel = txn.paymentMethod
+      ? txn.paymentMethod === "cash" ? "Espèces"
+        : txn.paymentMethod === "credit" ? "Crédit"
+        : txn.paymentMethod === "credit_card" ? "Carte"
+        : txn.paymentMethod
+      : "—"
     printReport({
       title: "FACTURE",
       subtitle: settings?.name || "SmartPOS",
       period: `N° ${txn.reference || txn.id.slice(0, 8).toUpperCase()}`,
       logoUrl: `${origin}/ahava.png`,
+      cancelled: isCancelled,
       metrics: [
         { label: "Date", value: new Date(txn.date).toLocaleDateString() },
         { label: "Client", value: txn.client?.name || "Client libre" },
         { label: "Contact", value: contactLine || "—" },
         { label: "Caissier", value: txn.user?.name || "—" },
-        { label: "Statut", value: txn.status === "completed" ? "Payé" : "Non payé", highlight: txn.status !== "completed" },
+        { label: "Paiement", value: paymentLabel },
+        { label: "Statut", value: statusLabel, highlight: !isCancelled && txn.status !== "completed" },
         { label: "Total", value: formatCurrency(totalHt), highlight: true },
       ],
       columns: [
@@ -260,7 +348,7 @@ export default function SalesHistoryPage() {
       cashier: data.user?.name,
       items,
       total: Number(data.total),
-      paymentMethod: data.paymentMethod,
+      paymentMethod: data.status === "cancelled" ? "ANNULÉ" : (data.paymentMethod || "PENDING"),
       currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", Fbu: "Fbu " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "Fbu",
       billReference: data.reference || "BL-" + data.id.slice(0, 8).toUpperCase(),
     })
@@ -554,34 +642,44 @@ export default function SalesHistoryPage() {
 {txn.status === "completed" ? "Payé" : txn.status}
                              </Badge>
                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-1">
-                               {txn.status !== "completed" && txn.status !== "cancelled" && (
-                                   <Button size="sm" className="h-8" onClick={() => setPaymentDialog({ open: true, order: txn })}>
-                                     <CreditCard className="h-3.5 w-3.5 mr-1" /> Payer
-                                  </Button>
-                                )}
-                                {txn.status !== "completed" && txn.status !== "cancelled" && user?.role === "manager" && (
-                                  <>
-                                    <Button variant="outline" size="sm" className="h-8" onClick={() => handleEditOpen(txn)}>
-                                      <Pencil className="h-3.5 w-3.5 mr-1" /> Modifier
+                             <TableCell className="text-right">
+                               <div className="flex items-center justify-end gap-1">
+                                {txn.status !== "completed" && txn.status !== "cancelled" && (
+                                   <>
+                                    <Button size="sm" className="h-8" onClick={() => setPaymentDialog({ open: true, order: txn })}>
+                                      <CreditCard className="h-3.5 w-3.5 mr-1" /> Payer
                                     </Button>
-                                    <Button variant="outline" size="sm" className="h-8 text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteDialog({ open: true, transaction: txn })}>
-                                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Suppr.
-                                    </Button>
-                                  </>
-                                )}
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetails(txn)}>
-                                  <Eye className="h-4 w-4" />
+                                    <Button size="sm" variant="secondary" className="h-8" onClick={() => { setCreditClientId(""); setClientSearch(""); setCreditDialog({ open: true, transaction: txn }) }}>
+                                      <CreditCard className="h-3.5 w-3.5 mr-1" /> Crédit
+                                     </Button>
+                                   </>
+                                 )}
+                                 {txn.status !== "completed" && txn.status !== "cancelled" && user?.role === "manager" && (
+                                   <>
+                                     <Button variant="outline" size="sm" className="h-8" onClick={() => handleEditOpen(txn)}>
+                                       <Pencil className="h-3.5 w-3.5 mr-1" /> Modifier
+                                     </Button>
+                                      <Button variant="outline" size="sm" className="h-8 text-red-600 border-red-200 hover:bg-red-50" onClick={() => setCancelDialog({ open: true, transaction: txn })}>
+                                        <X className="h-3.5 w-3.5 mr-1" /> Annuler
+                                      </Button>
+                                   </>
+                                 )}
+                                 {txn.status === "completed" && txn.paymentMethod === "credit" && (
+                                   <Button variant="outline" size="sm" className="h-8" onClick={() => handleProofOpen(txn)}>
+                                     <ImageIcon className="h-3.5 w-3.5 mr-1" /> {txn.clientProof ? "Preuve" : "Attacher"}
+                                   </Button>
+                                 )}
+                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewDetails(txn)}>
+                                   <Eye className="h-4 w-4" />
+                                 </Button>
+                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrintThermal(txn)} title="Réimpression ticket">
+                                   <Printer className="h-4 w-4" />
+                                 </Button>
+                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => handlePrintA4Invoice(txn)} title="Facture A4">
+                                  <Receipt className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrintThermal(txn)} title="Réimpression ticket">
-                                  <Printer className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => handlePrintA4Invoice(txn)} title="Facture A4">
-                                 <Receipt className="h-4 w-4" />
-                               </Button>
-                             </div>
-                           </TableCell>
+                              </div>
+                            </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -735,6 +833,15 @@ export default function SalesHistoryPage() {
                 >
                   <CreditCard className="h-4 w-4 mr-2" /> Traiter le paiement
                 </Button>
+              )}
+
+              {selectedTransaction.paymentMethod === "credit" && selectedTransaction.status === "completed" && (
+                <div className="flex justify-center">
+                  <Button variant="outline" className="w-full" onClick={() => handleProofOpen(selectedTransaction)}>
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    {selectedTransaction.clientProof ? "Voir la preuve" : "Attacher une preuve"}
+                  </Button>
+                </div>
               )}
 
               <div className="flex justify-end gap-2 pt-2">
@@ -1002,40 +1109,161 @@ export default function SalesHistoryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => { if (!open) setDeleteDialog({ open: false, transaction: null }) }}>
+      {/* Proof Upload Dialog */}
+      <Dialog open={proofDialog.open} onOpenChange={(open) => { if (!open) setProofDialog({ open: false, transaction: null }) }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" />
-              Confirmer la suppression
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-primary" />
+              Preuve de facture signée
             </DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer cette facture ? Cette action est irréversible.
+              Attachez une photo ou un scan de la facture signée par le client
             </DialogDescription>
           </DialogHeader>
 
-          {deleteDialog.transaction && (
+          {proofDialog.transaction && (
+            <div className="space-y-4">
+              {proofFile ? (
+                <div className="relative rounded-lg border border-border overflow-hidden">
+                  <img src={proofFile} alt="Preuve" className="w-full h-auto max-h-80 object-contain" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-2 right-2 bg-background/80"
+                    onClick={handleProofRemove}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center h-40 rounded-lg border-2 border-dashed border-border cursor-pointer hover:bg-muted/30 transition-colors">
+                  <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                  <span className="text-sm text-muted-foreground">Cliquez pour sélectionner une image</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleProofFileChange} />
+                </label>
+              )}
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setProofDialog({ open: false, transaction: null }); setProofFile(null) }}>
+                  Annuler
+                </Button>
+                <Button onClick={handleProofSave} disabled={!proofFile && !proofDialog.transaction?.clientProof}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Enregistrer
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to Credit Dialog */}
+      <Dialog open={creditDialog.open} onOpenChange={(open) => { if (!open) { setCreditDialog({ open: false, transaction: null }); setCreditClientId(""); setClientSearch("") } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" />
+              Convertir en facture crédit
+            </DialogTitle>
+            <DialogDescription>
+              Le client est parti sans payer ? Sélectionnez un client pour convertir cette facture en crédit.
+            </DialogDescription>
+          </DialogHeader>
+
+          {creditDialog.transaction && (
             <div className="space-y-4">
               <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm space-y-1">
-                <p><span className="text-muted-foreground">Référence :</span> <span className="font-mono font-medium">{deleteDialog.transaction.reference || deleteDialog.transaction.id.slice(0, 8)}</span></p>
-                <p><span className="text-muted-foreground">Date :</span> {new Date(deleteDialog.transaction.date).toLocaleDateString()}</p>
-                <p><span className="text-muted-foreground">Total :</span> <span className="font-semibold">{formatCurrency(Number.parseFloat(deleteDialog.transaction.total))}</span></p>
-                <p><span className="text-muted-foreground">Articles :</span> {deleteDialog.transaction.items?.length || 0}</p>
+                <p><span className="text-muted-foreground">Référence :</span> <span className="font-mono font-medium">{creditDialog.transaction.reference || creditDialog.transaction.id.slice(0, 8)}</span></p>
+                <p><span className="text-muted-foreground">Total :</span> <span className="font-semibold">{formatCurrency(Number.parseFloat(creditDialog.transaction.total))}</span></p>
+                <p><span className="text-muted-foreground">Date :</span> {new Date(creditDialog.transaction.date).toLocaleDateString()}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Client</Label>
+                <Input
+                  placeholder="Rechercher un client..."
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  className="h-10"
+                />
+                <div className="max-h-48 overflow-y-auto rounded-lg border border-border">
+                  {filteredClients.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Aucun client trouvé</p>
+                  ) : (
+                    filteredClients.map((c: any) => (
+                      <div
+                        key={c.id}
+                        className={`flex items-center gap-2 px-3 py-2 cursor-pointer text-sm hover:bg-muted/50 transition-colors ${creditClientId === c.id ? "bg-primary/10 font-medium" : ""}`}
+                        onClick={() => setCreditClientId(c.id)}
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+                          <User className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate">{c.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{c.phone} {c.email ? `· ${c.email}` : ""}</p>
+                        </div>
+                        {c.creditBalance > 0 && (
+                          <span className="text-xs text-muted-foreground shrink-0">{formatCurrency(Number.parseFloat(c.creditBalance))}</span>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setDeleteDialog({ open: false, transaction: null })}>Annuler</Button>
-                <Button variant="destructive" onClick={handleDeleteConfirm} disabled={deleting}>
-                  {deleting ? (
+                <Button variant="outline" onClick={() => { setCreditDialog({ open: false, transaction: null }); setCreditClientId(""); setClientSearch("") }}>
+                  Annuler
+                </Button>
+                <Button onClick={handleCreditConvert} disabled={!creditClientId || converting}>
+                  {converting ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Conversion...</>
+                  ) : (
+                    <><CreditCard className="h-4 w-4 mr-2" /> Confirmer le crédit</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={cancelDialog.open} onOpenChange={(open) => { if (!open) setCancelDialog({ open: false, transaction: null }) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              Confirmer l'annulation
+            </DialogTitle>
+            <DialogDescription>
+              Les stocks seront restitués et la facture sera marquée comme annulée dans l'historique.
+            </DialogDescription>
+          </DialogHeader>
+
+          {cancelDialog.transaction && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm space-y-1">
+                <p><span className="text-muted-foreground">Référence :</span> <span className="font-mono font-medium">{cancelDialog.transaction.reference || cancelDialog.transaction.id.slice(0, 8)}</span></p>
+                <p><span className="text-muted-foreground">Date :</span> {new Date(cancelDialog.transaction.date).toLocaleDateString()}</p>
+                <p><span className="text-muted-foreground">Total :</span> <span className="font-semibold">{formatCurrency(Number.parseFloat(cancelDialog.transaction.total))}</span></p>
+                <p><span className="text-muted-foreground">Articles :</span> {cancelDialog.transaction.items?.length || 0}</p>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setCancelDialog({ open: false, transaction: null })}>Retour</Button>
+                <Button variant="destructive" onClick={handleCancelConfirm} disabled={cancelling}>
+                  {cancelling ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Suppression...
+                      Annulation...
                     </>
                   ) : (
                     <>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Supprimer
+                      <X className="h-4 w-4 mr-2" />
+                      Annuler la facture
                     </>
                   )}
                 </Button>

@@ -174,9 +174,6 @@ export default function StaffTablesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => setStaffDialog({ open: true, staff: null })}>
-              <Plus className="h-4 w-4 mr-2" /> Ajouter du personnel
-            </Button>
           </div>
 
           {usersLoading ? (
