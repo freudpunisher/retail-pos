@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-export type UserRole = "admin" | "manager" | "cashier" | "waiter" | "chef" | "cashier_bakery" | "supervisor_bakery" | "production_bakery" | "cashier_food" | "supervisor_food"
-=======
 export type UserRole = "admin" | "manager" | "cashier" | "waiter" | "chef"
 export type CaisseSessionStatus = "open" | "closed"
 export type CaisseMovementType = "in" | "out"
->>>>>>> origin/augustin1
 export type ProductType = "drink" | "food" | "ingredient"
 export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled"
 

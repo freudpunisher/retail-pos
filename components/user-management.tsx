@@ -36,6 +36,7 @@ export function UserManagement() {
       supervisor_bakery: "Superviseur - Boulangerie",
       production_bakery: "Responsable production",
       manager: "Gérant",
+      stock_manager: "Gestionnaire de stock",
       investor: "Investisseur",
       accountant: "Comptable",
     }
@@ -44,7 +45,7 @@ export function UserManagement() {
 
   const roleBadgeClass = (role: string) => {
     if (role === "admin") return "bg-destructive/20 text-destructive"
-    if (role === "manager" || role === "investor" || role === "accountant") {
+    if (role === "manager" || role === "stock_manager" || role === "investor" || role === "accountant") {
       return "bg-primary/20 text-primary"
     }
     return "bg-secondary/50 text-foreground"
@@ -156,6 +157,7 @@ export function UserManagement() {
                     <SelectItem value="supervisor_bakery">Superviseur - Boulangerie</SelectItem>
                     <SelectItem value="production_bakery">Responsable production</SelectItem>
                     <SelectItem value="manager">Gérant</SelectItem>
+                    <SelectItem value="stock_manager">Gestionnaire de stock</SelectItem>
                     <SelectItem value="investor">Investisseur</SelectItem>
                     <SelectItem value="accountant">Comptable</SelectItem>
                   </SelectContent>
@@ -276,6 +278,7 @@ export function UserManagement() {
                     <SelectItem value="supervisor_bakery">Superviseur - Boulangerie</SelectItem>
                     <SelectItem value="production_bakery">Responsable production</SelectItem>
                     <SelectItem value="manager">Gérant</SelectItem>
+                    <SelectItem value="stock_manager">Gestionnaire de stock</SelectItem>
                     <SelectItem value="investor">Investisseur</SelectItem>
                     <SelectItem value="accountant">Comptable</SelectItem>
                   </SelectContent>

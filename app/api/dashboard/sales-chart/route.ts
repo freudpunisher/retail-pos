@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 import db from "@/lib/db"
 import { transactions, transactionItems, products } from "@/lib/db/schema"
-import { sql, eq, and, gte } from "drizzle-orm"
+import { sql, eq, ne, and, gte } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
             and(
               gte(transactions.date, startDate),
               sql`${transactions.date} <= ${today.toISOString()}`,
-              eq(transactions.status, "completed"),
+              ne(transactions.status, "cancelled"),
               eq(products.sector, sector)
             )
           )
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
             and(
               gte(transactions.date, startDate),
               sql`${transactions.date} <= ${today.toISOString()}`,
-              eq(transactions.status, "completed")
+              ne(transactions.status, "cancelled")
             )
           )
           .groupBy(sql`DATE(${transactions.date})`)

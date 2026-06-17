@@ -181,7 +181,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>{product ? "Edit Product" : "Add New Product"}</DialogTitle>

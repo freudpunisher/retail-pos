@@ -133,10 +133,10 @@ export function ProductGrid() {
 
     if (isOutOfStock || isCartFull) return
 
-    if (hasSellingUnits) {
+    if (hasSellingUnits && product.sellingUnits.length > 1) {
       setUnitSelectorProduct(product)
     } else {
-      handleAddItem(product)
+      handleAddItem(product, hasSellingUnits ? product.sellingUnits[0] : undefined)
     }
   }
 

@@ -26,7 +26,10 @@ export function useOrders() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
         })
-        if (!res.ok) throw new Error("Failed to create order")
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: "Failed to create order" }))
+            throw new Error(err.error || "Failed to create order")
+        }
         const order = await res.json()
         setOrders((prev) => [order, ...prev])
         return order

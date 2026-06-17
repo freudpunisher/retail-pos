@@ -67,17 +67,20 @@ export function useTransactions(sector?: string) {
         }
     }, [])
 
-    const deleteTransaction = useCallback(async (id: string) => {
+    const cancelTransaction = useCallback(async (id: string) => {
         setLoading(true)
         try {
             const response = await fetch(`/api/transactions/${id}`, {
-                method: "DELETE",
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "cancel" }),
             })
             if (!response.ok) {
                 const err = await response.json()
-                throw new Error(err.error || "Failed to delete transaction")
+                throw new Error(err.error || "Failed to cancel transaction")
             }
-            setTransactions((prev) => prev.filter((t: any) => t.id !== id))
+            const updated = await response.json()
+            setTransactions((prev) => prev.map((t: any) => (t.id === id ? updated : t)))
         } catch (err: any) {
             setError(err.message)
             throw err
@@ -86,5 +89,5 @@ export function useTransactions(sector?: string) {
         }
     }, [])
 
-    return { transactions, processTransaction, fetchTransactions, updateTransaction, deleteTransaction, loading, error }
+    return { transactions, processTransaction, fetchTransactions, updateTransaction, cancelTransaction, loading, error }
 }

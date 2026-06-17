@@ -21,7 +21,7 @@ import { useSettings } from "@/hooks/use-settings"
 export default function DashboardPage() {
   const { settings } = useSettings()
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("today")
-  const { stats, loading: statsLoading, refresh: refreshStats } = useDashboardStats(timePeriod)
+  const { stats, loading: statsLoading, error: statsError, refresh: refreshStats } = useDashboardStats(timePeriod)
   const { transactions, fetchTransactions, loading: txLoading } = useTransactions()
   const { orders, loading: ordersLoading } = useOrders()
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
@@ -50,7 +50,7 @@ export default function DashboardPage() {
   }
 
   const recentTransactions = transactions
-    .filter((t: any) => t.type === "sale")
+    .filter((t: any) => t.type === "sale" && t.status !== "cancelled")
     .slice(0, 5)
 
   const orderStatusCounts = {
@@ -97,13 +97,23 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {statsError && !statsLoading && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-700">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>Erreur de chargement : {statsError}</span>
+          <Button variant="outline" size="sm" className="ml-auto h-7 text-xs" onClick={handleManualRefresh}>Réessayer</Button>
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-border/50 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ventes du jour</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {timePeriod === "month" ? "Ventes mensuelles" : timePeriod === "week" ? "Ventes hebdomadaires" : "Ventes du jour"}
+                </p>
                 <p className="text-2xl font-bold tracking-tight">
                   {statsLoading ? <span className="text-muted-foreground animate-pulse">---</span> : formatCurrency(stats?.todaySales || 0)}
                 </p>
@@ -200,7 +210,7 @@ export default function DashboardPage() {
               label="Produits vendus"
               value={stats?.productsCount || 0}
               suffix="articles"
-              max={100}
+              max={Math.max(stats?.productsCount || 0, 10)}
               loading={statsLoading}
               color="bg-primary"
             />
@@ -208,7 +218,7 @@ export default function DashboardPage() {
               label="Transactions"
               value={stats?.todayTransactionCount || 0}
               suffix="commandes"
-              max={50}
+              max={Math.max(stats?.todayTransactionCount || 1, 5)}
               loading={statsLoading}
               color="bg-green-500"
             />
@@ -218,14 +228,13 @@ export default function DashboardPage() {
                 (stats?.todaySales || 0) / Math.max(stats?.todayTransactionCount || 1, 1)
               )}
               max={100}
-              progress={Math.min(((stats?.todaySales || 0) / Math.max(stats?.todayTransactionCount || 1, 1)) / 50000 * 100, 100)}
+              progress={Math.min(((stats?.todaySales || 0) / Math.max(stats?.todayTransactionCount || 1, 1)) / 100000 * 100, 100)}
               loading={statsLoading}
               color="bg-amber-500"
             />
             <MetricBar
               label="Ventes à crédit"
               value={`${stats?.creditSalesRatio || 0}%`}
-              suffix={`${stats?.creditSalesRatio || 0}% du total`}
               max={100}
               loading={statsLoading}
               color="bg-red-500"

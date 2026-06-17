@@ -18,7 +18,7 @@ import {
     ArrowRightLeft, Loader2, Plus, CheckCircle, Package,
     Warehouse, Store, Clock, User, FileText, XCircle,
     ChevronRight, Hash, CalendarDays, Beer, UtensilsCrossed,
-    Layers, ListChecks, Printer, Search, X
+    Layers, ListChecks, Printer, Search, X, RotateCcw
 } from "lucide-react"
 
 export default function StockTransfersPage() {
@@ -26,7 +26,7 @@ export default function StockTransfersPage() {
     const { users } = useUsers()
     const { user } = useAuth()
     const currentUserId = user?.id || users[0]?.id || ""
-    const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin"
+    const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin" || user?.role === "stock_manager"
 
     const [productFilter, setProductFilter] = useState("all")
     const [startDate, setStartDate] = useState("")
@@ -155,6 +155,13 @@ export default function StockTransfersPage() {
                         <Button size="sm" variant="outline" asChild>
                             <Link href="/stock/transfers/sortie-cuisine">
                                 <UtensilsCrossed className="h-4 w-4 mr-1.5" /> Sortie cuisine
+                            </Link>
+                        </Button>
+                    )}
+                    {isManagerOrAdmin && (
+                        <Button size="sm" variant="outline" asChild>
+                            <Link href="/stock/transfers/retour-cuisine">
+                                <RotateCcw className="h-4 w-4 mr-1.5" /> Retour cuisine
                             </Link>
                         </Button>
                     )}

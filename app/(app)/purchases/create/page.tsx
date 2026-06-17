@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { useSuppliers } from "@/hooks/use-suppliers"
 import { useProducts } from "@/hooks/use-products"
 import { usePurchases } from "@/hooks/use-purchases"
@@ -21,8 +20,6 @@ interface POItem {
   productType: string
   quantity: number
   cost: number
-  boxes: number
-  quantityPerBox: number
 }
 
 export default function CreatePurchaseOrderPage() {
@@ -47,32 +44,21 @@ export default function CreatePurchaseOrderPage() {
     const product = products.find((p) => p.id === selectedProductId)
     if (!product) return
 
-    const isDrink = product.productType === "drink"
     const existing = items.find((i) => i.productId === selectedProductId)
     if (existing) {
       setItems((prev) =>
-        prev.map((i) => {
-          if (i.productId === selectedProductId) {
-            if (isDrink) {
-              const nextBoxes = i.boxes + 1
-              return { ...i, boxes: nextBoxes, quantity: nextBoxes * i.quantityPerBox }
-            }
-            return { ...i, quantity: i.quantity + 1 }
-          }
-          return i
-        })
+        prev.map((i) =>
+          i.productId === selectedProductId ? { ...i, quantity: i.quantity + 1 } : i
+        )
       )
     } else {
-      const qpb = product.quantityPerBox || 1
       setItems((prev) => [
         ...prev,
         {
           productId: product.id,
           productName: product.name,
           productType: product.productType,
-          boxes: isDrink ? 1 : 0,
-          quantityPerBox: qpb,
-          quantity: isDrink ? qpb : 1,
+          quantity: 1,
           cost: 0,
         },
       ])
@@ -80,23 +66,6 @@ export default function CreatePurchaseOrderPage() {
     setSelectedProductId("")
   }
 
-  // Drink: update by number of boxes
-  const updateBoxes = (productId: string, newBoxes: number) => {
-    const bxs = Math.max(0, newBoxes)
-    if (bxs === 0) {
-      setItems((prev) => prev.filter((i) => i.productId !== productId))
-    } else {
-      setItems((prev) =>
-        prev.map((i) =>
-          i.productId === productId
-            ? { ...i, boxes: bxs, quantity: bxs * i.quantityPerBox }
-            : i
-        )
-      )
-    }
-  }
-
-  // Non-drink: update direct unit quantity
   const updateQuantity = (productId: string, newQty: number) => {
     const qty = Math.max(0, newQty)
     if (qty === 0) {
@@ -113,26 +82,12 @@ export default function CreatePurchaseOrderPage() {
     setItems((prev) => prev.map((i) => (i.productId === productId ? { ...i, cost: numeric } : i)))
   }
 
-  const updateBoxCost = (productId: string, boxCost: string) => {
-    const numericBoxCost = parseFloat(boxCost) || 0
-    setItems((prev) =>
-      prev.map((i) => {
-        if (i.productId === productId) {
-          const qpb = i.quantityPerBox || 1
-          return { ...i, cost: numericBoxCost / qpb }
-        }
-        return i
-      })
-    )
-  }
-
   const removeItem = (productId: string) => {
     setItems((prev) => prev.filter((i) => i.productId !== productId))
   }
 
   const total = items.reduce((sum, i) => sum + i.quantity * i.cost, 0)
   const totalUnits = items.reduce((sum, i) => sum + Number(i.quantity || 0), 0)
-  const totalBoxes = items.filter(i => i.productType === "drink").reduce((sum, i) => sum + Number(i.boxes || 0), 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -171,7 +126,7 @@ export default function CreatePurchaseOrderPage() {
               </div>
               <div className="text-right space-y-1">
                 <p><span className="font-bold text-lg">{items.length}</span> produits</p>
-                <p><span className="font-bold text-lg">{totalBoxes}</span> caisses / <span className="font-bold text-lg">{totalUnits}</span> unités</p>
+                <p><span className="font-bold text-lg">{totalUnits}</span> unités</p>
               </div>
             </div>
           </CardContent>
@@ -264,14 +219,13 @@ export default function CreatePurchaseOrderPage() {
                     <TableRow className="bg-muted/50">
                       <TableHead>Produit</TableHead>
                       <TableHead className="text-right w-44">Coût</TableHead>
-                      <TableHead className="text-center w-56">Quantité</TableHead>
+                      <TableHead className="text-center w-40">Quantité</TableHead>
                       <TableHead className="text-right w-32">Sous-total</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {items.map((item) => {
-                      const isDrink = item.productType === "drink"
                       return (
                         <TableRow key={item.productId}>
                           <TableCell className="font-medium">
@@ -283,32 +237,6 @@ export default function CreatePurchaseOrderPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            {isDrink ? (
-                              <div className="flex flex-col gap-1 items-end">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-muted-foreground whitespace-nowrap">Unité :</span>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={item.cost}
-                                    onChange={(e) => updateUnitCost(item.productId, e.target.value)}
-                                    className="w-24 text-right h-8"
-                                  />
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-muted-foreground whitespace-nowrap">Caisse :</span>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={(item.cost * item.quantityPerBox).toFixed(2)}
-                                    onChange={(e) => updateBoxCost(item.productId, e.target.value)}
-                                    className="w-24 text-right h-8"
-                                  />
-                                </div>
-                              </div>
-                            ) : (
                               <Input
                                 type="number"
                                 step="0.01"
@@ -317,30 +245,8 @@ export default function CreatePurchaseOrderPage() {
                                 onChange={(e) => updateUnitCost(item.productId, e.target.value)}
                                 className="w-24 text-right h-8"
                               />
-                            )}
                           </TableCell>
                           <TableCell className="text-center">
-                            {isDrink ? (
-                              <div className="flex flex-col gap-1 items-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    value={item.boxes}
-                                    onChange={(e) => updateBoxes(item.productId, Number(e.target.value))}
-                                    className="w-20 text-center h-8"
-                                  />
-                                  <span className="text-sm font-medium">Caisses</span>
-                                </div>
-                                <div className="text-xs text-muted-foreground flex gap-1.5 items-center mt-0.5">
-                                  <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-                                    {item.quantityPerBox} unités/caisse
-                                  </Badge>
-                                  <span>=</span>
-                                  <span className="font-semibold text-foreground">{item.quantity} total unités</span>
-                                </div>
-                              </div>
-                            ) : (
                               <div className="flex items-center justify-center gap-2">
                                 <Input
                                   type="number"
@@ -351,7 +257,6 @@ export default function CreatePurchaseOrderPage() {
                                 />
                                 <span className="text-sm font-medium text-muted-foreground">unités</span>
                               </div>
-                            )}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {formatCurrency(item.quantity * item.cost)}

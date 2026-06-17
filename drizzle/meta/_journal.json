@@ -129,12 +129,19 @@
       "tag": "0014_add_conversion_factor",
       "breakpoints": true
     },
-    {
-      "idx": 15,
-      "version": "7",
-      "when": 1776000000000,
-      "tag": "0015_convert_stock_to_numeric",
-      "breakpoints": true
-    }
-  ]
+        {
+            "idx": 15,
+            "version": "7",
+            "when": 1776000000000,
+            "tag": "0015_convert_stock_to_numeric",
+            "breakpoints": true
+        },
+        {
+            "idx": 16,
+            "version": "7",
+            "when": 1777000000000,
+            "tag": "0016_stock_manager_role",
+            "breakpoints": true
+        }
+    ]
 }

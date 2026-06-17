@@ -28,6 +28,7 @@ import {
   Wallet,
   Loader2,
   ChefHat,
+  UtensilsCrossed,
   ArrowLeftRight,
   RefreshCw,
   Store,
@@ -40,7 +41,7 @@ const iconMap: Record<string, any> = {
   ArrowLeftRight, Users, UserCog, CreditCard,
   BarChart3, Settings, Truck, RefreshCw,
   ClipboardList, Receipt, ArrowRightLeft, Wallet,
-  ChefHat, Landmark, Banknote,
+  ChefHat, UtensilsCrossed, Landmark, Banknote,
 }
 
 const DEFAULT_MENUS = [
@@ -60,6 +61,7 @@ const DEFAULT_MENUS = [
   { id: "14", href: "/clients", label: "Clients", icon: "Users", roles: ["admin", "manager", "cashier"], sortOrder: 14 },
   { id: "15", href: "/credit", label: "Gestion des crédits", icon: "CreditCard", roles: ["admin", "manager"], sortOrder: 15 },
   { id: "16", href: "/finance", label: "Finance", icon: "Landmark", roles: ["admin", "manager"], sortOrder: 16 },
+  { id: "161", href: "/finance/cuisine", label: "Finance Cuisine", icon: "UtensilsCrossed", roles: ["admin", "manager"], sortOrder: 161 },
   { id: "17", href: "/reports", label: "Rapports", icon: "BarChart3", roles: ["admin", "manager"], sortOrder: 17 },
   { id: "18", href: "/settings", label: "Paramètres", icon: "Settings", roles: ["admin"], sortOrder: 18 },
 ]
