@@ -59,7 +59,7 @@ export function UserManagement() {
   }
 
   const handleDeleteUser = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
       await deleteUser(id)
     }
   }
@@ -87,27 +87,27 @@ export function UserManagement() {
         <div>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            User Management
+            Gestion des utilisateurs
           </CardTitle>
-          <CardDescription>Manage users and their roles</CardDescription>
+          <CardDescription>Gérer les utilisateurs et leurs rôles</CardDescription>
         </div>
         <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add User
+              Ajouter un utilisateur
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add User</DialogTitle>
-              <DialogDescription>Create a new user account</DialogDescription>
+              <DialogTitle>Ajouter un utilisateur</DialogTitle>
+              <DialogDescription>Créer un nouveau compte utilisateur</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>Nom</Label>
                 <Input
-                  placeholder="Enter name"
+                  placeholder="Entrez le nom"
                   value={newUser.name}
                   onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                 />
@@ -116,37 +116,37 @@ export function UserManagement() {
                 <Label>Email</Label>
                 <Input
                   type="email"
-                  placeholder="Enter email"
+                  placeholder="Entrez l'email"
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Phone</Label>
+                <Label>Téléphone</Label>
                 <Input
                   type="tel"
-                  placeholder="Enter phone"
+                  placeholder="Entrez le téléphone"
                   value={newUser.phone}
                   onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Password</Label>
+                <Label>Mot de passe</Label>
                 <Input
                   type="password"
-                  placeholder="Enter password"
+                  placeholder="Entrez le mot de passe"
                   value={newUser.password}
                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Role</Label>
+                <Label>Rôle</Label>
                 <Select
                   value={newUser.role}
                   onValueChange={(value) => setNewUser({ ...newUser, role: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
+                    <SelectValue placeholder="Sélectionnez un rôle" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin système</SelectItem>
@@ -164,9 +164,9 @@ export function UserManagement() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowAddUser(false)}>
-                Cancel
+                Annuler
               </Button>
-              <Button onClick={handleAddUser}>Add User</Button>
+              <Button onClick={handleAddUser}>Ajouter un utilisateur</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -176,10 +176,10 @@ export function UserManagement() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-border">
-                <TableHead className="text-muted-foreground">User</TableHead>
+                <TableHead className="text-muted-foreground">Utilisateur</TableHead>
                 <TableHead className="text-muted-foreground">Email</TableHead>
-              <TableHead className="text-muted-foreground">Role</TableHead>
-              <TableHead className="text-muted-foreground">Phone</TableHead>
+              <TableHead className="text-muted-foreground">Rôle</TableHead>
+              <TableHead className="text-muted-foreground">Téléphone</TableHead>
               <TableHead className="text-muted-foreground text-right w-24">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -193,7 +193,7 @@ export function UserManagement() {
               ) : users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    No users found
+                    Aucun utilisateur trouvé
                   </TableCell>
                 </TableRow>
               ) : (
@@ -239,13 +239,13 @@ export function UserManagement() {
       <Dialog open={showEditUser} onOpenChange={setShowEditUser}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>Modifier l'utilisateur</DialogTitle>
             <DialogDescription>Mettre à jour les informations de l'utilisateur ou modifier son mot de passe</DialogDescription>
           </DialogHeader>
           {editingUser && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>Nom</Label>
                 <Input value={editingUser.name} readOnly />
               </div>
               <div className="space-y-2">
@@ -253,20 +253,20 @@ export function UserManagement() {
                 <Input value={editingUser.email} readOnly />
               </div>
               <div className="space-y-2">
-                <Label>Phone</Label>
+                <Label>Téléphone</Label>
                 <Input
                   value={editingUser.phone || ""}
                   onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Role</Label>
+                <Label>Rôle</Label>
                 <Select
                   value={editingUser.role}
                   onValueChange={(value) => setEditingUser({ ...editingUser, role: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
+                    <SelectValue placeholder="Sélectionnez un rôle" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin système</SelectItem>
@@ -294,9 +294,9 @@ export function UserManagement() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditUser(false)}>
-              Cancel
+              Annuler
             </Button>
-            <Button onClick={handleUpdateUser}>Save</Button>
+            <Button onClick={handleUpdateUser}>Enregistrer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

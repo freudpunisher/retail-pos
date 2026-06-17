@@ -16,8 +16,10 @@ import {
   ChefHat, Bell, Utensils, ArrowUpRight, ArrowDownRight, BarChart3,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { useSettings } from "@/hooks/use-settings"
 
 export default function DashboardPage() {
+  const { settings } = useSettings()
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("today")
   const { stats, loading: statsLoading, refresh: refreshStats } = useDashboardStats(timePeriod)
   const { transactions, fetchTransactions, loading: txLoading } = useTransactions()
@@ -60,13 +62,15 @@ export default function DashboardPage() {
 
   const activeOrders = orderStatusCounts.pending + orderStatusCounts.preparing + orderStatusCounts.ready + orderStatusCounts.served
 
+  const currencySymbol = settings?.currencySymbol || "Fbu"
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-muted-foreground">Real-time overview of your business</p>
+          <h2 className="text-2xl font-bold tracking-tight">Tableau de bord</h2>
+          <p className="text-muted-foreground">Aperçu en temps réel de votre activité</p>
         </div>
         <div className="flex items-center gap-3">
           <TimePeriodSelector selected={timePeriod} onSelect={setTimePeriod} />
@@ -76,7 +80,7 @@ export default function DashboardPage() {
               size="icon"
               className={`h-8 w-8 ${autoRefreshEnabled ? "text-primary" : "text-muted-foreground"}`}
               onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-              title={autoRefreshEnabled ? "Auto-refresh on" : "Auto-refresh off"}
+              title={autoRefreshEnabled ? "Auto-actualisation activée" : "Auto-actualisation désactivée"}
             >
               <Clock className={`h-4 w-4 ${autoRefreshEnabled ? "animate-pulse" : ""}`} />
             </Button>
@@ -99,7 +103,7 @@ export default function DashboardPage() {
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Today&apos;s Sales</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ventes du jour</p>
                 <p className="text-2xl font-bold tracking-tight">
                   {statsLoading ? <span className="text-muted-foreground animate-pulse">---</span> : formatCurrency(stats?.todaySales || 0)}
                 </p>
@@ -117,12 +121,12 @@ export default function DashboardPage() {
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {timePeriod === "month" ? "Monthly Revenue" : timePeriod === "week" ? "Weekly Revenue" : "Today&apos;s Revenue"}
+                  {timePeriod === "month" ? "Revenus mensuels" : timePeriod === "week" ? "Revenus hebdomadaires" : "Revenus du jour"}
                 </p>
                 <p className="text-2xl font-bold tracking-tight">
-                  {statsLoading ? <span className="text-muted-foreground animate-pulse">---</span> : formatCurrency(stats?.monthlyRevenue || 0)}
+                  {statsLoading ? <span className="text-muted-foreground animate-pulse">---</span> : formatCurrency(stats?.monthlyRevenue || 0, { symbol: currencySymbol })}
                 </p>
-                <p className="text-xs text-muted-foreground">{stats?.productsCount || 0} products sold</p>
+                <p className="text-xs text-muted-foreground">{stats?.productsCount || 0} produits vendus</p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                 <TrendingUp className="h-5 w-5 text-primary" />
@@ -135,7 +139,7 @@ export default function DashboardPage() {
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Active Orders</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Commandes actives</p>
                 <p className="text-2xl font-bold tracking-tight">
                   {ordersLoading ? <span className="text-muted-foreground animate-pulse">---</span> : activeOrders}
                 </p>
@@ -157,16 +161,16 @@ export default function DashboardPage() {
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Outstanding Credit</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Crédit en cours</p>
                 <p className="text-2xl font-bold tracking-tight">
                   {statsLoading ? <span className="text-muted-foreground animate-pulse">---</span> : formatCurrency(stats?.totalCreditBalance || 0)}
                 </p>
                 <p className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Badge variant="outline" className="text-[10px] px-1 py-0 font-normal">
-                    {stats?.creditSalesRatio || 0}% credit ratio
+                    {stats?.creditSalesRatio || 0}% ratio crédit
                   </Badge>
                   <Badge variant="outline" className="text-[10px] px-1 py-0 font-normal border-red-500/30 text-red-600">
-                    {stats?.lowStockItems || 0} low stock
+                    {stats?.lowStockItems || 0} stock faible
                   </Badge>
                 </p>
               </div>
@@ -188,14 +192,14 @@ export default function DashboardPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              Performance Metrics
+              Indicateurs de performance
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <MetricBar
-              label="Products Sold"
+              label="Produits vendus"
               value={stats?.productsCount || 0}
-              suffix="items"
+              suffix="articles"
               max={100}
               loading={statsLoading}
               color="bg-primary"
@@ -203,13 +207,13 @@ export default function DashboardPage() {
             <MetricBar
               label="Transactions"
               value={stats?.todayTransactionCount || 0}
-              suffix="orders"
+              suffix="commandes"
               max={50}
               loading={statsLoading}
               color="bg-green-500"
             />
             <MetricBar
-              label="Avg Order Value"
+              label="Panier moyen"
               value={formatCurrency(
                 (stats?.todaySales || 0) / Math.max(stats?.todayTransactionCount || 1, 1)
               )}
@@ -219,9 +223,9 @@ export default function DashboardPage() {
               color="bg-amber-500"
             />
             <MetricBar
-              label="Credit Sales"
+              label="Ventes à crédit"
               value={`${stats?.creditSalesRatio || 0}%`}
-              suffix={`${stats?.creditSalesRatio || 0}% of total`}
+              suffix={`${stats?.creditSalesRatio || 0}% du total`}
               max={100}
               loading={statsLoading}
               color="bg-red-500"
@@ -235,10 +239,10 @@ export default function DashboardPage() {
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Receipt className="h-4 w-4 text-muted-foreground" />
-            Recent Transactions
+Transactions récentes
           </CardTitle>
           <Badge variant="outline" className="text-xs font-normal">
-            Last 5
+            5 dernières
           </Badge>
         </CardHeader>
         <CardContent className="p-0">
@@ -249,7 +253,7 @@ export default function DashboardPage() {
           ) : recentTransactions.length === 0 ? (
             <div className="flex flex-col items-center py-12 text-muted-foreground">
               <Receipt className="h-10 w-10 mb-2 opacity-30" />
-              <p className="text-sm">No transactions yet</p>
+              <p className="text-sm">Aucune transaction pour le moment</p>
             </div>
           ) : (
             <div className="divide-y divide-border">
@@ -267,7 +271,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {txn.client?.name || <span className="italic text-muted-foreground">Walk-in</span>}
+                        {txn.client?.name || <span className="italic text-muted-foreground">Client libre</span>}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         <span className="font-mono">#{txn.id.slice(0, 8)}</span>
@@ -288,7 +292,7 @@ export default function DashboardPage() {
                           : "border-amber-500/30 bg-amber-500/10 text-amber-700"
                         }`}
                     >
-                      {txn.status === "completed" ? "Paid" : txn.status}
+                      {txn.status === "completed" ? "Payé" : txn.status}
                     </Badge>
                   </div>
                 </div>

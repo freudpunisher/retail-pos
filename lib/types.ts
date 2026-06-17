@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 export type UserRole = "admin" | "manager" | "cashier" | "waiter" | "chef" | "cashier_bakery" | "supervisor_bakery" | "production_bakery" | "cashier_food" | "supervisor_food"
+=======
+export type UserRole = "admin" | "manager" | "cashier" | "waiter" | "chef"
+export type CaisseSessionStatus = "open" | "closed"
+export type CaisseMovementType = "in" | "out"
+>>>>>>> origin/augustin1
 export type ProductType = "drink" | "food" | "ingredient"
 export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled"
 
@@ -9,6 +15,17 @@ export interface User {
   role: UserRole
   phone?: string
   avatar?: string
+}
+
+export interface SellingUnit {
+  id: string
+  name: string
+  unitId?: string | null
+  unitName?: string | null
+  price: number
+  conversionFactor: number
+  isDefault: boolean
+  sortOrder: number
 }
 
 export interface Product {
@@ -22,11 +39,14 @@ export interface Product {
   minStock: number
   trackStock: boolean
   image?: string
+  sellingUnits?: SellingUnit[]
 }
 
 export interface CartItem extends Product {
   quantity: number
   discount: number
+  sellingUnitName?: string
+  sellingUnitId?: string
 }
 
 export interface Client {
@@ -178,6 +198,32 @@ export interface StockTransfer {
   product?: { name: string; sku: string }
   fromLocation?: { name: string }
   toLocation?: { name: string }
+}
+
+export interface CaisseMovement {
+  id: string
+  sessionId: string
+  type: CaisseMovementType
+  amount: number
+  reason: string
+  createdAt: string
+}
+
+export interface CaisseSession {
+  id: string
+  userId: string
+  openedAt: string
+  closedAt: string | null
+  openingBalance: number
+  closingBalance: number | null
+  expectedBalance: number | null
+  difference: number | null
+  status: CaisseSessionStatus
+  notes: string | null
+  locationId: string | null
+  user?: { id: string; name: string }
+  location?: { id: string; name: string }
+  movements?: CaisseMovement[]
 }
 
 export type ExpenseCategory = "rent" | "utilities" | "salaries" | "supplies" | "maintenance" | "marketing" | "transport" | "insurance" | "taxes" | "other"

@@ -13,25 +13,36 @@ export interface ReceiptData {
   paymentMethod?: string
   currencySymbol?: string
   billReference?: string
+  simple?: boolean
 }
 
 export function printThermal(data: ReceiptData): void {
   const fmt = (n: number) =>
-    `${n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} ${data.currencySymbol || "FBU"}`
+    `${n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} ${data.currencySymbol || "Fbu"}`
   const w = window.open("", "_blank", "width=400,height=650")
   if (!w) return
 
-  const itemsHtml = data.items
-    .map(
-      (i) =>
-        `<tr>
-          <td style="text-align:left;width:8mm;padding:0.5mm 0;">${i.quantity}x</td>
-          <td style="text-align:left;padding:0.5mm 0 0.5mm 1mm;">${i.name}</td>
-          <td style="text-align:right;padding:0.5mm 0;width:12mm;">${fmt(i.price)}</td>
-          <td style="text-align:right;padding:0.5mm 0;width:12mm;">${fmt(i.total)}</td>
-        </tr>`,
-    )
-    .join("")
+  const itemsHtml = data.simple
+    ? data.items
+        .map(
+          (i) =>
+            `<tr>
+              <td style="text-align:left;width:8mm;padding:0.5mm 0;">${i.quantity}x</td>
+              <td style="text-align:left;padding:0.5mm 0 0.5mm 1mm;">${i.name}</td>
+            </tr>`,
+        )
+        .join("")
+    : data.items
+        .map(
+          (i) =>
+            `<tr>
+              <td style="text-align:left;width:8mm;padding:0.5mm 0;">${i.quantity}x</td>
+              <td style="text-align:left;padding:0.5mm 0 0.5mm 1mm;">${i.name}</td>
+              <td style="text-align:right;padding:0.5mm 0;width:12mm;">${fmt(i.price)}</td>
+              <td style="text-align:right;padding:0.5mm 0;width:12mm;">${fmt(i.total)}</td>
+            </tr>`,
+        )
+        .join("")
 
   w.document.write(`<!DOCTYPE html>
 <html>
@@ -103,12 +114,13 @@ export function printThermal(data: ReceiptData): void {
     <tr class="items-header">
       <td style="width:8mm;">QTY</td>
       <td style="padding:0 1mm;">DESCRIPTION</td>
-      <td style="text-align:right;width:14mm;">PRICE</td>
-      <td style="text-align:right;width:14mm;">TOTAL</td>
+      ${data.simple ? "" : `<td style="text-align:right;width:14mm;">PRICE</td>
+      <td style="text-align:right;width:14mm;">TOTAL</td>`}
     </tr>
     ${itemsHtml}
   </table>
 
+  ${data.simple ? `<div class="divider-thick"></div>` : `
   <div class="divider"></div>
 
   <!-- Total -->
@@ -123,7 +135,7 @@ export function printThermal(data: ReceiptData): void {
     Payment: <strong>${(data.paymentMethod || "PENDING").toUpperCase()}</strong>
   </div>
 
-  <div class="divider-thick"></div>
+  <div class="divider-thick"></div>`}
 
   <!-- Footer -->
   <div class="barcode">* ${data.orderId.slice(0, 12).toUpperCase()} *</div>

@@ -17,6 +17,7 @@ interface PrintReportData {
   title: string
   subtitle?: string
   period?: string
+  logoUrl?: string
   metrics: PrintReportMetric[]
   columns: PrintReportColumn[]
   rows: Record<string, any>[]
@@ -99,6 +100,7 @@ export function printReport(data: PrintReportData) {
       padding-bottom: 16px;
       margin-bottom: 24px;
     }
+    .header-logo { max-height: 60px; margin-bottom: 8px; }
     .header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
     .header .subtitle { font-size: 12px; color: #64748b; margin-top: 4px; }
     .header .period { font-size: 11px; color: #94a3b8; margin-top: 2px; }
@@ -135,6 +137,7 @@ export function printReport(data: PrintReportData) {
 </head>
 <body>
   <div class="header">
+    ${data.logoUrl ? `<img src="${data.logoUrl}" alt="Logo" class="header-logo" />` : ""}
     <h1>${data.title}</h1>
     ${data.subtitle ? `<div class="subtitle">${data.subtitle}</div>` : ""}
     ${data.period ? `<div class="period">${data.period}</div>` : ""}

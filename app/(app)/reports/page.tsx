@@ -54,8 +54,27 @@ export default function ReportsPage() {
   const { purchaseOrders, loading: poLoading, refresh: fetchPurchaseOrders } = usePurchaseOrders()
   const { movements, loading: moveLoading, refresh: fetchStockMovements } = useStockMovements()
   const { clients, loading: clientLoading, refresh: fetchClients } = useClients()
+  const { products } = useProducts()
 
   const isLoading = txLoading || poLoading || moveLoading || clientLoading
+
+  // Helper function to check if a date is within the selected range
+  const isInRange = (dateStr: string) => {
+    if (!dateFrom || !dateTo) return true
+    const date = new Date(dateStr)
+    const start = new Date(dateFrom)
+    const end = new Date(dateTo)
+    end.setHours(23, 59, 59, 999)
+    return date >= start && date <= end
+  }
+
+  // Create a map of product sectors for quick lookup
+  const productSectorById = new Map(products.map((p: any) => [p.id, p.sector]))
+
+  // Helper to check if a transaction belongs to the bakery sector
+  const isBakeryTransaction = (txn: any) => {
+    return (txn.items || []).some((item: any) => productSectorById.get(item.productId) === "Boulangerie")
+  }
 
   const fetchAllData = useCallback((from?: string, to?: string) => {
     fetchTransactions(from, to)
@@ -125,28 +144,28 @@ export default function ReportsPage() {
   const handlePrintSales = () => {
     const periodStr = dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : "All time"
     printReport({
-      title: "Sales Report",
+      title: "Rapport de ventes",
       subtitle: "Smart POS System",
       period: periodStr,
       metrics: [
-        { label: "Total Sales", value: formatCurrency(salesTotal), highlight: true },
+        { label: "Total des ventes", value: formatCurrency(salesTotal), highlight: true },
         { label: "Transactions", value: saleTransactions.length },
-        { label: "Average Order", value: formatCurrency(salesTotal / (saleTransactions.length || 1)) },
-        { label: "Cash Sales", value: saleTransactions.filter((t) => t.paymentMethod === "cash").length },
-        { label: "Credit Sales", value: saleTransactions.filter((t) => t.paymentMethod === "credit").length },
+        { label: "Panier moyen", value: formatCurrency(salesTotal / (saleTransactions.length || 1)) },
+        { label: "Ventes espèces", value: saleTransactions.filter((t) => t.paymentMethod === "cash").length },
+        { label: "Ventes crédit", value: saleTransactions.filter((t) => t.paymentMethod === "credit").length },
       ],
       columns: [
         { header: "ID", key: "id", format: "text" },
         { header: "Date", key: "date", format: "date" },
-        { header: "Customer", key: "clientName" },
-        { header: "Payment", key: "paymentMethod" },
-        { header: "Cashier", key: "cashier" },
-        { header: "Amount", key: "total", format: "currency", align: "right" },
+        { header: "Client", key: "clientName" },
+        { header: "Paiement", key: "paymentMethod" },
+        { header: "Caissier", key: "cashier" },
+        { header: "Montant", key: "total", format: "currency", align: "right" },
       ],
       rows: saleTransactions.map((t: any) => ({
         id: t.id.slice(0, 8),
         date: t.date,
-        clientName: t.client?.name || "Walk-in",
+        clientName: t.client?.name || "Sur place",
         paymentMethod: t.paymentMethod || "—",
         cashier: t.user?.name || "—",
         total: t.total,
@@ -157,19 +176,19 @@ export default function ReportsPage() {
   const handlePrintPurchases = () => {
     const periodStr = dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : "All time"
     printReport({
-      title: "Purchases Report",
+      title: "Rapport d'achats",
       subtitle: "Smart POS System",
       period: periodStr,
       metrics: [
-        { label: "Total Purchases", value: formatCurrency(purchaseTotal), highlight: true },
-        { label: "Purchase Orders", value: purchaseOrders.length },
+        { label: "Total des achats", value: formatCurrency(purchaseTotal), highlight: true },
+        { label: "Commandes d'achat", value: purchaseOrders.length },
       ],
       columns: [
         { header: "ID", key: "id", format: "text" },
         { header: "Date", key: "date", format: "date" },
-        { header: "Supplier", key: "supplier" },
-        { header: "Items", key: "items", format: "number", align: "right" },
-        { header: "Status", key: "status" },
+        { header: "Fournisseur", key: "supplier" },
+        { header: "Articles", key: "items", format: "number", align: "right" },
+        { header: "Statut", key: "status" },
         { header: "Total", key: "total", format: "currency", align: "right" },
       ],
       rows: purchaseOrders.map((po: any) => ({
@@ -186,21 +205,21 @@ export default function ReportsPage() {
   const handlePrintStock = () => {
     const periodStr = dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : "All time"
     printReport({
-      title: "Stock Movements Report",
+      title: "Rapport des mouvements de stock",
       subtitle: "Smart POS System",
       period: periodStr,
       metrics: [
-        { label: "Total Inbound", value: `${inboundQty} units`, highlight: true },
-        { label: "Total Outbound", value: `${outboundQty} units` },
-        { label: "Net Movement", value: `${inboundQty - outboundQty} units` },
+        { label: "Total entrées", value: `${inboundQty} unités`, highlight: true },
+        { label: "Total sorties", value: `${outboundQty} unités` },
+        { label: "Mouvement net", value: `${inboundQty - outboundQty} unités` },
       ],
       columns: [
         { header: "ID", key: "id", format: "text" },
         { header: "Date", key: "date", format: "date" },
-        { header: "Product", key: "product" },
+        { header: "Produit", key: "product" },
         { header: "Type", key: "type" },
-        { header: "Quantity", key: "quantity", format: "number", align: "right" },
-        { header: "User", key: "user" },
+        { header: "Quantité", key: "quantity", format: "number", align: "right" },
+        { header: "Utilisateur", key: "user" },
       ],
       rows: movements.map((m: any) => ({
         id: m.id.slice(0, 8),
@@ -216,18 +235,18 @@ export default function ReportsPage() {
   const handlePrintCredit = () => {
     const activeClients = clients.filter((c: any) => Number.parseFloat(c.creditBalance) > 0)
     printReport({
-      title: "Credit Report",
+      title: "Rapport de crédit",
       subtitle: "Smart POS System",
       period: "All time",
       metrics: [
-        { label: "Total Outstanding", value: formatCurrency(totalCreditBalance), highlight: true },
-        { label: "Clients with Credit", value: activeClients.length },
+        { label: "Total impayé", value: formatCurrency(totalCreditBalance), highlight: true },
+        { label: "Clients avec crédit", value: activeClients.length },
       ],
       columns: [
         { header: "Client", key: "name" },
-        { header: "Credit Balance", key: "balance", format: "currency", align: "right" },
-        { header: "Credit Limit", key: "limit", format: "currency", align: "right" },
-        { header: "Utilization", key: "utilization", align: "right" },
+        { header: "Solde crédit", key: "balance", format: "currency", align: "right" },
+        { header: "Limite de crédit", key: "limit", format: "currency", align: "right" },
+        { header: "Utilisation", key: "utilization", align: "right" },
       ],
       rows: activeClients.map((c: any) => ({
         name: c.name,
@@ -244,8 +263,8 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Reports</h2>
-          <p className="text-muted-foreground">Generate and export business reports</p>
+          <h2 className="text-2xl font-bold text-foreground">Rapports</h2>
+          <p className="text-muted-foreground">Générer et exporter des rapports d'entreprise</p>
         </div>
       </div>
 
@@ -254,16 +273,16 @@ export default function ReportsPage() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-2">
-              <Label>From Date</Label>
+              <Label>Date de début</Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40" />
             </div>
             <div className="space-y-2">
-              <Label>To Date</Label>
+              <Label>Date de fin</Label>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" />
             </div>
             <Button variant="outline" onClick={handleApplyFilter}>
               <Calendar className="mr-2 h-4 w-4" />
-              Apply Filter
+              Appliquer le filtre
             </Button>
           </div>
         </CardContent>
@@ -271,10 +290,10 @@ export default function ReportsPage() {
 
       <Tabs defaultValue="sales">
         <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="sales">Sales</TabsTrigger>
-          <TabsTrigger value="purchases">Purchases</TabsTrigger>
+          <TabsTrigger value="sales">Ventes</TabsTrigger>
+          <TabsTrigger value="purchases">Achats</TabsTrigger>
           <TabsTrigger value="stock">Stock</TabsTrigger>
-          <TabsTrigger value="credit">Credit</TabsTrigger>
+          <TabsTrigger value="credit">Crédit</TabsTrigger>
         </TabsList>
 
         {/* Sales Report */}
@@ -282,11 +301,11 @@ export default function ReportsPage() {
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => handleExport("sales")}>
               <Download className="mr-2 h-4 w-4" />
-              Export
+              Exporter
             </Button>
             <Button variant="outline" onClick={handlePrintSales}>
               <Printer className="mr-2 h-4 w-4" />
-              Print
+              Imprimer
             </Button>
           </div>
 
@@ -295,7 +314,7 @@ export default function ReportsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Sales</p>
+                    <p className="text-sm text-muted-foreground">Total des ventes</p>
                     <p className="text-2xl font-bold text-accent">{isLoading ? "..." : formatCurrency(salesTotal)}</p>
                   </div>
                   <TrendingUp className="h-8 w-8 text-accent" />
@@ -317,7 +336,7 @@ export default function ReportsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Average Order</p>
+                    <p className="text-sm text-muted-foreground">Panier moyen</p>
                     <p className="text-2xl font-bold">
                       {isLoading ? "..." : formatCurrency(salesTotal / saleTransactions.length || 0)}
                     </p>
@@ -331,7 +350,7 @@ export default function ReportsPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="border-border bg-card">
               <CardHeader>
-              <CardTitle>Sales (Boulangerie)</CardTitle>
+              <CardTitle>Ventes (Boulangerie)</CardTitle>
             </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -356,7 +375,7 @@ export default function ReportsPage() {
 
             <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle>Sales by Payment Method</CardTitle>
+                <CardTitle>Ventes par moyen de paiement</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -392,7 +411,7 @@ export default function ReportsPage() {
 
           <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle>Sales Transactions</CardTitle>
+              <CardTitle>Transactions de vente</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="rounded-md border border-border">
@@ -401,10 +420,10 @@ export default function ReportsPage() {
                     <TableRow className="hover:bg-transparent border-border">
                       <TableHead className="text-muted-foreground">ID</TableHead>
                       <TableHead className="text-muted-foreground">Date</TableHead>
-                      <TableHead className="text-muted-foreground">Customer</TableHead>
-                      <TableHead className="text-muted-foreground">Payment</TableHead>
-                      <TableHead className="text-muted-foreground">Cashier</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Amount</TableHead>
+                      <TableHead className="text-muted-foreground">Client</TableHead>
+                      <TableHead className="text-muted-foreground">Paiement</TableHead>
+                      <TableHead className="text-muted-foreground">Caissier</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Montant</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -413,14 +432,14 @@ export default function ReportsPage() {
                         <TableCell colSpan={6} className="h-24 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                            <span>Loading transactions...</span>
+                            <span>Chargement des transactions...</span>
                           </div>
                         </TableCell>
                       </TableRow>
                     ) : saleTransactions.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                          No sales transactions found
+                          Aucune transaction de vente trouvée
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -428,13 +447,13 @@ export default function ReportsPage() {
                         <TableRow key={txn.id} className="border-border">
                           <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{txn.id}</TableCell>
                           <TableCell>{new Date(txn.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{txn.client?.name || "Walk-in"}</TableCell>
+                          <TableCell>{txn.client?.name || "Sur place"}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="capitalize">
                               {txn.paymentMethod}
                             </Badge>
                           </TableCell>
-                          <TableCell>{txn.user?.name || "Unknown"}</TableCell>
+                          <TableCell>{txn.user?.name || "Inconnu"}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(Number.parseFloat(txn.total))}</TableCell>
                         </TableRow>
                       ))
@@ -451,11 +470,11 @@ export default function ReportsPage() {
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => handleExport("purchases")}>
               <Download className="mr-2 h-4 w-4" />
-              Export
+              Exporter
             </Button>
             <Button variant="outline" onClick={handlePrintPurchases}>
               <Printer className="mr-2 h-4 w-4" />
-              Print
+              Imprimer
             </Button>
           </div>
 
@@ -464,7 +483,7 @@ export default function ReportsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Purchases</p>
+                    <p className="text-sm text-muted-foreground">Total des achats</p>
                     <p className="text-2xl font-bold">{poLoading ? "..." : formatCurrency(purchaseTotal)}</p>
                   </div>
                   <Package className="h-8 w-8 text-primary" />
@@ -475,7 +494,7 @@ export default function ReportsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Purchase Orders</p>
+                    <p className="text-sm text-muted-foreground">Commandes d'achat</p>
                     <p className="text-2xl font-bold">{poLoading ? "..." : bakeryPurchaseOrders.length}</p>
                   </div>
                   <ArrowDownRight className="h-8 w-8 text-accent" />
@@ -486,7 +505,7 @@ export default function ReportsPage() {
 
           <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle>Purchase Orders</CardTitle>
+              <CardTitle>Commandes d'achat</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="rounded-md border border-border">
@@ -495,9 +514,9 @@ export default function ReportsPage() {
                     <TableRow className="hover:bg-transparent border-border">
                       <TableHead className="text-muted-foreground">ID</TableHead>
                       <TableHead className="text-muted-foreground">Date</TableHead>
-                      <TableHead className="text-muted-foreground">Supplier</TableHead>
-                      <TableHead className="text-muted-foreground">Items</TableHead>
-                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-muted-foreground">Fournisseur</TableHead>
+                      <TableHead className="text-muted-foreground">Articles</TableHead>
+                      <TableHead className="text-muted-foreground">Statut</TableHead>
                       <TableHead className="text-muted-foreground text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -507,14 +526,14 @@ export default function ReportsPage() {
                         <TableCell colSpan={6} className="h-24 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                            <span>Loading purchase orders...</span>
+                            <span>Chargement des commandes d'achat...</span>
                           </div>
                         </TableCell>
                       </TableRow>
                     ) : bakeryPurchaseOrders.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                          No purchase orders found
+                          Aucune commande d'achat trouvée
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -522,8 +541,8 @@ export default function ReportsPage() {
                         <TableRow key={po.id} className="border-border">
                           <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{po.id}</TableCell>
                           <TableCell>{new Date(po.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{po.supplier?.name || "Unknown"}</TableCell>
-                          <TableCell>{po.items?.length || 0} items</TableCell>
+                          <TableCell>{po.supplier?.name || "Inconnu"}</TableCell>
+                          <TableCell>{po.items?.length || 0} articles</TableCell>
                           <TableCell>
                             <Badge
                               className={
@@ -553,11 +572,11 @@ export default function ReportsPage() {
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => handleExport("stock")}>
               <Download className="mr-2 h-4 w-4" />
-              Export
+              Exporter
             </Button>
             <Button variant="outline" onClick={handlePrintStock}>
               <Printer className="mr-2 h-4 w-4" />
-              Print
+              Imprimer
             </Button>
           </div>
 
@@ -566,8 +585,8 @@ export default function ReportsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Inbound</p>
-                    <p className="text-2xl font-bold text-foreground">+{moveLoading ? "..." : inboundQty} units</p>
+                    <p className="text-sm text-muted-foreground">Total entrées</p>
+                    <p className="text-2xl font-bold text-foreground">+{moveLoading ? "..." : inboundQty} unités</p>
                   </div>
                   <ArrowDownRight className="h-8 w-8 text-accent" />
                 </div>
@@ -577,8 +596,8 @@ export default function ReportsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Outbound</p>
-                    <p className="text-2xl font-bold text-destructive">-{moveLoading ? "..." : outboundQty} units</p>
+                    <p className="text-sm text-muted-foreground">Total sorties</p>
+                    <p className="text-2xl font-bold text-destructive">-{moveLoading ? "..." : outboundQty} unités</p>
                   </div>
                   <ArrowUpRight className="h-8 w-8 text-destructive" />
                 </div>
@@ -588,7 +607,7 @@ export default function ReportsPage() {
 
           <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle>Stock Movements Summary</CardTitle>
+              <CardTitle>Résumé des mouvements de stock</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="rounded-md border border-border">
@@ -597,10 +616,10 @@ export default function ReportsPage() {
                     <TableRow className="hover:bg-transparent border-border">
                       <TableHead className="text-muted-foreground">ID</TableHead>
                       <TableHead className="text-muted-foreground">Date</TableHead>
-                      <TableHead className="text-muted-foreground">Product</TableHead>
+                      <TableHead className="text-muted-foreground">Produit</TableHead>
                       <TableHead className="text-muted-foreground">Type</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Quantity</TableHead>
-                      <TableHead className="text-muted-foreground">User</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Quantité</TableHead>
+                      <TableHead className="text-muted-foreground">Utilisateur</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -609,14 +628,14 @@ export default function ReportsPage() {
                         <TableCell colSpan={6} className="h-24 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                            <span>Loading movements...</span>
+                            <span>Chargement des mouvements...</span>
                           </div>
                         </TableCell>
                       </TableRow>
                     ) : bakeryMovements.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                          No movements found
+                          Aucun mouvement trouvé
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -644,7 +663,7 @@ export default function ReportsPage() {
                               {movement.quantity}
                             </span>
                           </TableCell>
-                          <TableCell>{movement.user?.name || "Unknown"}</TableCell>
+                          <TableCell>{movement.user?.name || "Inconnu"}</TableCell>
                         </TableRow>
                       ))
                     )}
@@ -660,11 +679,11 @@ export default function ReportsPage() {
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => handleExport("credit")}>
               <Download className="mr-2 h-4 w-4" />
-              Export
+              Exporter
             </Button>
             <Button variant="outline" onClick={handlePrintCredit}>
               <Printer className="mr-2 h-4 w-4" />
-              Print
+              Imprimer
             </Button>
           </div>
 
@@ -673,7 +692,7 @@ export default function ReportsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Credit Outstanding</p>
+                    <p className="text-sm text-muted-foreground">Total des crédits impayés</p>
                     <p className="text-2xl font-bold">{clientLoading ? "..." : formatCurrency(totalCreditBalance)}</p>
                   </div>
                   <CreditCard className="h-8 w-8 text-primary" />
@@ -684,7 +703,7 @@ export default function ReportsPage() {
 
           <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle>Client Credit Summary</CardTitle>
+              <CardTitle>Résumé des crédits clients</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="rounded-md border border-border">
@@ -692,9 +711,9 @@ export default function ReportsPage() {
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
                       <TableHead className="text-muted-foreground">Client</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Credit Balance</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Credit Limit</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Utilization</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Solde crédit</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Limite de crédit</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Utilisation</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -703,14 +722,14 @@ export default function ReportsPage() {
                         <TableCell colSpan={4} className="h-24 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                            <span>Loading clients...</span>
+                            <span>Chargement des clients...</span>
                           </div>
                         </TableCell>
                       </TableRow>
                     ) : bakeryClients.filter((c: any) => Number.parseFloat(c.creditBalance) > 0).length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                          No clients with credit balance found
+                          Aucun client avec solde créditeur trouvé
                         </TableCell>
                       </TableRow>
                     ) : (

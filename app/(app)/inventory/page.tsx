@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse, Store, Save } from "lucide-react"
+import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Warehouse, Store, Save, Utensils } from "lucide-react"
 import { useStock } from "@/hooks/use-stock"
 import { useLocations } from "@/hooks/use-locations"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
+import { formatStockFromSellingUnits } from "@/lib/stock-utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -34,6 +35,8 @@ export default function InventoryStatusPage() {
       items = items.filter(item => item.product.productType === "drink")
     } else if (productType === "ingredient") {
       items = items.filter(item => item.product.productType === "ingredient")
+    } else if (productType === "food") {
+      items = items.filter(item => item.product.productType === "food")
     }
     if (selectedLocationId) {
       items = items.filter(item => item.locationId === selectedLocationId)
@@ -114,8 +117,8 @@ export default function InventoryStatusPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Stock Status</h2>
-          <p className="text-muted-foreground">Monitor real-time stock levels across locations</p>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">État des stocks</h2>
+          <p className="text-muted-foreground">Surveiller les niveaux de stock en temps réel</p>
         </div>
       </div>
 
@@ -127,7 +130,7 @@ export default function InventoryStatusPage() {
           onClick={() => setSelectedLocationId(null)}
         >
           <Warehouse className="h-4 w-4 mr-1" />
-          All Locations
+          Tous les emplacements
         </Button>
         {locations.map((loc) => (
           <Button
@@ -153,7 +156,7 @@ export default function InventoryStatusPage() {
           size="sm"
           onClick={() => setProductType("all")}
         >
-          All
+          Tout
         </Button>
         <Button
           variant={productType === "drink" ? "default" : "outline"}
@@ -161,7 +164,7 @@ export default function InventoryStatusPage() {
           onClick={() => setProductType("drink")}
         >
           <Package className="h-4 w-4 mr-1" />
-          Drinks
+          Boissons
         </Button>
         <Button
           variant={productType === "ingredient" ? "default" : "outline"}
@@ -169,7 +172,15 @@ export default function InventoryStatusPage() {
           onClick={() => setProductType("ingredient")}
         >
           <AlertTriangle className="h-4 w-4 mr-1" />
-          Ingredients
+          Ingrédients
+        </Button>
+        <Button
+          variant={productType === "food" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("food")}
+        >
+          <Utensils className="h-4 w-4 mr-1" />
+          Recettes
         </Button>
       </div>
 
@@ -180,7 +191,7 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unités totales</p>
                 <p className="text-3xl font-black text-foreground mt-1">
-                  {filteredByLocation.reduce((acc, item) => acc + item.quantityOnHand, 0)}
+                  {filteredByLocation.reduce((acc, item) => acc + Number(item.quantityOnHand), 0)}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -210,7 +221,7 @@ export default function InventoryStatusPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Alertes stock bas</p>
                 <p className="text-3xl font-black text-destructive mt-1">
-                  {filteredByLocation.filter(item => item.quantityOnHand <= item.reorderLevel).length}
+                  {filteredByLocation.filter(item => Number(item.quantityOnHand) <= item.reorderLevel).length}
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -223,7 +234,7 @@ export default function InventoryStatusPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Products</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Produits</p>
                 <p className="text-3xl font-black text-accent mt-1">
                   {new Set(filteredByLocation.map(i => i.product.id)).size}
                 </p>
@@ -352,15 +363,15 @@ export default function InventoryStatusPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-secondary/10 hover:bg-secondary/10 border-border/50">
-                    <TableHead className="font-bold">Product</TableHead>
-                    <TableHead className="font-bold">SKU</TableHead>
-                    <TableHead className="font-bold">Location</TableHead>
-                    <TableHead className="text-right font-bold">On Hand</TableHead>
-                    <TableHead className="text-right font-bold">Reserved</TableHead>
-                    <TableHead className="text-right font-bold">Reorder Level</TableHead>
-                    <TableHead className="text-right font-bold">Reorder Qty</TableHead>
-                    <TableHead className="font-bold">Status</TableHead>
-                    <TableHead className="font-bold">Last Counted</TableHead>
+                    <TableHead className="font-bold">Produit</TableHead>
+                    <TableHead className="font-bold">Code</TableHead>
+                    <TableHead className="font-bold">Emplacement</TableHead>
+                    <TableHead className="text-right font-bold">En stock</TableHead>
+                    <TableHead className="text-right font-bold">Réservé</TableHead>
+                    <TableHead className="text-right font-bold">Seuil réapp.</TableHead>
+                    <TableHead className="text-right font-bold">Qté réapp.</TableHead>
+                    <TableHead className="font-bold">Statut</TableHead>
+                    <TableHead className="font-bold">Dernier comptage</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -368,14 +379,14 @@ export default function InventoryStatusPage() {
                     <TableRow>
                       <TableCell colSpan={9} className="h-32 text-center">
                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                        <p className="mt-2 text-sm text-muted-foreground">Analyzing inventory...</p>
+                        <p className="mt-2 text-sm text-muted-foreground">Analyse de l'inventaire...</p>
                       </TableCell>
                     </TableRow>
                   )}
                   {!loading && filteredInventory.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={9} className="h-32 text-center text-muted-foreground italic">
-                        No inventory records found.
+                        Aucun enregistrement d'inventaire trouvé.
                       </TableCell>
                     </TableRow>
                   )}
@@ -393,23 +404,27 @@ export default function InventoryStatusPage() {
                           {item.location?.name || "—"}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-black text-lg">{item.quantityOnHand}</TableCell>
-                      <TableCell className="text-right text-muted-foreground font-medium">{item.quantityReserved}</TableCell>
+                      <TableCell className="text-right font-black text-lg">
+                        {item.product?.sellingUnits?.length > 0
+                          ? formatStockFromSellingUnits(Number(item.quantityOnHand), item.product.sellingUnits)
+                          : Number(item.quantityOnHand)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground font-medium">{Number(item.quantityReserved)}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{item.reorderLevel}</TableCell>
                       <TableCell className="text-right text-muted-foreground">{item.reorderQuantity}</TableCell>
                       <TableCell>
-                        {item.quantityOnHand <= 0 ? (
-                          <Badge variant="destructive" className="font-bold shadow-sm">Out of Stock</Badge>
-                        ) : item.quantityOnHand <= item.reorderLevel ? (
-                          <Badge className="bg-warning text-warning-foreground font-bold shadow-sm ring-1 ring-warning/30">Low Stock</Badge>
+                        {Number(item.quantityOnHand) <= 0 ? (
+                          <Badge variant="destructive" className="font-bold shadow-sm">Rupture de stock</Badge>
+                        ) : Number(item.quantityOnHand) <= item.reorderLevel ? (
+                          <Badge className="bg-warning text-warning-foreground font-bold shadow-sm ring-1 ring-warning/30">Stock faible</Badge>
                         ) : (
-                          <Badge className="bg-accent/20 text-accent font-bold shadow-sm ring-1 ring-accent/30">Healthy</Badge>
+                          <Badge className="bg-accent/20 text-accent font-bold shadow-sm ring-1 ring-accent/30">Normal</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-xs font-medium text-muted-foreground">
                         {item.lastCountedDate ? new Date(item.lastCountedDate).toLocaleDateString() : (
                           <span className="flex items-center gap-1 opacity-50">
-                            <AlertTriangle className="h-3 w-3" /> Never
+                            <AlertTriangle className="h-3 w-3" /> Jamais
                           </span>
                         )}
                       </TableCell>
@@ -463,7 +478,7 @@ export default function InventoryStatusPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-secondary/10 hover:bg-secondary/10 border-border/50">
-                    <TableHead className="font-bold">Product</TableHead>
+                    <TableHead className="font-bold">Produit</TableHead>
                     <TableHead className="text-right font-bold">Avant</TableHead>
                     <TableHead className="text-right font-bold">Après</TableHead>
                     <TableHead className="text-right font-bold text-destructive">Perte</TableHead>

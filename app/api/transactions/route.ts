@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 import db from "@/lib/db"
-import { transactions, transactionItems, products, stock, stockMovements, clients, locations, cashFlow, creditRecords } from "@/lib/db/schema"
+import { caisseSessions, transactions, transactionItems, products, stock, stockMovements, clients, locations, cashFlow, creditRecords, productSellingUnits } from "@/lib/db/schema"
 import { eq, sql, gte, lte, and, max } from "drizzle-orm"
 import { resolveWarehouse } from "@/lib/db/location-utils"
 
@@ -67,6 +67,21 @@ export async function POST(request: Request) {
         }
         if (!["cash", "credit", "card"].includes(normalizedPaymentMethod)) {
             return NextResponse.json({ error: "Invalid payment method" }, { status: 400 })
+        }
+
+        // Require an open caisse session before any sale
+        if (normalizedType === "sale") {
+            const [openSession] = await db
+                .select()
+                .from(caisseSessions)
+                .where(eq(caisseSessions.status, "open"))
+                .limit(1)
+            if (!openSession) {
+                return NextResponse.json(
+                    { error: "Aucune session caisse ouverte. Veuillez ouvrir la caisse avant d'effectuer une vente." },
+                    { status: 400 }
+                )
+            }
         }
 
         // Sanitize IDs for migration/stale sessions
@@ -147,11 +162,26 @@ export async function POST(request: Request) {
                     throw new Error("Invalid item quantity")
                 }
 
+                // Look up conversion factor if selling unit is specified
+                let conversionFactor = 1
+                if (item.sellingUnitId) {
+                    const [su] = await tx
+                        .select()
+                        .from(productSellingUnits)
+                        .where(eq(productSellingUnits.id, item.sellingUnitId))
+                        .limit(1)
+                    if (su) {
+                        conversionFactor = Number(su.conversionFactor)
+                    }
+                }
+                const stockQty = itemQuantity * conversionFactor
+
                 const [product] = await tx
                     .select({
                         id: products.id,
                         name: products.name,
                         productType: products.productType,
+                        trackStock: products.trackStock,
                         stock: products.stock,
                         minStock: products.minStock,
                         productType: products.productType,
@@ -163,19 +193,23 @@ export async function POST(request: Request) {
                     throw new Error(`Product not found: ${item.productId}`)
                 }
 
-                const warehouse = await resolveWarehouse(tx, product.productType || "food")
-                const [stockRecord] = await tx
-                    .select({
-                        id: stock.id,
-                        quantityOnHand: stock.quantityOnHand,
-                    })
-                    .from(stock)
-                    .where(and(eq(stock.productId, item.productId), eq(stock.locationId, warehouse.id)))
+                const targetLocation = normalizedType === "sale"
+                    ? await tx.select().from(locations).where(eq(locations.type, "bar")).limit(1).then(r => r[0])
+                    : await resolveWarehouse(tx, product?.productType || "ingredient")
 
-                const quantityChange = normalizedType === "sale" ? -itemQuantity : itemQuantity
-                const availableQty = Number(stockRecord?.quantityOnHand ?? product.stock ?? 0)
-                if (normalizedType === "sale" && availableQty < itemQuantity) {
-                    throw new Error(`Stock insuffisant pour ${product.name}. Disponible: ${availableQty}`)
+                let barQty = 0
+                if (normalizedType === "sale" && targetLocation) {
+                    const [barStockRecord] = await tx
+                        .select({ quantityOnHand: stock.quantityOnHand })
+                        .from(stock)
+                        .where(and(eq(stock.productId, item.productId), eq(stock.locationId, targetLocation.id)))
+                        .limit(1)
+                    barQty = Number(barStockRecord?.quantityOnHand ?? 0)
+                }
+
+                const quantityChange = normalizedType === "sale" ? -stockQty : stockQty
+                if (normalizedType === "sale" && product.trackStock && barQty < stockQty) {
+                    throw new Error(`Stock insuffisant au bar pour ${product.name}. Disponible: ${barQty}, requis: ${stockQty}`)
                 }
 
                 await tx.insert(transactionItems).values({
@@ -195,42 +229,45 @@ export async function POST(request: Request) {
                     })
                     .where(sql`${products.id} = ${item.productId}`)
 
-                // Update canonical stock table as well
-                if (stockRecord) {
-                    await tx
-                        .update(stock)
-                        .set({
-                            quantityOnHand: sql`${stock.quantityOnHand} + ${quantityChange}`,
+                // Update per-location stock
+                if (targetLocation) {
+                    const [existingStock] = await tx
+                        .select()
+                        .from(stock)
+                        .where(and(eq(stock.productId, item.productId), eq(stock.locationId, targetLocation.id)))
+                        .limit(1)
+
+                    if (existingStock) {
+                        await tx
+                            .update(stock)
+                            .set({
+                                quantityOnHand: sql`${stock.quantityOnHand} + ${quantityChange}`,
+                                updatedAt: new Date(),
+                            })
+                            .where(eq(stock.id, existingStock.id))
+                    } else {
+                        const fallbackQty = Number(product.stock || 0) + quantityChange
+                        await tx.insert(stock).values({
+                            productId: item.productId,
+                            locationId: targetLocation.id,
+                            quantityOnHand: Math.max(0, fallbackQty).toString(),
+                            quantityReserved: "0",
+                            reorderLevel: Number(product.minStock || 10),
+                            reorderQuantity: 20,
                             updatedAt: new Date(),
                         })
-                        .where(eq(stock.id, stockRecord.id))
-                } else {
-                    const fallbackQty = Number(product.stock || 0) + quantityChange
-                    const [fallbackLocation] = await tx.select().from(locations).where(eq(locations.type, "bar")).limit(1)
-                    await tx.insert(stock).values({
-                        productId: item.productId,
-                        locationId: fallbackLocation?.id || (await resolveWarehouse(tx, product?.productType || "ingredient")).id,
-                        quantityOnHand: Math.max(0, fallbackQty).toString(),
-                        quantityReserved: "0",
-                        reorderLevel: product.minStock || "0",
-                        reorderQuantity: "20",
-                        updatedAt: new Date(),
-                    })
+                    }
                 }
 
                 // 4. Create Stock Movement Record
                 const movementType = normalizedType === "sale" ? "out" : "in"
-                const [saleLocation] = normalizedType === "sale"
-                    ? await tx.select().from(locations).where(eq(locations.type, "bar")).limit(1)
-                    : [await resolveWarehouse(tx, product?.productType || "ingredient")]
-
                 await tx.insert(stockMovements).values({
                     productId: item.productId,
                     productName: item.productName,
                     type: movementType,
                     quantity: quantityChange.toString(),
                     userId: sanitizedUserId,
-                    locationId: saleLocation?.id || null,
+                    locationId: targetLocation?.id || null,
                     referenceId: newTransaction.id,
                     referenceType: "transaction",
                     notes: `Transaction ${newTransaction.id}`,

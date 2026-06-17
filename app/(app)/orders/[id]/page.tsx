@@ -50,18 +50,18 @@ export default function OrderDetailPage() {
     }
 
     if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
-    if (!order) return <div className="text-center py-12 text-muted-foreground">Order not found</div>
+    if (!order) return <div className="text-center py-12 text-muted-foreground">Commande non trouvée</div>
 
     return (
         <div className="space-y-6 max-w-2xl mx-auto">
             <Button variant="ghost" onClick={() => router.push("/orders")} className="gap-2">
-                <ArrowLeft className="h-4 w-4" /> Back to Orders
+                <ArrowLeft className="h-4 w-4" /> Retour aux commandes
             </Button>
 
             <Card>
                 <CardHeader className="flex flex-row items-start justify-between">
                     <div>
-                        <CardTitle className="font-mono text-lg">Order #{order.id.slice(0, 8)}</CardTitle>
+                        <CardTitle className="font-mono text-lg">Commande #{order.id.slice(0, 8)}</CardTitle>
                         <p className="text-sm text-muted-foreground">
                             {new Date(order.date).toLocaleString()}
                         </p>
@@ -110,31 +110,31 @@ export default function OrderDetailPage() {
                             <div className="flex flex-wrap gap-2">
                                 {order.orderStatus === "pending" && (
                                     <Button onClick={() => updateStatus("preparing")} disabled={updating} className="flex-1">
-                                        <ChefHat className="h-4 w-4 mr-2" /> Start Preparing
+                                        <ChefHat className="h-4 w-4 mr-2" /> Commencer la préparation
                                     </Button>
                                 )}
                                 {order.orderStatus === "preparing" && (
                                     <Button onClick={() => updateStatus("ready")} disabled={updating} className="flex-1">
-                                        <Bell className="h-4 w-4 mr-2" /> Mark Ready
+                                        <Bell className="h-4 w-4 mr-2" /> Marquer prêt
                                     </Button>
                                 )}
                                 {order.orderStatus === "ready" && (
                                     <Button onClick={() => updateStatus("served")} disabled={updating} className="flex-1">
-                                        <Utensils className="h-4 w-4 mr-2" /> Mark Served
+                                        <Utensils className="h-4 w-4 mr-2" /> Marquer servi
                                     </Button>
                                 )}
                                 {order.orderStatus === "served" && (
                                     <div className="w-full space-y-2">
-                                        <p className="text-sm font-medium">Payment</p>
+                                        <p className="text-sm font-medium">Paiement</p>
                                         <div className="flex gap-2">
-                                            <Button onClick={() => updateStatus("paid", "cash")} disabled={updating} className="flex-1">Cash</Button>
-                                            <Button onClick={() => updateStatus("paid", "card")} disabled={updating} className="flex-1">Card</Button>
-                                            <Button onClick={() => updateStatus("paid", "credit")} disabled={updating} className="flex-1">Credit</Button>
+                                            <Button onClick={() => updateStatus("paid", "cash")} disabled={updating} className="flex-1">Espèces</Button>
+                                            <Button onClick={() => updateStatus("paid", "card")} disabled={updating} className="flex-1">Carte</Button>
+                                            <Button onClick={() => updateStatus("paid", "credit")} disabled={updating} className="flex-1">Crédit</Button>
                                         </div>
                                     </div>
                                 )}
                                 <Button variant="outline" className="text-destructive" onClick={() => updateStatus("cancelled")} disabled={updating}>
-                                    <XCircle className="h-4 w-4 mr-2" /> Cancel Order
+                                    <XCircle className="h-4 w-4 mr-2" /> Annuler la commande
                                 </Button>
                             </div>
                         </>

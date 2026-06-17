@@ -22,11 +22,11 @@ export default function ProfilePage() {
     setSuccess(null)
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setError("Please fill all fields.")
+      setError("Veuillez remplir tous les champs.")
       return
     }
     if (newPassword !== confirmPassword) {
-      setError("New password and confirmation do not match.")
+      setError("Le nouveau mot de passe et la confirmation ne correspondent pas.")
       return
     }
 
@@ -40,16 +40,16 @@ export default function ProfilePage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setError(data.error || "Failed to update password.")
+        setError(data.error || "Échec de la mise à jour du mot de passe.")
         return
       }
 
       setCurrentPassword("")
       setNewPassword("")
       setConfirmPassword("")
-      setSuccess("Password updated successfully.")
+      setSuccess("Mot de passe mis à jour avec succès.")
     } catch (err) {
-      setError("Failed to update password.")
+      setError("Échec de la mise à jour du mot de passe.")
     } finally {
       setSaving(false)
     }
@@ -59,7 +59,7 @@ export default function ProfilePage() {
     return (
       <div className="flex items-center justify-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading...</span>
+        <span className="ml-2">Chargement...</span>
       </div>
     )
   }
@@ -67,8 +67,8 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="p-6">
-        <h2 className="text-2xl font-bold text-foreground">Access denied</h2>
-        <p className="text-muted-foreground">Please login to view your profile.</p>
+        <h2 className="text-2xl font-bold text-foreground">Accès refusé</h2>
+        <p className="text-muted-foreground">Veuillez vous connecter pour voir votre profil.</p>
       </div>
     )
   }
@@ -76,19 +76,19 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Profile</h2>
-        <p className="text-muted-foreground">Manage your account</p>
+        <h2 className="text-2xl font-bold text-foreground">Profil</h2>
+        <p className="text-muted-foreground">Gérer votre compte</p>
       </div>
 
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle>Account</CardTitle>
-          <CardDescription>Your basic information</CardDescription>
+          <CardTitle>Compte</CardTitle>
+          <CardDescription>Vos informations de base</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Name</Label>
+              <Label>Nom</Label>
               <Input value={user.name} readOnly />
             </div>
             <div className="space-y-2">
@@ -96,7 +96,7 @@ export default function ProfilePage() {
               <Input value={user.email} readOnly />
             </div>
             <div className="space-y-2">
-              <Label>Phone</Label>
+              <Label>Téléphone</Label>
               <Input value={user.phone || ""} readOnly />
             </div>
           </div>
@@ -105,12 +105,12 @@ export default function ProfilePage() {
 
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle>Change Password</CardTitle>
-          <CardDescription>Update your password</CardDescription>
+          <CardTitle>Changer le mot de passe</CardTitle>
+          <CardDescription>Mettre à jour votre mot de passe</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Current Password</Label>
+            <Label>Mot de passe actuel</Label>
             <Input
               type="password"
               value={currentPassword}
@@ -118,7 +118,7 @@ export default function ProfilePage() {
             />
           </div>
           <div className="space-y-2">
-            <Label>New Password</Label>
+            <Label>Nouveau mot de passe</Label>
             <Input
               type="password"
               value={newPassword}
@@ -126,7 +126,7 @@ export default function ProfilePage() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Confirm New Password</Label>
+            <Label>Confirmer le nouveau mot de passe</Label>
             <Input
               type="password"
               value={confirmPassword}
@@ -138,7 +138,7 @@ export default function ProfilePage() {
           <div className="flex justify-end">
             <Button onClick={handleSubmit} disabled={saving}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Update Password
+              Mettre à jour le mot de passe
             </Button>
           </div>
         </CardContent>

@@ -1,19 +1,24 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo } from "react"
+import { useState, useMemo } from "react"
 import { useStockTransfers } from "@/hooks/use-stock-transfers"
 import { useUsers } from "@/hooks/use-users"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { formatCurrency } from "@/lib/mock-data"
+import { printReport } from "@/lib/print-report"
 import {
     ArrowRightLeft, Loader2, Plus, CheckCircle, Package,
     Warehouse, Store, Clock, User, FileText, XCircle,
     ChevronRight, Hash, CalendarDays, Beer, UtensilsCrossed,
-    Layers, ListChecks
+    Layers, ListChecks, Printer, Search, X
 } from "lucide-react"
 
 export default function StockTransfersPage() {
@@ -22,6 +27,39 @@ export default function StockTransfersPage() {
     const { user } = useAuth()
     const currentUserId = user?.id || users[0]?.id || ""
     const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin"
+
+    const [productFilter, setProductFilter] = useState("all")
+    const [startDate, setStartDate] = useState("")
+    const [endDate, setEndDate] = useState("")
+
+    const productNames = useMemo(() => {
+        const set = new Set<string>()
+        transfers.forEach((t: any) => {
+            const items = t.items || []
+            items.forEach((i: any) => { if (i.product?.name) set.add(i.product.name) })
+            if (t.product?.name) set.add(t.product.name)
+        })
+        return Array.from(set).sort()
+    }, [transfers])
+
+    const filteredTransfers = useMemo(() => {
+        let filtered = transfers
+        if (productFilter !== "all") {
+            filtered = filtered.filter((t: any) => {
+                const items = t.items || []
+                return items.some((i: any) => i.product?.name === productFilter) || t.product?.name === productFilter
+            })
+        }
+        if (startDate) {
+            const s = new Date(startDate); s.setHours(0, 0, 0, 0)
+            filtered = filtered.filter((t: any) => new Date(t.date) >= s)
+        }
+        if (endDate) {
+            const e = new Date(endDate); e.setHours(23, 59, 59, 999)
+            filtered = filtered.filter((t: any) => new Date(t.date) <= e)
+        }
+        return filtered
+    }, [transfers, productFilter, startDate, endDate])
 
     const counts = useMemo(() => ({
         pending: transfers.filter((t: any) => t.status === "pending").length,
@@ -53,29 +91,70 @@ export default function StockTransfersPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Stock Transfers</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Transferts de stock</h1>
                     <p className="text-muted-foreground mt-1 flex items-center gap-1.5">
                         <ArrowRightLeft className="h-4 w-4" />
-                        Request &rarr; Approve &rarr; Receive workflow
+                        Flux : Demande &rarr; Approbation &rarr; Réception
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => {
+                        const origin = window.location.origin
+                        const periodStr = [startDate, endDate].filter(Boolean).join(" au ") || "Toutes les dates"
+                        printReport({
+                            title: "Rapport des Transferts de Stock",
+                            subtitle: "Smart POS System",
+                            period: `Période : ${periodStr}`,
+                            logoUrl: `${origin}/ahava.png`,
+                            metrics: [
+                                { label: "Total transferts", value: String(filteredTransfers.length), highlight: true },
+                                { label: "En attente", value: String(filteredTransfers.filter((t: any) => t.status === "pending").length) },
+                                { label: "Approuvés", value: String(filteredTransfers.filter((t: any) => t.status === "approved").length) },
+                                { label: "Terminés", value: String(filteredTransfers.filter((t: any) => t.status === "completed").length), highlight: true },
+                            ],
+                            columns: [
+                                { header: "Date", key: "date", format: "date" },
+                                { header: "De", key: "from" },
+                                { header: "Vers", key: "to" },
+                                { header: "Articles", key: "items", align: "center" },
+                                { header: "Qté", key: "qty", align: "right" },
+                                { header: "Type", key: "type" },
+                                { header: "Statut", key: "status" },
+                            ],
+                            rows: filteredTransfers.map((t: any) => {
+                                const items = t.items || []
+                                const totalQty = items.reduce((sum: number, i: any) => sum + i.quantity, 0) || t.quantity || 0
+                                const itemCount = items.length || (t.productId ? 1 : 0)
+                                return {
+                                    date: t.date,
+                                    from: t.fromLocation?.name || "—",
+                                    to: t.toLocation?.name || "—",
+                                    items: itemCount,
+                                    qty: totalQty,
+                                    type: t.transferType === "direct" ? "Direct" : "Demande",
+                                    status: t.status === "completed" ? "Terminé" : t.status === "approved" ? "Approuvé" : t.status === "cancelled" ? "Annulé" : "En attente",
+                                }
+                            }),
+                        })
+                    }} disabled={filteredTransfers.length === 0}>
+                        <Printer className="h-4 w-4 mr-1.5" /> Imprimer
+                    </Button>
                     {isManagerOrAdmin && (
                         <Button size="sm" variant="outline" asChild>
                             <Link href="/stock/transfers/to-transitional">
-                                <Layers className="h-4 w-4 mr-1.5" /> Restock Transitional
+                                <Layers className="h-4 w-4 mr-1.5" /> Réapprovisionner le stock de transition
                             </Link>
                         </Button>
                     )}
                     <Button size="sm" variant="outline" asChild>
                         <Link href="/stock/transfers/to-bar">
-                            <Beer className="h-4 w-4 mr-1.5" /> Request to Bar
+                            <Beer className="h-4 w-4 mr-1.5" /> Demande au bar
                         </Link>
                     </Button>
                     {isManagerOrAdmin && (
                         <Button size="sm" variant="outline" asChild>
-                            <Link href="/stock/transfers/to-kitchen">
-                                <UtensilsCrossed className="h-4 w-4 mr-1.5" /> Transfer to Kitchen
+                            <Link href="/stock/transfers/sortie-cuisine">
+                                <UtensilsCrossed className="h-4 w-4 mr-1.5" /> Sortie cuisine
                             </Link>
                         </Button>
                     )}
@@ -85,9 +164,9 @@ export default function StockTransfersPage() {
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { label: "Pending", count: counts.pending, icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
-                    { label: "Approved", count: counts.approved, icon: CheckCircle, color: "text-blue-500", bg: "bg-blue-500/10" },
-                    { label: "Completed", count: counts.completed, icon: Package, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                    { label: "En attente", count: counts.pending, icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
+                    { label: "Approuvé", count: counts.approved, icon: CheckCircle, color: "text-blue-500", bg: "bg-blue-500/10" },
+                    { label: "Terminé", count: counts.completed, icon: Package, color: "text-emerald-500", bg: "bg-emerald-500/10" },
                     { label: "Total", count: transfers.length, icon: ArrowRightLeft, color: "text-primary", bg: "bg-primary/10" },
                 ].map((s) => (
                     <Card key={s.label} className="border-border/50">
@@ -106,6 +185,38 @@ export default function StockTransfersPage() {
                 ))}
             </div>
 
+            {/* Filters */}
+            <Card className="border-border/50">
+                <CardContent className="p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="relative flex-1 max-w-xs">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Select value={productFilter} onValueChange={setProductFilter}>
+                                <SelectTrigger className="pl-10 h-10">
+                                    <SelectValue placeholder="Filtrer par produit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tous les produits</SelectItem>
+                                    {productNames.map((name) => (
+                                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-36 h-10" />
+                            <span className="text-muted-foreground">—</span>
+                            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-36 h-10" />
+                            {(startDate || endDate) && (
+                                <Button variant="ghost" size="icon" onClick={() => { setStartDate(""); setEndDate("") }} className="h-10 w-10">
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* Transfer List */}
             <div className="space-y-3">
                 {loading ? (
@@ -113,29 +224,29 @@ export default function StockTransfersPage() {
                         <CardContent className="flex items-center justify-center py-16">
                             <div className="text-center">
                                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                                <p className="mt-3 text-sm text-muted-foreground">Loading transfers...</p>
+                                <p className="mt-3 text-sm text-muted-foreground">Chargement des transferts...</p>
                             </div>
                         </CardContent>
                     </Card>
-                ) : transfers.length === 0 ? (
+                ) : filteredTransfers.length === 0 ? (
                     <Card>
                         <CardContent className="flex flex-col items-center justify-center py-16">
                             <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
                                 <ArrowRightLeft className="h-8 w-8 text-muted-foreground" />
                             </div>
-                            <p className="text-lg font-medium text-muted-foreground">No transfers yet</p>
-                            <p className="text-sm text-muted-foreground mt-1">Create your first transfer request to get started.</p>
+                            <p className="text-lg font-medium text-muted-foreground">Aucun transfert pour l'instant</p>
+                            <p className="text-sm text-muted-foreground mt-1">Créez votre première demande de transfert pour commencer.</p>
                             <Button className="mt-6" asChild>
                                 <Link href="/stock/transfers/new">
-                                    <Plus className="h-4 w-4 mr-2" /> New Request
+                                    <Plus className="h-4 w-4 mr-2" /> Nouvelle demande
                                 </Link>
                             </Button>
                         </CardContent>
                     </Card>
                 ) : (
-                    <ScrollArea className="h-[calc(100vh-22rem)]">
+                    <ScrollArea className="h-[calc(100vh-28rem)]">
                         <div className="space-y-3 pr-4">
-                            {transfers.map((t: any) => {
+                            {filteredTransfers.map((t: any) => {
                                 const items = t.items || []
                                 const totalQty = items.reduce((sum: number, i: any) => sum + i.quantity, 0) || t.quantity || 0
                                 const itemCount = items.length || (t.productId ? 1 : 0)
@@ -169,13 +280,13 @@ export default function StockTransfersPage() {
                                                             <span className="text-xs text-muted-foreground">•</span>
                                                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                                 <Hash className="h-3 w-3" />
-                                                                {itemCount} item{itemCount !== 1 ? "s" : ""}
+                                                                {itemCount} article{itemCount !== 1 ? "s" : ""}
                                                             </span>
                                                             <span className="text-xs text-muted-foreground">•</span>
-                                                            <span className="text-xs font-medium">{totalQty} units</span>
+                                                            <span className="text-xs font-medium">{totalQty} unités</span>
                                                             <span className="text-xs text-muted-foreground">•</span>
                                                             <Badge variant={t.transferType === "direct" ? "secondary" : "outline"} className="text-xs">
-                                                                {t.transferType === "direct" ? "Direct" : "Demand"}
+                                                                {t.transferType === "direct" ? "Direct" : "Demande"}
                                                             </Badge>
                                                         </div>
 
@@ -228,23 +339,23 @@ export default function StockTransfersPage() {
                                                     {t.approver?.name && t.status === "approved" && (
                                                         <div className="text-xs text-muted-foreground flex items-center gap-1">
                                                             <CheckCircle className="h-3 w-3 text-blue-500" />
-                                                            Approved by {t.approver.name}
+                                                            Approuvé par {t.approver.name}
                                                         </div>
                                                     )}
 
                                                     {t.status === "pending" && t.transferType === "demand" && isManagerOrAdmin && (
                                                         <Button size="sm" variant="default" onClick={() => handleApprove(t.id)} className="w-full md:w-auto">
-                                                            <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Approve
+                                                            <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Approuver
                                                         </Button>
                                                     )}
                                                     {t.status === "approved" && t.transferType === "demand" && (
                                                         <Button size="sm" onClick={() => handleReceive(t.id)} className="w-full md:w-auto">
-                                                            <Package className="h-3.5 w-3.5 mr-1.5" /> Receive
+                                                            <Package className="h-3.5 w-3.5 mr-1.5" /> Recevoir
                                                         </Button>
                                                     )}
                                                     {t.status === "completed" && (
                                                         <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 gap-1">
-                                                            <CheckCircle className="h-3.5 w-3.5" /> Completed
+                                                            <CheckCircle className="h-3.5 w-3.5" /> Terminé
                                                         </Badge>
                                                     )}
                                                 </div>

@@ -57,7 +57,7 @@ export async function POST(request: Request) {
                     .from(stock)
                     .where(sql`${stock.productId} = ${productId} AND ${stock.locationId} = ${fromLocationId}`)
 
-                if (!sourceStock || Number(sourceStock.quantityOnHand || 0) < Number(quantity)) {
+                if (!sourceStock || Number(sourceStock.quantityOnHand) < quantity) {
                     throw new Error(
                         `Insufficient stock for ${product?.name || productId}. Available: ${sourceStock?.quantityOnHand || 0}, needed: ${quantity}`
                     )
@@ -88,9 +88,7 @@ export async function POST(request: Request) {
                     await tx.insert(stock).values({
                         productId,
                         locationId: toLocationId,
-                        quantityOnHand: quantity.toString(),
-                        reorderLevel: (product?.minStock || 0).toString(),
-                        reorderQuantity: "20",
+                        quantityOnHand: String(quantity),
                     })
                 }
 

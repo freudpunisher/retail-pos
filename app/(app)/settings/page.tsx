@@ -110,12 +110,12 @@ export default function SettingsPage() {
       setEditUnit(null)
       await Swal.fire({
         icon: "success",
-        title: "Unit updated",
+        title: "Unité mise à jour",
         timer: 1500,
         showConfirmButton: false,
       })
     } catch {
-      await Swal.fire({ icon: "error", title: "Failed to update unit" })
+      await Swal.fire({ icon: "error", title: "Échec de la mise à jour de l'unité" })
     }
   }
 
@@ -144,14 +144,14 @@ export default function SettingsPage() {
         setShowAddCategory(false)
         await Swal.fire({
           icon: "success",
-          title: "Category added",
+          title: "Catégorie ajoutée",
           timer: 1500,
           showConfirmButton: false,
         })
       } catch {
         await Swal.fire({
           icon: "error",
-          title: "Failed to add category",
+          title: "Échec de l'ajout de la catégorie",
         })
       }
     }
@@ -159,12 +159,12 @@ export default function SettingsPage() {
 
   const handleDeleteCategory = async (id: string) => {
     const result = await Swal.fire({
-      title: "Delete category?",
-      text: "This action cannot be undone.",
+      title: "Supprimer la catégorie ?",
+      text: "Cette action est irréversible.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
+      confirmButtonText: "Supprimer",
+      cancelButtonText: "Annuler",
     })
 
     if (result.isConfirmed) {
@@ -172,14 +172,14 @@ export default function SettingsPage() {
         await deleteCategory(id)
         await Swal.fire({
           icon: "success",
-          title: "Category deleted",
+          title: "Catégorie supprimée",
           timer: 1500,
           showConfirmButton: false,
         })
       } catch {
         await Swal.fire({
           icon: "error",
-          title: "Failed to delete category",
+          title: "Échec de la suppression de la catégorie",
         })
       }
     }
@@ -237,14 +237,14 @@ export default function SettingsPage() {
         setEditCategory(null)
         await Swal.fire({
           icon: "success",
-          title: "Category updated",
+          title: "Catégorie mise à jour",
           timer: 1500,
           showConfirmButton: false,
         })
       } catch {
         await Swal.fire({
           icon: "error",
-          title: "Failed to update category",
+          title: "Échec de la mise à jour de la catégorie",
         })
       }
     }
@@ -256,9 +256,9 @@ export default function SettingsPage() {
         await createGroup(newGroup)
         setNewGroup({ name: "", description: "" })
         setShowAddGroup(false)
-        await Swal.fire({ icon: "success", title: "Group added", timer: 1500, showConfirmButton: false })
+        await Swal.fire({ icon: "success", title: "Groupe ajouté", timer: 1500, showConfirmButton: false })
       } catch {
-        await Swal.fire({ icon: "error", title: "Failed to add group" })
+        await Swal.fire({ icon: "error", title: "Échec de l'ajout du groupe" })
       }
     }
   }
@@ -275,28 +275,28 @@ export default function SettingsPage() {
         await updateGroup(editGroup.id, { name: editGroup.name, description: editGroup.description })
         setShowEditGroup(false)
         setEditGroup(null)
-        await Swal.fire({ icon: "success", title: "Group updated", timer: 1500, showConfirmButton: false })
+        await Swal.fire({ icon: "success", title: "Groupe mis à jour", timer: 1500, showConfirmButton: false })
       } catch {
-        await Swal.fire({ icon: "error", title: "Failed to update group" })
+        await Swal.fire({ icon: "error", title: "Échec de la mise à jour du groupe" })
       }
     }
   }
 
   const handleDeleteGroup = async (id: string) => {
     const result = await Swal.fire({
-      title: "Delete group?",
-      text: "Categories in this group will be unassigned.",
+      title: "Supprimer le groupe ?",
+      text: "Les catégories de ce groupe seront désaffectées.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
+      confirmButtonText: "Supprimer",
+      cancelButtonText: "Annuler",
     })
     if (result.isConfirmed) {
       try {
         await deleteGroup(id)
-        await Swal.fire({ icon: "success", title: "Group deleted", timer: 1500, showConfirmButton: false })
+        await Swal.fire({ icon: "success", title: "Groupe supprimé", timer: 1500, showConfirmButton: false })
       } catch {
-        await Swal.fire({ icon: "error", title: "Failed to delete group" })
+        await Swal.fire({ icon: "error", title: "Échec de la suppression du groupe" })
       }
     }
   }
@@ -324,12 +324,12 @@ export default function SettingsPage() {
 
   const handleDeleteUnit = async (id: string) => {
     const result = await Swal.fire({
-      title: "Delete unit?",
-      text: "This action cannot be undone.",
+      title: "Supprimer l'unité ?",
+      text: "Cette action est irréversible.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
+      confirmButtonText: "Supprimer",
+      cancelButtonText: "Annuler",
     })
 
     if (result.isConfirmed) {
@@ -337,14 +337,14 @@ export default function SettingsPage() {
         await deleteUnit(id)
         await Swal.fire({
           icon: "success",
-          title: "Unit deleted",
+          title: "Unité supprimée",
           timer: 1500,
           showConfirmButton: false,
         })
       } catch {
         await Swal.fire({
           icon: "error",
-          title: "Failed to delete unit",
+          title: "Échec de la suppression de l'unité",
         })
       }
     }
@@ -357,9 +357,9 @@ export default function SettingsPage() {
       await createLocation(newLocation)
       setNewLocation({ name: "", type: "bar" })
       setShowAddLocation(false)
-      await Swal.fire({ icon: "success", title: "Location added", timer: 1500, showConfirmButton: false })
+      await Swal.fire({ icon: "success", title: "Emplacement ajouté", timer: 1500, showConfirmButton: false })
     } catch {
-      await Swal.fire({ icon: "error", title: "Failed to add location" })
+      await Swal.fire({ icon: "error", title: "Échec de l'ajout de l'emplacement" })
     }
   }
 
@@ -373,27 +373,27 @@ export default function SettingsPage() {
       })
       setShowEditLocation(false)
       setEditLocation(null)
-      await Swal.fire({ icon: "success", title: "Location updated", timer: 1500, showConfirmButton: false })
+      await Swal.fire({ icon: "success", title: "Emplacement mis à jour", timer: 1500, showConfirmButton: false })
     } catch {
-      await Swal.fire({ icon: "error", title: "Failed to update location" })
+      await Swal.fire({ icon: "error", title: "Échec de la mise à jour de l'emplacement" })
     }
   }
 
   const handleDeleteLocation = async (id: string) => {
     const result = await Swal.fire({
-      title: "Delete location?",
-      text: "This may affect stock records linked to this location.",
+      title: "Supprimer l'emplacement ?",
+      text: "Cela peut affecter les enregistrements de stock liés à cet emplacement.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
+      confirmButtonText: "Supprimer",
+      cancelButtonText: "Annuler",
     })
     if (result.isConfirmed) {
       try {
         await deleteLocation(id)
-        await Swal.fire({ icon: "success", title: "Location deleted", timer: 1500, showConfirmButton: false })
+        await Swal.fire({ icon: "success", title: "Emplacement supprimé", timer: 1500, showConfirmButton: false })
       } catch {
-        await Swal.fire({ icon: "error", title: "Failed to delete location" })
+        await Swal.fire({ icon: "error", title: "Échec de la suppression de l'emplacement" })
       }
     }
   }
@@ -414,14 +414,14 @@ export default function SettingsPage() {
         setShowAddUnit(false)
         await Swal.fire({
           icon: "success",
-          title: "Unit added",
+          title: "Unité ajoutée",
           timer: 1500,
           showConfirmButton: false,
         })
       } catch {
         await Swal.fire({
           icon: "error",
-          title: "Failed to add unit",
+          title: "Échec de l'ajout de l'unité",
         })
       }
     }
@@ -473,7 +473,7 @@ export default function SettingsPage() {
     return (
       <div className="flex items-center justify-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading settings...</span>
+        <span className="ml-2">Chargement des paramètres...</span>
       </div>
     )
   }
@@ -481,19 +481,19 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Settings</h2>
-        <p className="text-muted-foreground">Manage your store configuration</p>
+        <h2 className="text-2xl font-bold text-foreground">Paramètres</h2>
+        <p className="text-muted-foreground">Gérez la configuration de votre magasin</p>
       </div>
 
       <Tabs defaultValue="store">
         <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="store">Store Info</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="category-groups">Groups</TabsTrigger>
-          <TabsTrigger value="units">Units</TabsTrigger>
-          <TabsTrigger value="locations">Locations</TabsTrigger>
-          <TabsTrigger value="menus">Menu Permissions</TabsTrigger>
-          <TabsTrigger value="users">Users & Roles</TabsTrigger>
+          <TabsTrigger value="store">Infos boutique</TabsTrigger>
+          <TabsTrigger value="categories">Catégories</TabsTrigger>
+          <TabsTrigger value="category-groups">Groupes</TabsTrigger>
+          <TabsTrigger value="units">Unités</TabsTrigger>
+          <TabsTrigger value="locations">Emplacements</TabsTrigger>
+          <TabsTrigger value="menus">Permissions des menus</TabsTrigger>
+          <TabsTrigger value="users">Utilisateurs & Rôles</TabsTrigger>
         </TabsList>
 
         {/* Store Information */}
@@ -502,14 +502,14 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Store className="h-5 w-5" />
-                Store Information
+                Informations de la boutique
               </CardTitle>
-              <CardDescription>Update your store details and contact information</CardDescription>
+              <CardDescription>Mettez à jour les détails de votre boutique</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="storeName">Store Name</Label>
+                  <Label htmlFor="storeName">Nom du magasin</Label>
                   <Input
                     id="storeName"
                     value={storeInfo.name}
@@ -517,7 +517,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">Téléphone</Label>
                   <Input
                     id="phone"
                     value={storeInfo.phone}
@@ -534,7 +534,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="currency">Currency</Label>
+                  <Label htmlFor="currency">Devise</Label>
                   <Select
                     value={storeInfo.currency}
                     onValueChange={(value) => {
@@ -542,7 +542,7 @@ export default function SettingsPage() {
                         USD: "$",
                         EUR: "€",
                         GBP: "£",
-                        FBU: "FBU ",
+                        Fbu: "Fbu ",
                       }
                       setStoreInfo({ ...storeInfo, currency: value, currencySymbol: symbolMap[value] || value })
                     }}
@@ -554,13 +554,13 @@ export default function SettingsPage() {
                       <SelectItem value="USD">USD ($)</SelectItem>
                       <SelectItem value="EUR">EUR (€)</SelectItem>
                       <SelectItem value="GBP">GBP (£)</SelectItem>
-                      <SelectItem value="FBU">FBU (FBU)</SelectItem>
+                      <SelectItem value="Fbu">Fbu (Fbu)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">Adresse</Label>
                 <Input
                   id="address"
                   value={storeInfo.address}
@@ -569,7 +569,7 @@ export default function SettingsPage() {
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="taxRate">Default Tax Rate (%)</Label>
+                  <Label htmlFor="taxRate">Taux de taxe par défaut (%)</Label>
                   <Input
                     id="taxRate"
                     type="number"
@@ -582,7 +582,7 @@ export default function SettingsPage() {
               <div className="flex justify-end">
                 <Button onClick={handleSaveStore} disabled={isSaving}>
                   {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  Save Changes
+                  Enregistrer les modifications
                 </Button>
               </div>
             </CardContent>
@@ -596,15 +596,15 @@ export default function SettingsPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Tag className="h-5 w-5" />
-                  Product Categories
+                  Catégories de produits
                 </CardTitle>
-                <CardDescription>Manage product categories</CardDescription>
+                <CardDescription>Gérer les catégories de produits</CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative w-48">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Search..."
+                    placeholder="Rechercher..."
                     value={categorySearch}
                     onChange={(e) => handleCategorySearchChange(e.target.value)}
                     className="pl-10"
@@ -612,10 +612,10 @@ export default function SettingsPage() {
                 </div>
                 <Select value={categoryGroupFilter} onValueChange={(v) => { setCategoryGroupFilter(v); setCategoryPage(1) }}>
                   <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="All Groups" />
+                    <SelectValue placeholder="Tous les groupes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Groups</SelectItem>
+                    <SelectItem value="all">Tous les groupes</SelectItem>
                     {categoryGroups.map((g: any) => (
                       <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                     ))}
@@ -623,10 +623,10 @@ export default function SettingsPage() {
                 </Select>
                 <Select value={String(categoryPageSize)} onValueChange={handleCategoryPageSizeChange}>
                   <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Rows" />
+                    <SelectValue placeholder="Lignes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="10">10 rows</SelectItem>
+                    <SelectItem value="10">10 lignes</SelectItem>
                     <SelectItem value="20">20 rows</SelectItem>
                     <SelectItem value="50">50 rows</SelectItem>
                   </SelectContent>
@@ -635,19 +635,19 @@ export default function SettingsPage() {
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
-                      Add Category
+                      Ajouter une catégorie
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add Category</DialogTitle>
-                      <DialogDescription>Create a new product category</DialogDescription>
+                      <DialogTitle>Ajouter une catégorie</DialogTitle>
+                      <DialogDescription>Créer une nouvelle catégorie de produit</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label>Category Name</Label>
+                        <Label>Nom de la catégorie</Label>
                         <Input
-                          placeholder="Enter category name"
+                          placeholder="Saisir le nom de la catégorie"
                           value={newCategory.name}
                           onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
                         />
@@ -655,22 +655,22 @@ export default function SettingsPage() {
                       <div className="space-y-2">
                         <Label>Description</Label>
                         <Input
-                          placeholder="Enter description"
+                          placeholder="Saisir la description"
                           value={newCategory.description}
                           onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Group</Label>
+                        <Label>Groupe</Label>
                         <Select
                           value={newCategory.groupId ?? "none"}
                           onValueChange={(v) => setNewCategory({ ...newCategory, groupId: v === "none" ? null : v })}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="No group" />
+                            <SelectValue placeholder="Aucun groupe" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">No group</SelectItem>
+                            <SelectItem value="none">Aucun groupe</SelectItem>
                             {categoryGroups.map((g: any) => (
                               <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                             ))}
@@ -680,9 +680,9 @@ export default function SettingsPage() {
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setShowAddCategory(false)}>
-                        Cancel
+                        Annuler
                       </Button>
-                      <Button onClick={handleAddCategory}>Add Category</Button>
+                      <Button onClick={handleAddCategory}>Ajouter une catégorie</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -694,8 +694,8 @@ export default function SettingsPage() {
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
                       <TableHead className="text-muted-foreground">ID</TableHead>
-                      <TableHead className="text-muted-foreground">Name</TableHead>
-                      <TableHead className="text-muted-foreground">Group</TableHead>
+                      <TableHead className="text-muted-foreground">Nom</TableHead>
+                      <TableHead className="text-muted-foreground">Groupe</TableHead>
                       <TableHead className="text-muted-foreground">Description</TableHead>
                       <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
                     </TableRow>
@@ -710,7 +710,7 @@ export default function SettingsPage() {
                     ) : paginatedCategories.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                          No categories found
+                          Aucune catégorie trouvée
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -726,8 +726,8 @@ export default function SettingsPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground"
-                                title="Edit category"
-                                aria-label="Edit category"
+                                title="Modifier la catégorie"
+                                aria-label="Modifier la catégorie"
                                 onClick={() => handleStartEditCategory(category)}
                               >
                                 <Pencil className="h-4 w-4" />
@@ -750,8 +750,8 @@ export default function SettingsPage() {
               </div>
               <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
-                  Showing {(categoryCurrentPage - 1) * categoryPageSize + 1}-
-                  {Math.min(categoryCurrentPage * categoryPageSize, filteredCategories.length)} of {filteredCategories.length}
+                  Affichage de {(categoryCurrentPage - 1) * categoryPageSize + 1}-
+                  {Math.min(categoryCurrentPage * categoryPageSize, filteredCategories.length)} sur {filteredCategories.length}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -760,10 +760,10 @@ export default function SettingsPage() {
                     onClick={() => setCategoryPage((p) => Math.max(1, p - 1))}
                     disabled={categoryCurrentPage === 1}
                   >
-                    Previous
+                    Précédent
                   </Button>
                   <div className="text-sm text-muted-foreground">
-                    Page {categoryCurrentPage} of {categoryTotalPages}
+                    Page {categoryCurrentPage} sur {categoryTotalPages}
                   </div>
                   <Button
                     variant="outline"
@@ -771,7 +771,7 @@ export default function SettingsPage() {
                     onClick={() => setCategoryPage((p) => Math.min(categoryTotalPages, p + 1))}
                     disabled={categoryCurrentPage === categoryTotalPages}
                   >
-                    Next
+                    Suivant
                   </Button>
                 </div>
               </div>
@@ -786,14 +786,14 @@ export default function SettingsPage() {
           >
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Edit Category</DialogTitle>
-                <DialogDescription>Update category details</DialogDescription>
+                <DialogTitle>Modifier la catégorie</DialogTitle>
+                <DialogDescription>Mettre à jour les détails de la catégorie</DialogDescription>
               </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>Name</Label>
+                    <Label>Nom</Label>
                     <Input
-                      placeholder="e.g. Bakery"
+                      placeholder="ex. Boulangerie"
                       value={editCategory?.name ?? ""}
                       onChange={(e) =>
                         setEditCategory((prev) => (prev ? { ...prev, name: e.target.value } : prev))
@@ -801,9 +801,9 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Description (optional)</Label>
+                    <Label>Description (optionnelle)</Label>
                     <Input
-                      placeholder="Category description"
+                      placeholder="Description de la catégorie"
                       value={editCategory?.description ?? ""}
                       onChange={(e) =>
                         setEditCategory((prev) => (prev ? { ...prev, description: e.target.value } : prev))
@@ -811,7 +811,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Group</Label>
+                    <Label>Groupe</Label>
                     <Select
                       value={editCategory?.groupId ?? "none"}
                       onValueChange={(v) =>
@@ -819,10 +819,10 @@ export default function SettingsPage() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="No group" />
+                        <SelectValue placeholder="Aucun groupe" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">No group</SelectItem>
+                        <SelectItem value="none">Aucun groupe</SelectItem>
                         {categoryGroups.map((g: any) => (
                           <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                         ))}
@@ -832,9 +832,9 @@ export default function SettingsPage() {
                 </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowEditCategory(false)}>
-                  Cancel
+                  Annuler
                 </Button>
-                <Button onClick={handleUpdateCategory}>Save Changes</Button>
+                <Button onClick={handleUpdateCategory}>Enregistrer les modifications</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -847,28 +847,28 @@ export default function SettingsPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Layers className="h-5 w-5" />
-                  Category Groups
+                  Groupes de catégories
                 </CardTitle>
-                <CardDescription>Organize categories into groups</CardDescription>
+                <CardDescription>Organiser les catégories en groupes</CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Dialog open={showAddGroup} onOpenChange={setShowAddGroup}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
-                      Add Group
+                      Ajouter un groupe
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add Category Group</DialogTitle>
-                      <DialogDescription>Create a new category group</DialogDescription>
+                      <DialogTitle>Ajouter un groupe de catégories</DialogTitle>
+                      <DialogDescription>Créer un nouveau groupe de catégories</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label>Group Name</Label>
+                        <Label>Nom du groupe</Label>
                         <Input
-                          placeholder="Enter group name"
+                          placeholder="Saisir le nom du groupe"
                           value={newGroup.name}
                           onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
                         />
@@ -876,15 +876,15 @@ export default function SettingsPage() {
                       <div className="space-y-2">
                         <Label>Description</Label>
                         <Input
-                          placeholder="Enter description"
+                          placeholder="Saisir la description"
                           value={newGroup.description}
                           onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
                         />
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setShowAddGroup(false)}>Cancel</Button>
-                      <Button onClick={handleAddGroup}>Add Group</Button>
+                      <Button variant="outline" onClick={() => setShowAddGroup(false)}>Annuler</Button>
+                      <Button onClick={handleAddGroup}>Ajouter un groupe</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -896,7 +896,7 @@ export default function SettingsPage() {
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
                       <TableHead className="text-muted-foreground">ID</TableHead>
-                      <TableHead className="text-muted-foreground">Name</TableHead>
+                      <TableHead className="text-muted-foreground">Nom</TableHead>
                       <TableHead className="text-muted-foreground">Description</TableHead>
                       <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
                     </TableRow>
@@ -911,7 +911,7 @@ export default function SettingsPage() {
                     ) : categoryGroups.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                          No groups found
+                          Aucun groupe trouvé
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -926,8 +926,8 @@ export default function SettingsPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground"
-                                title="Edit group"
-                                aria-label="Edit group"
+                                title="Modifier le groupe"
+                                aria-label="Modifier le groupe"
                                 onClick={() => handleStartEditGroup(group)}
                               >
                                 <Pencil className="h-4 w-4" />
@@ -959,14 +959,14 @@ export default function SettingsPage() {
           >
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Edit Category Group</DialogTitle>
-                <DialogDescription>Update group details</DialogDescription>
+                <DialogTitle>Modifier le groupe de catégories</DialogTitle>
+                <DialogDescription>Mettre à jour les détails du groupe</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Name</Label>
+                  <Label>Nom</Label>
                   <Input
-                    placeholder="Group name"
+                    placeholder="Nom du groupe"
                     value={editGroup?.name ?? ""}
                     onChange={(e) => setEditGroup((prev: any) => (prev ? { ...prev, name: e.target.value } : prev))}
                   />
@@ -974,15 +974,15 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label>Description</Label>
                   <Input
-                    placeholder="Group description"
+                    placeholder="Description du groupe"
                     value={editGroup?.description ?? ""}
                     onChange={(e) => setEditGroup((prev: any) => (prev ? { ...prev, description: e.target.value } : prev))}
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowEditGroup(false)}>Cancel</Button>
-                <Button onClick={handleUpdateGroup}>Save Changes</Button>
+                <Button variant="outline" onClick={() => setShowEditGroup(false)}>Annuler</Button>
+                <Button onClick={handleUpdateGroup}>Enregistrer les modifications</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -995,15 +995,15 @@ export default function SettingsPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Ruler className="h-5 w-5" />
-                  Measurement Units
+                  Unités de mesure
                 </CardTitle>
-                <CardDescription>Manage units of measurement for products</CardDescription>
+                <CardDescription>Gérer les unités de mesure pour les produits</CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative w-64">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Search units..."
+                    placeholder="Rechercher des unités..."
                     value={unitSearch}
                     onChange={(e) => handleUnitSearchChange(e.target.value)}
                     className="pl-10"
@@ -1011,47 +1011,47 @@ export default function SettingsPage() {
                 </div>
                 <Select value={String(unitPageSize)} onValueChange={handleUnitPageSizeChange}>
                   <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Rows" />
+                    <SelectValue placeholder="Lignes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="10">10 rows</SelectItem>
-                    <SelectItem value="20">20 rows</SelectItem>
-                    <SelectItem value="50">50 rows</SelectItem>
+                    <SelectItem value="10">10 lignes</SelectItem>
+                    <SelectItem value="20">20 lignes</SelectItem>
+                    <SelectItem value="50">50 lignes</SelectItem>
                   </SelectContent>
                 </Select>
                 <Dialog open={showAddUnit} onOpenChange={setShowAddUnit}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
-                      Add Unit
+                      Ajouter une unité
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add Unit</DialogTitle>
-                      <DialogDescription>Create a new measurement unit</DialogDescription>
+                      <DialogTitle>Ajouter une unité</DialogTitle>
+                      <DialogDescription>Créer une nouvelle unité de mesure</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label>Code</Label>
                         <Input
-                          placeholder="e.g. kg"
+                          placeholder="ex. kg"
                           value={newUnit.code}
                           onChange={(e) => setNewUnit({ ...newUnit, code: e.target.value })}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Name</Label>
+                        <Label>Nom</Label>
                         <Input
-                          placeholder="e.g. Kilogramme"
+                          placeholder="ex. Kilogramme"
                           value={newUnit.name}
                           onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Symbol (optional)</Label>
+                        <Label>Symbole (optionnel)</Label>
                         <Input
-                          placeholder="e.g. kg"
+                          placeholder="ex. kg"
                           value={newUnit.symbol}
                           onChange={(e) => setNewUnit({ ...newUnit, symbol: e.target.value })}
                         />
@@ -1059,9 +1059,9 @@ export default function SettingsPage() {
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setShowAddUnit(false)}>
-                        Cancel
+                        Annuler
                       </Button>
-                      <Button onClick={handleAddUnit}>Add Unit</Button>
+                      <Button onClick={handleAddUnit}>Ajouter une unité</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -1073,8 +1073,8 @@ export default function SettingsPage() {
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
                       <TableHead className="text-muted-foreground">Code</TableHead>
-                      <TableHead className="text-muted-foreground">Name</TableHead>
-                      <TableHead className="text-muted-foreground">Symbol</TableHead>
+                      <TableHead className="text-muted-foreground">Nom</TableHead>
+                      <TableHead className="text-muted-foreground">Symbole</TableHead>
                       <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1088,7 +1088,7 @@ export default function SettingsPage() {
                     ) : paginatedUnits.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                          No units found
+                          Aucune unité trouvée
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -1103,7 +1103,7 @@ export default function SettingsPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground"
-                                title="Edit unit"
+                                title="Modifier l'unité"
                                 onClick={() => handleStartEditUnit(unit)}
                               >
                                 <Pencil className="h-4 w-4" />
@@ -1126,8 +1126,8 @@ export default function SettingsPage() {
               </div>
               <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
-                  Showing {(unitCurrentPage - 1) * unitPageSize + 1}-
-                  {Math.min(unitCurrentPage * unitPageSize, filteredUnits.length)} of {filteredUnits.length}
+                  Affichage de {(unitCurrentPage - 1) * unitPageSize + 1}-
+                  {Math.min(unitCurrentPage * unitPageSize, filteredUnits.length)} sur {filteredUnits.length}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -1136,10 +1136,10 @@ export default function SettingsPage() {
                     onClick={() => setUnitPage((p) => Math.max(1, p - 1))}
                     disabled={unitCurrentPage === 1}
                   >
-                    Previous
+                    Précédent
                   </Button>
                   <div className="text-sm text-muted-foreground">
-                    Page {unitCurrentPage} of {unitTotalPages}
+                    Page {unitCurrentPage} sur {unitTotalPages}
                   </div>
                   <Button
                     variant="outline"
@@ -1147,7 +1147,7 @@ export default function SettingsPage() {
                     onClick={() => setUnitPage((p) => Math.min(unitTotalPages, p + 1))}
                     disabled={unitCurrentPage === unitTotalPages}
                   >
-                    Next
+                    Suivant
                   </Button>
                 </div>
               </div>
@@ -1162,14 +1162,14 @@ export default function SettingsPage() {
           >
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Edit Unit</DialogTitle>
-                <DialogDescription>Update measurement unit details</DialogDescription>
+                <DialogTitle>Modifier l'unité</DialogTitle>
+                <DialogDescription>Mettre à jour les détails de l'unité de mesure</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>Code</Label>
                   <Input
-                    placeholder="e.g. kg"
+                    placeholder="ex. kg"
                     value={editUnit?.code ?? ""}
                     onChange={(e) =>
                       setEditUnit((prev) => (prev ? { ...prev, code: e.target.value } : prev))
@@ -1177,9 +1177,9 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Name</Label>
+                  <Label>Nom</Label>
                   <Input
-                    placeholder="e.g. Kilogramme"
+                    placeholder="ex. Kilogramme"
                     value={editUnit?.name ?? ""}
                     onChange={(e) =>
                       setEditUnit((prev) => (prev ? { ...prev, name: e.target.value } : prev))
@@ -1187,9 +1187,9 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Symbol (optional)</Label>
+                  <Label>Symbole (optionnel)</Label>
                   <Input
-                    placeholder="e.g. kg"
+                    placeholder="ex. kg"
                     value={editUnit?.symbol ?? ""}
                     onChange={(e) =>
                       setEditUnit((prev) => (prev ? { ...prev, symbol: e.target.value } : prev))
@@ -1199,9 +1199,9 @@ export default function SettingsPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowEditUnit(false)}>
-                  Cancel
+                  Annuler
                 </Button>
-                <Button onClick={handleUpdateUnit}>Save Changes</Button>
+                <Button onClick={handleUpdateUnit}>Enregistrer les modifications</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -1215,9 +1215,9 @@ export default function SettingsPage() {
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Shield className="h-5 w-5" />
-                    Menu Permissions
+                    Permissions des menus
                   </CardTitle>
-                  <CardDescription>Control which roles can see each menu item</CardDescription>
+                  <CardDescription>Contrôlez quels rôles peuvent voir chaque élément de menu</CardDescription>
                 </div>
                 <Button
                   onClick={saveMenuPermissions}
@@ -1225,7 +1225,7 @@ export default function SettingsPage() {
                   className="gap-2"
                 >
                   {menuSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Changes
+                  Enregistrer les modifications
                 </Button>
               </div>
             </CardHeader>
@@ -1234,11 +1234,11 @@ export default function SettingsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-muted-foreground">Menu Item</TableHead>
+                      <TableHead className="text-muted-foreground">Élément de menu</TableHead>
                       <TableHead className="text-muted-foreground">Admin</TableHead>
                       <TableHead className="text-muted-foreground">Manager</TableHead>
-                      <TableHead className="text-muted-foreground">Cashier</TableHead>
-                      <TableHead className="text-muted-foreground">Waiter</TableHead>
+                      <TableHead className="text-muted-foreground">Caissier</TableHead>
+                      <TableHead className="text-muted-foreground">Serveur</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1251,7 +1251,7 @@ export default function SettingsPage() {
                     ) : menuItems.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                          No menu items found
+                          Aucun élément de menu trouvé
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -1295,15 +1295,15 @@ export default function SettingsPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
-                  Locations
+                  Emplacements
                 </CardTitle>
-                <CardDescription>Manage warehouses, bars, kitchens and transit points</CardDescription>
+                <CardDescription>Gérer les entrepôts, bars, cuisines et points de transit</CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative w-56">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Search locations..."
+                    placeholder="Rechercher des emplacements..."
                     value={locationSearch}
                     onChange={(e) => { setLocationSearch(e.target.value) }}
                     className="pl-10"
@@ -1313,19 +1313,19 @@ export default function SettingsPage() {
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
-                      Add Location
+                      Ajouter un emplacement
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add Location</DialogTitle>
-                      <DialogDescription>Create a new stock location</DialogDescription>
+                      <DialogTitle>Ajouter un emplacement</DialogTitle>
+                      <DialogDescription>Créer un nouvel emplacement de stock</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label>Name</Label>
+                        <Label>Nom</Label>
                         <Input
-                          placeholder="e.g. Main Warehouse"
+                          placeholder="ex. Entrepôt principal"
                           value={newLocation.name}
                           onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
                         />
@@ -1346,8 +1346,8 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setShowAddLocation(false)}>Cancel</Button>
-                      <Button onClick={handleAddLocation} disabled={!newLocation.name.trim()}>Add Location</Button>
+                      <Button variant="outline" onClick={() => setShowAddLocation(false)}>Annuler</Button>
+                      <Button onClick={handleAddLocation} disabled={!newLocation.name.trim()}>Ajouter un emplacement</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -1358,9 +1358,9 @@ export default function SettingsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-muted-foreground">Name</TableHead>
+                      <TableHead className="text-muted-foreground">Nom</TableHead>
                       <TableHead className="text-muted-foreground">Type</TableHead>
-                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-muted-foreground">Statut</TableHead>
                       <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1374,7 +1374,7 @@ export default function SettingsPage() {
                     ) : filteredLocations.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                          No locations found
+                          Aucun emplacement trouvé
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -1393,7 +1393,7 @@ export default function SettingsPage() {
                                 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                                 : "bg-muted text-muted-foreground"
                             )}>
-                              {loc.isActive ? "Active" : "Inactive"}
+                              {loc.isActive ? "Actif" : "Inactif"}
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
@@ -1401,7 +1401,7 @@ export default function SettingsPage() {
                               <Button
                                 variant="ghost" size="icon"
                                 className="h-8 w-8 text-muted-foreground"
-                                title="Edit location"
+                                title="Modifier l'emplacement"
                                 onClick={() => { setEditLocation({ ...loc }); setShowEditLocation(true) }}
                               >
                                 <Pencil className="h-4 w-4" />
@@ -1428,14 +1428,14 @@ export default function SettingsPage() {
           <Dialog open={showEditLocation} onOpenChange={(open) => { setShowEditLocation(open); if (!open) setEditLocation(null) }}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Edit Location</DialogTitle>
-                <DialogDescription>Update location details</DialogDescription>
+                <DialogTitle>Modifier l'emplacement</DialogTitle>
+                <DialogDescription>Mettre à jour les détails de l'emplacement</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Name</Label>
+                  <Label>Nom</Label>
                   <Input
-                    placeholder="e.g. Main Warehouse"
+                    placeholder="ex. Entrepôt principal"
                     value={editLocation?.name ?? ""}
                     onChange={(e) => setEditLocation((prev: any) => prev ? { ...prev, name: e.target.value } : prev)}
                   />
@@ -1455,7 +1455,7 @@ export default function SettingsPage() {
                   </Select>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Label>Active</Label>
+                  <Label>Actif</Label>
                   <button
                     type="button"
                     role="switch"
@@ -1474,8 +1474,8 @@ export default function SettingsPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowEditLocation(false)}>Cancel</Button>
-                <Button onClick={handleUpdateLocation}>Save Changes</Button>
+                <Button variant="outline" onClick={() => setShowEditLocation(false)}>Annuler</Button>
+                <Button onClick={handleUpdateLocation}>Enregistrer les modifications</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

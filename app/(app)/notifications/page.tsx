@@ -10,7 +10,7 @@ export default function NotificationsPage() {
     return (
       <div className="flex items-center justify-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading...</span>
+        <span className="ml-2">Chargement...</span>
       </div>
     )
   }
@@ -18,8 +18,8 @@ export default function NotificationsPage() {
   if (!user || user.role !== "admin") {
     return (
       <div className="p-6">
-        <h2 className="text-2xl font-bold text-foreground">Access denied</h2>
-        <p className="text-muted-foreground">Only admins can view notifications.</p>
+        <h2 className="text-2xl font-bold text-foreground">Accès refusé</h2>
+        <p className="text-muted-foreground">Seuls les administrateurs peuvent voir les notifications.</p>
       </div>
     )
   }
@@ -28,10 +28,10 @@ export default function NotificationsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-foreground">Notifications</h2>
-        <p className="text-muted-foreground">System notifications and recent events</p>
+        <p className="text-muted-foreground">Notifications système et événements récents</p>
       </div>
       <div className="rounded-lg border border-border p-6 text-muted-foreground">
-        No notifications yet.
+        Aucune notification pour le moment.
       </div>
     </div>
   )

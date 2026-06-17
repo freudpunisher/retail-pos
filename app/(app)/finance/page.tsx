@@ -11,18 +11,23 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell,
 } from "recharts"
-import { Loader2, DollarSign, Package, Truck, TrendingUp, TrendingDown, BarChart3, Beer, Utensils, Warehouse, Store, CalendarIcon } from "lucide-react"
+import { Loader2, DollarSign, Package, Truck, TrendingUp, TrendingDown, BarChart3, Beer, Utensils, Warehouse, Store, CalendarIcon, Printer } from "lucide-react"
+import { printReport } from "@/lib/print-report"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { useSettings } from "@/hooks/use-settings"
 
 const COLORS = ["#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#ec4899"]
 
 export default function FinanceOverviewPage() {
+    const { settings } = useSettings()
     const today = new Date()
     const [dateFrom, setDateFrom] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1))
     const [dateTo, setDateTo] = useState<Date>(today)
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+
+    const currencySymbol = settings?.currencySymbol || "Fbu"
 
     useEffect(() => {
         fetchData()
@@ -109,7 +114,90 @@ export default function FinanceOverviewPage() {
     ]
 
     const formatCurrency = (val: number) =>
-        val.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " FCFA"
+        val.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ` ${currencySymbol}`
+
+    const handlePrint = () => {
+        const period = `Période: ${format(dateFrom, "dd/MM/yyyy", { locale: fr })} — ${format(dateTo, "dd/MM/yyyy", { locale: fr })}`
+        const stockRows = Object.entries(data.stockValue.byLocation).map(([key, val]: any) => ({
+            location: key.charAt(0).toUpperCase() + key.slice(1),
+            value: val.value,
+            quantity: val.totalQty,
+            products: val.productCount,
+        }))
+        const origin = window.location.origin
+        printReport({
+            title: "Situation Financière",
+            subtitle: "Smart POS System — Vue d'ensemble",
+            period,
+            logoUrl: `${origin}/ahava.png`,
+            metrics: [
+                { label: "Valeur du Stock", value: formatCurrency(data.stockValue.total), highlight: true },
+                { label: "Approvisionnements", value: formatCurrency(data.procurement.total) },
+                { label: "Chiffre d'Affaires", value: formatCurrency(data.sales.total), highlight: true },
+                { label: "Bénéfice Brut", value: formatCurrency(data.profit.grossProfit) },
+                { label: "Marge", value: `${data.profit.margin.toFixed(1)}%` },
+                { label: "Ventes (période)", value: String(data.sales.count) },
+            ],
+            columns: [
+                { header: "Département", key: "dept" },
+                { header: "Revenu", key: "revenue", format: "currency", align: "right" },
+                { header: "Coût des ventes", key: "cogs", format: "currency", align: "right" },
+                { header: "Bénéfice", key: "profit", format: "currency", align: "right" },
+                { header: "Marge", key: "margin", align: "right" },
+                { header: "Transactions", key: "transactions", align: "right" },
+            ],
+            rows: [
+                {
+                    dept: "Bar",
+                    revenue: data.bar.revenue,
+                    cogs: data.bar.cogs,
+                    profit: data.bar.profit,
+                    margin: `${data.bar.margin.toFixed(1)}%`,
+                    transactions: data.bar.transactionCount,
+                },
+                {
+                    dept: "Cuisine",
+                    revenue: data.cuisine.revenue,
+                    cogs: data.cuisine.cogs,
+                    profit: data.cuisine.profit,
+                    margin: `${data.cuisine.margin.toFixed(1)}%`,
+                    transactions: data.cuisine.transactionCount,
+                },
+                {
+                    dept: "Total",
+                    revenue: data.sales.total,
+                    cogs: data.profit.cogs,
+                    profit: data.profit.grossProfit,
+                    margin: `${data.profit.margin.toFixed(1)}%`,
+                    transactions: data.sales.count,
+                },
+            ],
+        })
+        setTimeout(() => {
+            if (stockRows.length > 0) {
+                printReport({
+                    title: "Stock par Emplacement",
+                    subtitle: "Smart POS System",
+                    period,
+                    logoUrl: `${origin}/ahava.png`,
+                    metrics: [
+                        { label: "Valeur Totale du Stock", value: formatCurrency(data.stockValue.total), highlight: true },
+                        ...stockRows.map((r: any) => ({
+                            label: r.location,
+                            value: formatCurrency(r.value),
+                        })),
+                    ],
+                    columns: [
+                        { header: "Emplacement", key: "location" },
+                        { header: "Valeur", key: "value", format: "currency", align: "right" },
+                        { header: "Quantité", key: "quantity", format: "number", align: "right" },
+                        { header: "Produits", key: "products", format: "number", align: "right" },
+                    ],
+                    rows: stockRows,
+                })
+            }
+        }, 800)
+    }
 
     return (
         <div className="space-y-6">
@@ -118,10 +206,16 @@ export default function FinanceOverviewPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Finance</h1>
                     <p className="text-muted-foreground">Vue d&apos;ensemble de la valeur du stock, des approvisionnements et de la rentabilité</p>
                 </div>
-                <Button variant="outline" onClick={() => fetchData()}>
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    Actualiser
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => fetchData()}>
+                        <BarChart3 className="mr-2 h-4 w-4" />
+                        Actualiser
+                    </Button>
+                    <Button variant="default" onClick={handlePrint}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Imprimer
+                    </Button>
+                </div>
             </div>
 
             {/* Date Filter */}

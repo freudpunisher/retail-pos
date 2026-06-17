@@ -16,9 +16,9 @@ import { useCategoryGroups } from "@/hooks/use-category-groups"
 import Swal from "sweetalert2"
 
 const typeConfig: Record<string, { label: string; icon: any; color: string }> = {
-    drink: { label: "Drink", icon: Beer, color: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
-    food: { label: "Food", icon: Utensils, color: "bg-amber-500/20 text-amber-700 dark:text-amber-400" },
-    ingredient: { label: "Ingredient", icon: Wheat, color: "bg-green-500/20 text-green-700 dark:text-green-400" },
+    drink: { label: "Boisson", icon: Beer, color: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
+    food: { label: "Plat", icon: Utensils, color: "bg-amber-500/20 text-amber-700 dark:text-amber-400" },
+    ingredient: { label: "Ingrédient", icon: Wheat, color: "bg-green-500/20 text-green-700 dark:text-green-400" },
 }
 
 export default function ProductManagementPage() {
@@ -143,10 +143,10 @@ export default function ProductManagementPage() {
     }
 
     const typeFilters = [
-        { key: "all", label: "All", icon: Package },
-        { key: "drink", label: "Drinks", icon: Beer },
-        { key: "food", label: "Food", icon: Utensils },
-        { key: "ingredient", label: "Ingredients", icon: Wheat },
+        { key: "all", label: "Tout", icon: Package },
+        { key: "drink", label: "Boissons", icon: Beer },
+        { key: "food", label: "Plats", icon: Utensils },
+        { key: "ingredient", label: "Ingrédients", icon: Wheat },
     ]
 
     const counts = {
@@ -160,12 +160,12 @@ export default function ProductManagementPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Products</h2>
-                    <p className="text-muted-foreground">Manage drinks, food plates, and ingredients</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Produits</h2>
+                    <p className="text-muted-foreground">Gérer les boissons, plats et ingrédients</p>
                 </div>
                 <Button onClick={handleAddNew}>
                     <Plus className="mr-2 h-4 w-4" />
-                    New Product
+                    Nouveau produit
                 </Button>
             </div>
 
@@ -193,10 +193,10 @@ export default function ProductManagementPage() {
                                 onValueChange={(value) => { setGroupFilter(value); setCategoryFilter("all"); setPage(1) }}
                             >
                                 <SelectTrigger className="w-[180px] h-9">
-                                    <SelectValue placeholder="Category Group" />
+                                    <SelectValue placeholder="Groupe de catégories" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Groups</SelectItem>
+                                    <SelectItem value="all">Tous les groupes</SelectItem>
                                     {groups.map((g: any) => (
                                         <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                                     ))}
@@ -207,10 +207,10 @@ export default function ProductManagementPage() {
                                 onValueChange={(value) => { setCategoryFilter(value); setPage(1) }}
                             >
                                 <SelectTrigger className="w-[180px] h-9">
-                                    <SelectValue placeholder="Category" />
+                                    <SelectValue placeholder="Catégorie" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
+                                    <SelectItem value="all">Toutes les catégories</SelectItem>
                                     {categories
                                         .filter((c) => groupFilter === "all" || c.groupId === groupFilter)
                                         .map((c: any) => (
@@ -228,12 +228,12 @@ export default function ProductManagementPage() {
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-lg font-medium flex items-center gap-2">
                             <Package className="h-5 w-5 text-primary" />
-                            Product Catalog
+                            Catalogue des produits
                         </CardTitle>
                         <div className="relative w-72">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Search by name or SKU..."
+                                placeholder="Rechercher par nom ou code..."
                                 value={search}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 className="pl-10"
@@ -245,28 +245,29 @@ export default function ProductManagementPage() {
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-secondary/10">
-                                <TableHead>SKU</TableHead>
-                                <TableHead>Name</TableHead>
+                                <TableHead>Code</TableHead>
+                                <TableHead>Nom</TableHead>
                                 <TableHead>Type</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead>Unit</TableHead>
-                                <TableHead className="text-right">Price</TableHead>
+                                <TableHead>Catégorie</TableHead>
+                                <TableHead>Unité</TableHead>
+                                <TableHead className="text-right">Prix</TableHead>
+                                <TableHead className="text-center">Unités de vente</TableHead>
                                 <TableHead className="text-right">Stock</TableHead>
-                                <TableHead>Status</TableHead>
+                                <TableHead>Statut</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={9} className="h-32 text-center">
+                                    <TableCell colSpan={10} className="h-32 text-center">
                                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                                     </TableCell>
                                 </TableRow>
                             ) : filteredProducts.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={9} className="h-32 text-center text-muted-foreground italic">
-                                        No products found
+                                    <TableCell colSpan={10} className="h-32 text-center text-muted-foreground italic">
+                                        Aucun produit trouvé
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -300,25 +301,43 @@ export default function ProductManagementPage() {
                                                     formatCurrency(Number(product.price))
                                                 )}
                                             </TableCell>
+                                            <TableCell className="text-center">
+                                                {product.sellingUnits && product.sellingUnits.length > 0 ? (
+                                                    <span className="text-xs font-medium text-muted-foreground">
+                                                        {product.sellingUnits.length} unit{product.sellingUnits.length > 1 ? "s" : ""}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">—</span>
+                                                )}
+                                            </TableCell>
                                             <TableCell className="text-right">
                                                 {isMadeToOrder ? (
-                                                    <Badge variant="outline" className="text-xs border-dashed">MTO</Badge>
+                                                    <Badge variant="outline" className="text-xs border-dashed">FSP</Badge>
                                                 ) : (
+<<<<<<< HEAD
                                                     <span className={`px-2 py-1 rounded-md text-xs font-bold ${Number(product.stock) <= Number(product.minStock)
                                                         ? "bg-destructive/10 text-destructive"
                                                         : "bg-primary/10 text-primary"
                                                         }`}>
                                                         {product.stock}
+=======
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${
+                                                        Number(product.stock) <= Number(product.minStock)
+                                                            ? "bg-destructive/10 text-destructive"
+                                                            : "bg-primary/10 text-primary"
+                                                    }`}>
+                                                        {Number(product.stock)}
+>>>>>>> origin/augustin1
                                                     </span>
                                                 )}
                                             </TableCell>
                                             <TableCell>
                                                 {isMadeToOrder ? (
-                                                    <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">Made to Order</Badge>
+                                                    <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">Fabriqué sur place</Badge>
                                                 ) : Number(product.stock) <= Number(product.minStock) ? (
-                                                    <Badge className="bg-destructive/20 text-destructive">Low Stock</Badge>
+                                                    <Badge className="bg-destructive/20 text-destructive">Stock faible</Badge>
                                                 ) : (
-                                                    <Badge className="bg-green-500/15 text-green-700 border-green-500/20">In Stock</Badge>
+                                                    <Badge className="bg-green-500/15 text-green-700 border-green-500/20">En stock</Badge>
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right">
@@ -340,7 +359,7 @@ export default function ProductManagementPage() {
 
                     <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="text-sm text-muted-foreground">
-                            Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredProducts.length)} of {filteredProducts.length} products
+                            Affichage de {(currentPage - 1) * pageSize + 1} à {Math.min(currentPage * pageSize, filteredProducts.length)} sur {filteredProducts.length} produits
                         </div>
                         <div className="flex items-center gap-2">
                             <Select value={String(pageSize)} onValueChange={(value) => { setPageSize(Number(value)); setPage(1) }}>
@@ -360,10 +379,10 @@ export default function ProductManagementPage() {
                                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
                             >
-                                Previous
+                                Précédent
                             </Button>
                             <div className="text-sm text-muted-foreground">
-                                Page {currentPage} of {totalPages}
+                                Page {currentPage} sur {totalPages}
                             </div>
                             <Button
                                 variant="outline"
@@ -371,7 +390,7 @@ export default function ProductManagementPage() {
                                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
                             >
-                                Next
+                                Suivant
                             </Button>
                         </div>
                     </div>

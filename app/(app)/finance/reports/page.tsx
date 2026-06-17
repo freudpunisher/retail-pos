@@ -10,10 +10,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, TrendingUp, TrendingDown, DollarSign } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { useSettings } from "@/hooks/use-settings"
 
 export default function ReportsPage() {
+    const { settings } = useSettings()
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+
+    const currencySymbol = settings?.currencySymbol || "Fbu"
 
     useEffect(() => {
         fetchReport()
@@ -62,7 +66,7 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-600">
-                            {summary.income.toLocaleString()} FCFA
+                            {summary.income.toLocaleString()} {currencySymbol}
                         </div>
                         <p className="text-xs text-muted-foreground">+ Ventes réalisées</p>
                     </CardContent>
@@ -74,7 +78,7 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">
-                            {summary.expenses.toLocaleString()} FCFA
+                            {summary.expenses.toLocaleString()} {currencySymbol}
                         </div>
                         <p className="text-xs text-muted-foreground">Achats + Dépenses Ops.</p>
                     </CardContent>
@@ -86,7 +90,7 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className={`text-2xl font-bold ${summary.netProfit >= 0 ? "text-blue-600" : "text-destructive"}`}>
-                            {summary.netProfit.toLocaleString()} FCFA
+                            {summary.netProfit.toLocaleString()} {currencySymbol}
                         </div>
                         <p className="text-xs text-muted-foreground">Marge nette estimée</p>
                     </CardContent>
@@ -107,7 +111,7 @@ export default function ReportsPage() {
                                     <XAxis dataKey="name" />
                                     <YAxis />
                                     <Tooltip
-                                        formatter={(value: number) => [`${value.toLocaleString()} FCFA`, "Montant"]}
+                                        formatter={(value: number) => [`${value.toLocaleString()} ${currencySymbol}`, "Montant"]}
                                     />
                                     <Bar dataKey="value" radius={[4, 4, 0, 0]} />
                                 </BarChart>

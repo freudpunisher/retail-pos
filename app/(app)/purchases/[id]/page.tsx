@@ -195,13 +195,13 @@ export default function EditPurchaseOrderPage() {
         items,
         total,
       })
-      toast({ title: "Order updated", description: "Changes saved successfully." })
+      toast({ title: "Commande mise à jour", description: "Modifications enregistrées." })
       router.push("/purchases")
     } catch (err: any) {
       toast({
         variant: "destructive",
-        title: "Update failed",
-        description: err.message || "Could not save changes",
+        title: "Échec de la mise à jour",
+        description: err.message || "Impossible d'enregistrer les modifications",
       })
     } finally {
       setIsSubmitting(false)
@@ -209,14 +209,14 @@ export default function EditPurchaseOrderPage() {
   }
 
   const handleCancelOrder = async () => {
-    if (!confirm("Are you sure you want to cancel this order?")) return
+    if (!confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) return
     setIsActionLoading(true)
     try {
       await cancelOrder(orderId)
-      toast({ title: "Order cancelled" })
+      toast({ title: "Commande annulée" })
       router.push("/purchases")
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Failed to cancel", description: err.message })
+      toast({ variant: "destructive", title: "Échec de l'annulation", description: err.message })
     } finally {
       setIsActionLoading(false)
     }
@@ -224,21 +224,21 @@ export default function EditPurchaseOrderPage() {
 
   const handleReceiveOrder = async () => {
     const result = await Swal.fire({
-      title: "Mark as received?",
-      text: "This will update stock levels.",
+      title: "Marquer comme reçu ?",
+      text: "Cela mettra à jour les niveaux de stock.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Yes, receive",
-      cancelButtonText: "Cancel",
+      confirmButtonText: "Oui, recevoir",
+      cancelButtonText: "Annuler",
     })
     if (!result.isConfirmed) return
     setIsActionLoading(true)
     try {
       await markAsReceived(orderId, user?.id || "")
-      toast({ title: "Order received", description: "Stock updated." })
+      toast({ title: "Commande reçue", description: "Stock mis à jour." })
       router.push("/purchases")
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Failed to receive", description: err.message })
+      toast({ variant: "destructive", title: "Échec de la réception", description: err.message })
     } finally {
       setIsActionLoading(false)
     }
@@ -255,7 +255,7 @@ export default function EditPurchaseOrderPage() {
   if (!order) {
     return (
       <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
-        Order not found
+        Commande non trouvée
       </div>
     )
   }
@@ -265,7 +265,7 @@ export default function EditPurchaseOrderPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
-            {isEditable ? "Edit Purchase Order" : "View Purchase Order"}
+            {isEditable ? "Modifier le bon de commande" : "Voir le bon de commande"}
           </h2>
           <p className="text-muted-foreground">
             Order #{order.id?.slice(0, 8)} • {order.status.toUpperCase()}
@@ -273,7 +273,7 @@ export default function EditPurchaseOrderPage() {
         </div>
         <Button variant="outline" onClick={() => router.push("/purchases")} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Back to List
+          Retour à la liste
         </Button>
       </div>
 
@@ -283,23 +283,23 @@ export default function EditPurchaseOrderPage() {
           <div className="flex flex-col sm:flex-row justify-between gap-6">
             <div>
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-1">
-                Total Value
+                Valeur totale
               </p>
               <p className="text-4xl font-black text-primary">{formatCurrency(total)}</p>
             </div>
             <div className="space-y-2 text-right">
               <div>
-                <span className="font-bold text-lg">{items.length}</span> products
+                <span className="font-bold text-lg">{items.length}</span> produits
               </div>
               <div>
-                <span className="font-bold text-lg">{totalBoxes}</span> boxes / <span className="font-bold text-lg">{totalUnits}</span> total units
+                <span className="font-bold text-lg">{totalBoxes}</span> caisses / <span className="font-bold text-lg">{totalUnits}</span> total unités
               </div>
               <Badge variant="outline" className="mt-2">
                 {order.status === "pending"
-                  ? "Editable"
+                  ? "Modifiable"
                   : order.status === "received"
-                  ? "Received – locked"
-                  : "Cancelled – archived"}
+                  ? "Reçu – verrouillé"
+                  : "Annulé – archivé"}
               </Badge>
             </div>
           </div>
@@ -312,16 +312,16 @@ export default function EditPurchaseOrderPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
-              Order Details
+              Détails de la commande
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-base font-semibold">Supplier</Label>
+              <Label className="text-base font-semibold">Fournisseur</Label>
               {isEditable ? (
                 <Select value={supplierId} onValueChange={setSupplierId} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select supplier" />
+                    <SelectValue placeholder="Sélectionner un fournisseur" />
                   </SelectTrigger>
                   <SelectContent>
                     {suppliers
@@ -335,7 +335,7 @@ export default function EditPurchaseOrderPage() {
                 </Select>
               ) : (
                 <div className="h-10 flex items-center px-3 border rounded-md bg-muted/50">
-                  {suppliers.find((s) => s.id === supplierId)?.name || "Unknown"}
+                  {suppliers.find((s) => s.id === supplierId)?.name || "Inconnu"}
                 </div>
               )}
             </div>
@@ -347,17 +347,17 @@ export default function EditPurchaseOrderPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Products / Line Items
+              Produits / Articles
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {isEditable && (
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1">
-                  <Label>Add Product</Label>
+                  <Label>Ajouter un produit</Label>
                   <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Choose product..." />
+                      <SelectValue placeholder="Choisir un produit..." />
                     </SelectTrigger>
                     <SelectContent>
                       {purchasableProducts.map((p) => (
@@ -375,7 +375,7 @@ export default function EditPurchaseOrderPage() {
                   className="self-end"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Add
+                  Ajouter
                 </Button>
               </div>
             )}
@@ -385,10 +385,10 @@ export default function EditPurchaseOrderPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead>Product</TableHead>
-                      <TableHead className="text-right w-44">Cost</TableHead>
-                      <TableHead className="text-center w-56">Quantity</TableHead>
-                      <TableHead className="text-right w-32">Subtotal</TableHead>
+                      <TableHead>Produit</TableHead>
+                      <TableHead className="text-right w-44">Coût</TableHead>
+                      <TableHead className="text-center w-56">Quantité</TableHead>
+                      <TableHead className="text-right w-32">Sous-total</TableHead>
                       {isEditable && <TableHead className="w-12"></TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -400,7 +400,7 @@ export default function EditPurchaseOrderPage() {
                           {isEditable ? (
                             <div className="flex flex-col gap-1 items-end">
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">Unit:</span>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Unité :</span>
                                 <Input
                                   type="number"
                                   step="0.01"
@@ -411,7 +411,7 @@ export default function EditPurchaseOrderPage() {
                                 />
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">Box:</span>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Caisse :</span>
                                 <Input
                                   type="number"
                                   step="0.01"
@@ -442,21 +442,21 @@ export default function EditPurchaseOrderPage() {
                                   onChange={(e) => updateBoxes(item.productId, Number(e.target.value))}
                                   className="w-20 text-center h-8"
                                 />
-                                <span className="text-sm font-medium">Boxes</span>
+                                <span className="text-sm font-medium">Caisses</span>
                               </div>
                               <div className="text-xs text-muted-foreground flex gap-1.5 items-center mt-0.5">
                                 <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-                                  {item.quantityPerBox || 1} units/box
+                                  {item.quantityPerBox || 1} unités/caisse
                                 </Badge>
                                 <span>=</span>
-                                <span className="font-semibold text-foreground">{item.quantity} total units</span>
+                                <span className="font-semibold text-foreground">{item.quantity} total unités</span>
                               </div>
                             </div>
                           ) : (
                             <div className="flex flex-col items-center">
-                              <span className="font-semibold">{item.boxes || 0} boxes</span>
+                              <span className="font-semibold">{item.boxes || 0} caisses</span>
                               <span className="text-xs text-muted-foreground">
-                                {item.quantityPerBox || 1} units/box • {item.quantity} total units
+                                {item.quantityPerBox || 1} unités/caisse • {item.quantity} total unités
                               </span>
                             </div>
                           )}
@@ -484,7 +484,7 @@ export default function EditPurchaseOrderPage() {
             ) : (
               <div className="h-48 flex flex-col items-center justify-center border border-dashed rounded-lg text-muted-foreground">
                 <Package className="h-10 w-10 mb-3 opacity-60" />
-                <p className="font-medium">No items in this order</p>
+                <p className="font-medium">Aucun article dans cette commande</p>
               </div>
             )}
           </CardContent>
@@ -498,7 +498,7 @@ export default function EditPurchaseOrderPage() {
             onClick={() => router.push("/purchases")}
             className="flex-1"
           >
-            Back to List
+            Retour à la liste
           </Button>
 
           {isEditable ? (
@@ -509,7 +509,7 @@ export default function EditPurchaseOrderPage() {
                 className="flex-1 gap-2 bg-primary hover:bg-primary/90"
               >
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Save Changes
+                Enregistrer les modifications
               </Button>
 
               <Button
@@ -521,7 +521,7 @@ export default function EditPurchaseOrderPage() {
               >
                 {isActionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 <XCircle className="h-4 w-4" />
-                Cancel Order
+                Annuler la commande
               </Button>
 
               <Button
@@ -532,12 +532,12 @@ export default function EditPurchaseOrderPage() {
               >
                 {isActionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 <CheckCircle2 className="h-4 w-4" />
-                Mark as Received
+                Marquer comme reçu
               </Button>
             </>
           ) : (
             <Button variant="secondary" className="flex-1" disabled>
-              {order.status === "received" ? "Order already received" : "Order cancelled"}
+              {order.status === "received" ? "Commande déjà reçue" : "Commande annulée"}
             </Button>
           )}
         </div>

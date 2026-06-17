@@ -11,7 +11,7 @@ export default function UsersPage() {
     return (
       <div className="flex items-center justify-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading...</span>
+        <span className="ml-2">Chargement...</span>
       </div>
     )
   }
@@ -19,8 +19,8 @@ export default function UsersPage() {
   if (!user || user.role !== "admin") {
     return (
       <div className="p-6">
-        <h2 className="text-2xl font-bold text-foreground">Access denied</h2>
-        <p className="text-muted-foreground">Only admins can manage users.</p>
+        <h2 className="text-2xl font-bold text-foreground">Accès refusé</h2>
+        <p className="text-muted-foreground">Seuls les administrateurs peuvent gérer les utilisateurs.</p>
       </div>
     )
   }
@@ -28,8 +28,8 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Users</h2>
-        <p className="text-muted-foreground">Create and manage staff accounts</p>
+        <h2 className="text-2xl font-bold text-foreground">Utilisateurs</h2>
+        <p className="text-muted-foreground">Créer et gérer les comptes du personnel</p>
       </div>
       <UserManagement />
     </div>

@@ -32,6 +32,7 @@ import {
   RefreshCw,
   Store,
   Landmark,
+  Banknote,
 } from "lucide-react"
 
 const iconMap: Record<string, any> = {
@@ -39,27 +40,28 @@ const iconMap: Record<string, any> = {
   ArrowLeftRight, Users, UserCog, CreditCard,
   BarChart3, Settings, Truck, RefreshCw,
   ClipboardList, Receipt, ArrowRightLeft, Wallet,
-  ChefHat, Landmark,
+  ChefHat, Landmark, Banknote,
 }
 
 const DEFAULT_MENUS = [
-  { id: "1", href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", roles: ["admin", "manager", "cashier"], sortOrder: 1 },
-  { id: "2", href: "/sales", label: "Sales (POS)", icon: "ShoppingCart", roles: ["admin", "manager", "cashier"], sortOrder: 2 },
-  { id: "3", href: "/sales-history", label: "Sales History", icon: "Receipt", roles: ["admin", "manager", "cashier"], sortOrder: 3 },
-  { id: "4", href: "/purchases", label: "Purchases", icon: "Truck", roles: ["admin", "manager"], sortOrder: 4 },
-  { id: "5", href: "/products", label: "Product Management", icon: "Package", roles: ["admin", "manager", "cashier"], sortOrder: 5 },
-  { id: "6", href: "/inventory", label: "Stock Status", icon: "Warehouse", roles: ["admin", "manager", "cashier"], sortOrder: 6 },
-  { id: "7", href: "/inventory/adjustments", label: "Stock Adjustments", icon: "RefreshCw", roles: ["admin", "manager"], sortOrder: 7 },
-  { id: "8", href: "/inventory/count", label: "Inventory Count", icon: "ClipboardList", roles: ["admin", "manager"], sortOrder: 8 },
-  { id: "9", href: "/stock-movements", label: "Stock Movements", icon: "ArrowLeftRight", roles: ["admin", "manager"], sortOrder: 9 },
-  { id: "10", href: "/stock/transfers", label: "Stock Transfers", icon: "ArrowRightLeft", roles: ["admin", "manager"], sortOrder: 10 },
-  { id: "11", href: "/expenses", label: "Expenses", icon: "Wallet", roles: ["admin", "manager"], sortOrder: 11 },
-  { id: "12", href: "/staff-tables", label: "Staff & Tables", icon: "UserCog", roles: ["admin", "manager"], sortOrder: 12 },
-  { id: "13", href: "/clients", label: "Clients", icon: "Users", roles: ["admin", "manager", "cashier"], sortOrder: 13 },
-  { id: "14", href: "/credit", label: "Credit Management", icon: "CreditCard", roles: ["admin", "manager"], sortOrder: 14 },
-  { id: "15", href: "/finance", label: "Finance", icon: "Landmark", roles: ["admin", "manager"], sortOrder: 15 },
-  { id: "16", href: "/reports", label: "Reports", icon: "BarChart3", roles: ["admin", "manager"], sortOrder: 16 },
-  { id: "17", href: "/settings", label: "Settings", icon: "Settings", roles: ["admin"], sortOrder: 17 },
+  { id: "1", href: "/dashboard", label: "Tableau de bord", icon: "LayoutDashboard", roles: ["admin", "manager", "cashier"], sortOrder: 1 },
+  { id: "2", href: "/sales", label: "Ventes (POS)", icon: "ShoppingCart", roles: ["admin", "manager", "cashier"], sortOrder: 2 },
+  { id: "3", href: "/sales-history", label: "Historique des ventes", icon: "Receipt", roles: ["admin", "manager", "cashier"], sortOrder: 3 },
+  { id: "4", href: "/purchases", label: "Achats", icon: "Truck", roles: ["admin", "manager"], sortOrder: 4 },
+  { id: "5", href: "/products", label: "Gestion des produits", icon: "Package", roles: ["admin", "manager", "cashier"], sortOrder: 5 },
+  { id: "6", href: "/inventory", label: "État des stocks", icon: "Warehouse", roles: ["admin", "manager", "cashier"], sortOrder: 6 },
+  { id: "7", href: "/inventory/adjustments", label: "Ajustements de stock", icon: "RefreshCw", roles: ["admin", "manager"], sortOrder: 7 },
+  { id: "8", href: "/inventory/count", label: "Inventaire", icon: "ClipboardList", roles: ["admin", "manager"], sortOrder: 8 },
+  { id: "9", href: "/stock-movements", label: "Mouvements de stock", icon: "ArrowLeftRight", roles: ["admin", "manager"], sortOrder: 9 },
+  { id: "10", href: "/stock/transfers", label: "Transferts de stock", icon: "ArrowRightLeft", roles: ["admin", "manager"], sortOrder: 10 },
+  { id: "11", href: "/caisse", label: "Caisse", icon: "Banknote", roles: ["admin", "manager", "cashier"], sortOrder: 11 },
+  { id: "12", href: "/expenses", label: "Dépenses", icon: "Wallet", roles: ["admin", "manager"], sortOrder: 12 },
+  { id: "13", href: "/staff-tables", label: "Personnel & Tables", icon: "UserCog", roles: ["admin", "manager"], sortOrder: 13 },
+  { id: "14", href: "/clients", label: "Clients", icon: "Users", roles: ["admin", "manager", "cashier"], sortOrder: 14 },
+  { id: "15", href: "/credit", label: "Gestion des crédits", icon: "CreditCard", roles: ["admin", "manager"], sortOrder: 15 },
+  { id: "16", href: "/finance", label: "Finance", icon: "Landmark", roles: ["admin", "manager"], sortOrder: 16 },
+  { id: "17", href: "/reports", label: "Rapports", icon: "BarChart3", roles: ["admin", "manager"], sortOrder: 17 },
+  { id: "18", href: "/settings", label: "Paramètres", icon: "Settings", roles: ["admin"], sortOrder: 18 },
 ]
 
 interface MenuItem {
@@ -168,7 +170,7 @@ export function Sidebar() {
           onClick={handleLogout}
         >
           <LogOut className={cn("h-4 w-4", !collapsed && "mr-2")} />
-          {!collapsed && "Logout"}
+          {!collapsed && "Déconnexion"}
         </Button>
       </div>
 

@@ -235,9 +235,7 @@ export async function receive(request: Request) {
           await tx.insert(stock).values({
             productId: item.productId,
             locationId: warehouse.id,
-            quantityOnHand: item.quantity,
-            reorderLevel: (product?.minStock || 0).toString(),
-            reorderQuantity: "20",
+            quantityOnHand: String(Math.round(Number(item.quantity) || 0)),
           });
         }
 

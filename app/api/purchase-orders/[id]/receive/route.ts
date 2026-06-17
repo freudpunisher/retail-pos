@@ -78,7 +78,7 @@ export async function POST(
                     await tx.insert(stock).values({
                         productId: item.productId,
                         locationId: warehouse.id,
-                        quantityOnHand: qty,
+                        quantityOnHand: String(qty),
                     });
                 }
 
