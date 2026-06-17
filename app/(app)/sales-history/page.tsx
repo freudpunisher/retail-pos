@@ -148,15 +148,30 @@ export default function SalesHistoryPage() {
     setPage(1)
   }, [search, startDate, endDate, statusFilter, tableFilter, waiterFilter])
 
+  const statsTransactions = useMemo(() => {
+    const today = new Date()
+
+    const start = startDate ? new Date(startDate) : new Date(today)
+    start.setHours(startDate ? 0 : 0, 0, 0, 0)
+
+    const end = endDate ? new Date(endDate) : new Date(today)
+    end.setHours(endDate ? 23 : 23, 59, 59, 999)
+
+    return salesTransactions.filter((t: any) => {
+      const d = new Date(t.date)
+      return d >= start && d <= end
+    })
+  }, [salesTransactions, startDate, endDate])
+
   const stats = useMemo(() => {
-    const completed = salesTransactions.filter((t: any) => t.status === "completed")
+    const completed = statsTransactions.filter((t: any) => t.status === "completed")
     const totalRevenue = completed.reduce((sum: number, t: any) => sum + Number.parseFloat(t.total), 0)
     const cashSales = completed.filter((t: any) => t.paymentMethod === "cash").length
     const creditSales = completed.filter((t: any) => t.paymentMethod === "credit").length
-    const pendingCount = salesTransactions.filter((t: any) => t.status !== "completed" && t.status !== "cancelled").length
+    const pendingCount = statsTransactions.filter((t: any) => t.status !== "completed" && t.status !== "cancelled").length
     const totalItems = completed.reduce((sum: number, t: any) => sum + (t.items?.length || 0), 0)
     return { totalSales: completed.length, totalRevenue, cashSales, creditSales, pendingCount, totalItems }
-  }, [salesTransactions])
+  }, [statsTransactions])
 
   const handleViewDetails = (transaction: any) => {
     setSelectedTransaction(transaction)

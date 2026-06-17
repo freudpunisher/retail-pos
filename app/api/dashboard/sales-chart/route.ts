@@ -2,7 +2,12 @@ import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 import db from "@/lib/db"
 import { transactions, transactionItems, products } from "@/lib/db/schema"
-import { sql, eq, ne, and, gte } from "drizzle-orm"
+import { sql, eq, ne, and, gte, lte } from "drizzle-orm"
+
+function fmt(date: Date) {
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,23 +15,26 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get("period") || "week"
     const sector = searchParams.get("sector")
 
-    let startDate: Date
-    const today = new Date()
+    const now = new Date()
+    const today = new Date(now)
     today.setHours(0, 0, 0, 0)
+
+    let startDate: string
 
     switch (period) {
       case "today":
-        startDate = today
+        startDate = fmt(today)
         break
       case "month":
-        startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+        startDate = fmt(new Date(today.getFullYear(), today.getMonth(), 1))
         break
       case "week":
       default:
-        startDate = new Date(today)
-        startDate.setDate(today.getDate() - 7)
+        startDate = fmt(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000))
         break
     }
+
+    const endDate = fmt(now)
 
     const salesData = sector
       ? await db
@@ -40,8 +48,8 @@ export async function GET(request: NextRequest) {
           .innerJoin(products, eq(transactionItems.productId, products.id))
           .where(
             and(
-              gte(transactions.date, startDate),
-              sql`${transactions.date} <= ${today.toISOString()}`,
+              gte(transactions.date, sql`${startDate}::timestamp`),
+              lte(transactions.date, sql`${endDate}::timestamp`),
               ne(transactions.status, "cancelled"),
               eq(products.sector, sector)
             )
@@ -57,8 +65,8 @@ export async function GET(request: NextRequest) {
           .from(transactions)
           .where(
             and(
-              gte(transactions.date, startDate),
-              sql`${transactions.date} <= ${today.toISOString()}`,
+              gte(transactions.date, sql`${startDate}::timestamp`),
+              lte(transactions.date, sql`${endDate}::timestamp`),
               ne(transactions.status, "cancelled")
             )
           )

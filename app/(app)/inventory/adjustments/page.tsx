@@ -29,12 +29,29 @@ import {
     ArrowUpDown,
     Clock,
     Warehouse,
-    Store
+    Store,
+    ArrowDownCircle,
+    ArrowUpCircle,
+    AlertTriangle,
+    Undo2,
+    ArrowRightLeft,
+    Pencil,
+    Package
 } from "lucide-react"
 import { useStock } from "@/hooks/use-stock"
 import { useProducts } from "@/hooks/use-products"
 import { useUsers } from "@/hooks/use-users"
 import { useLocations } from "@/hooks/use-locations"
+
+const adjustmentTypes: Record<string, { code: string; label: string; impact: string; color: string; icon: any }> = {
+    stock_count:    { code: "COM", label: "Comptage physique",  impact: "+ / -", color: "bg-primary/20 text-primary border-primary/30", icon: Clock },
+    damage:         { code: "DOM", label: "Dommage",            impact: "−",     color: "bg-red-500/20 text-red-600 border-red-500/30", icon: AlertTriangle },
+    loss:           { code: "PER", label: "Perte",              impact: "−",     color: "bg-red-500/20 text-red-600 border-red-500/30", icon: ArrowUpCircle },
+    return:         { code: "RET", label: "Retour",             impact: "+",     color: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30", icon: Undo2 },
+    transfer:       { code: "TRA", label: "Transfert",          impact: "+ / -", color: "bg-blue-500/20 text-blue-600 border-blue-500/30", icon: ArrowRightLeft },
+    correction:     { code: "COR", label: "Correction",         impact: "+ / -", color: "bg-orange-500/20 text-orange-600 border-orange-500/30", icon: Pencil },
+    opening_stock:  { code: "STO", label: "Stock d'ouverture",  impact: "+",     color: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30", icon: Package },
+}
 
 export default function StockAdjustmentsPage() {
     const [search, setSearch] = useState("")
@@ -93,16 +110,14 @@ export default function StockAdjustmentsPage() {
     }
 
     const getAdjustmentBadge = (type: string) => {
-        const variants: Record<string, string> = {
-            stock_count: "bg-primary/20 text-primary border-primary/30",
-            damage: "bg-destructive/20 text-destructive border-destructive/30",
-            loss: "bg-destructive/20 text-destructive border-destructive/30",
-            return: "bg-accent/20 text-accent border-accent/30",
-            transfer: "bg-warning/20 text-warning border-warning/30",
-            correction: "bg-warning/20 text-warning border-warning/30",
-            opening_stock: "bg-accent/20 text-accent border-accent/30"
-        }
-        return <Badge variant="outline" className={`font-bold uppercase text-[10px] ${variants[type] || ""}`}>{type.replace("_", " ")}</Badge>
+        const cfg = adjustmentTypes[type]
+        if (!cfg) return <Badge variant="outline" className="font-bold uppercase text-[10px]">{type.replace("_", " ")}</Badge>
+        return (
+            <Badge variant="outline" className={`font-bold uppercase text-[10px] ${cfg.color}`}>
+                <cfg.icon className="h-3 w-3 mr-1" />
+                {cfg.code} — {cfg.label}
+            </Badge>
+        )
     }
 
     return (
@@ -180,22 +195,25 @@ export default function StockAdjustmentsPage() {
                                             <SelectTrigger className="bg-background/50 border-border/50 hover:border-primary/50 transition-colors">
                                                 <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="stock_count">Comptage</SelectItem>
-                                                <SelectItem value="damage">Dommage</SelectItem>
-                                                <SelectItem value="loss">Perte</SelectItem>
-                                                <SelectItem value="return">Retour</SelectItem>
-                                                <SelectItem value="transfer">Transfert</SelectItem>
-                                                <SelectItem value="correction">Correction</SelectItem>
-                                                <SelectItem value="opening_stock">Stock d'ouverture</SelectItem>
-                                            </SelectContent>
+                                    <SelectContent>
+                                        {Object.entries(adjustmentTypes).map(([key, cfg]) => (
+                                            <SelectItem key={key} value={key}>
+                                                <span className="flex items-center gap-2">
+                                                    <cfg.icon className="h-4 w-4" />
+                                                    <span className="font-mono font-bold">{cfg.code}</span>
+                                                    <span>{cfg.label}</span>
+                                                    <span className="text-xs opacity-50">({cfg.impact})</span>
+                                                </span>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-bold text-primary/80">Changement de quantité</Label>
                                         <Input
                                             type="number"
-                                            placeholder="Utilisez - pour les pertes"
+                                            placeholder={formData.adjustmentType ? `${adjustmentTypes[formData.adjustmentType]?.impact} quantité` : "Quantité"}
                                             value={formData.quantityChange}
                                             onChange={(e) => setFormData({ ...formData, quantityChange: e.target.value })}
                                             className="bg-background/50 border-border/50 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-bold"

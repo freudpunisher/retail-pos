@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +29,9 @@ import {
     FileText,
     AlertCircle,
     PiggyBank,
+    X,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react"
 import { useExpenses } from "@/hooks/use-expenses"
 import { useUsers } from "@/hooks/use-users"
@@ -54,6 +57,10 @@ export default function ExpensesPage() {
     const [categoryFilter, setCategoryFilter] = useState<string>("all")
     const [showDialog, setShowDialog] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [startDate, setStartDate] = useState("")
+    const [endDate, setEndDate] = useState("")
+    const [page, setPage] = useState(1)
+    const pageSize = 20
 
     const { expenses, loading, createExpense, deleteExpense } = useExpenses()
     const { users } = useUsers()
@@ -67,8 +74,20 @@ export default function ExpensesPage() {
         date: new Date().toISOString().split("T")[0],
     })
 
+    const expensesInRange = useMemo(() => {
+        const today = new Date()
+        const start = startDate ? new Date(startDate) : new Date(today)
+        start.setHours(0, 0, 0, 0)
+        const end = endDate ? new Date(endDate) : new Date(today)
+        end.setHours(23, 59, 59, 999)
+        return expenses.filter((e: any) => {
+            const d = new Date(e.date)
+            return d >= start && d <= end
+        })
+    }, [expenses, startDate, endDate])
+
     const filtered = useMemo(() => {
-        let items = expenses
+        let items = expensesInRange
         if (categoryFilter !== "all") {
             items = items.filter(e => e.category === categoryFilter)
         }
@@ -80,7 +99,12 @@ export default function ExpensesPage() {
             )
         }
         return items
-    }, [expenses, search, categoryFilter])
+    }, [expensesInRange, search, categoryFilter])
+
+    const dateTotal = useMemo(() =>
+        expensesInRange.reduce((sum, e) => sum + Number(e.amount), 0),
+        [expensesInRange]
+    )
 
     const totalAmount = useMemo(() =>
         filtered.reduce((sum, e) => sum + Number(e.amount), 0),
@@ -89,11 +113,21 @@ export default function ExpensesPage() {
 
     const categoryTotals = useMemo(() => {
         const map: Record<string, number> = {}
-        for (const e of expenses) {
+        for (const e of expensesInRange) {
             map[e.category] = (map[e.category] || 0) + Number(e.amount)
         }
         return map
-    }, [expenses])
+    }, [expensesInRange])
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+    const paginatedExpenses = useMemo(() => {
+        const start = (page - 1) * pageSize
+        return filtered.slice(start, start + pageSize)
+    }, [filtered, page])
+
+    useEffect(() => {
+        setPage(1)
+    }, [search, startDate, endDate, categoryFilter])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -224,6 +258,31 @@ export default function ExpensesPage() {
                 </Dialog>
             </div>
 
+            {/* Date Filter */}
+            <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-44 bg-background/50 border-border/50"
+                    />
+                    <span className="text-muted-foreground">—</span>
+                    <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-44 bg-background/50 border-border/50"
+                    />
+                    {(startDate || endDate) && (
+                        <Button variant="ghost" size="sm" onClick={() => { setStartDate(""); setEndDate("") }}>
+                            <X className="h-4 w-4" />
+                        </Button>
+                    )}
+                </div>
+            </div>
+
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-4">
                 <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-lg transition-transform hover:scale-[1.02]">
@@ -231,7 +290,7 @@ export default function ExpensesPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total des dépenses</p>
-                                <p className="text-3xl font-black text-foreground mt-1">{expenses.length}</p>
+                                <p className="text-3xl font-black text-foreground mt-1">{expensesInRange.length}</p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
                                 <TrendingDown className="h-6 w-6 text-destructive" />
@@ -244,7 +303,7 @@ export default function ExpensesPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Montant total</p>
-                                <p className="text-3xl font-black text-destructive mt-1">{formatCurrency(totalAmount)}</p>
+                                <p className="text-3xl font-black text-destructive mt-1">{formatCurrency(dateTotal)}</p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
                                 <Wallet className="h-6 w-6 text-destructive" />
@@ -360,7 +419,7 @@ export default function ExpensesPage() {
                                     </TableCell>
                                 </TableRow>
                             )}
-                            {filtered.map((exp) => {
+                            {paginatedExpenses.map((exp) => {
                                 const cfg = categoryConfig[exp.category as ExpenseCategory] || categoryConfig.other
                                 return (
                                     <TableRow key={exp.id} className="border-border/50 hover:bg-secondary/5 transition-colors group">
@@ -413,6 +472,34 @@ export default function ExpensesPage() {
                         </TableBody>
                     </Table>
                 </CardContent>
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-border/50 bg-secondary/10 px-4 py-3">
+                        <p className="text-sm text-muted-foreground">
+                            {filtered.length} résultat{(filtered.length > 1 ? "s" : "")}
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <span className="text-sm font-medium">
+                                {page} / {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Card>
         </div>
     )

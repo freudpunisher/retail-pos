@@ -20,11 +20,19 @@ export async function GET(request: NextRequest) {
         const search = searchParams.get("search")
 
         const conditions: any[] = []
-        if (dateFrom) conditions.push(gte(stockMovements.date, new Date(dateFrom)))
+        function fmt(date: Date) {
+          const p = (n: number) => String(n).padStart(2, "0")
+          return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`
+        }
+        if (dateFrom) {
+          const d = new Date(dateFrom)
+          d.setHours(0, 0, 0, 0)
+          conditions.push(gte(stockMovements.date, sql`${fmt(d)}::timestamp`))
+        }
         if (dateTo) {
-            const end = new Date(dateTo)
-            end.setHours(23, 59, 59, 999)
-            conditions.push(lte(stockMovements.date, end))
+          const d = new Date(dateTo)
+          d.setHours(23, 59, 59, 999)
+          conditions.push(lte(stockMovements.date, sql`${fmt(d)}::timestamp`))
         }
         if (productId) conditions.push(eq(stockMovements.productId, productId))
         if (locationId) conditions.push(eq(stockMovements.locationId, locationId))
