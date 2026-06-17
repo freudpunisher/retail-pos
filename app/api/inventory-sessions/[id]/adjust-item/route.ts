@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { inventory, inventoryItems, products, stock, stockAdjustments, stockMovements } from "@/lib/db/schema"
-import { eq, sql, and } from "drizzle-orm"
-import { resolveWarehouse } from "@/lib/db/location-utils"
+import { inventory, inventoryItems, products, stock, stockAdjustments, stockMovements, locations } from "@/lib/db/schema"
+import { eq, sql } from "drizzle-orm"
 
 export async function POST(
   request: Request,
@@ -80,7 +79,7 @@ export async function POST(
         await tx
           .update(stock)
           .set({
-            quantityOnHand: physicalQty.toString(),
+            quantityOnHand: physicalQty,
             lastCountedDate: new Date(),
             updatedAt: new Date(),
           })
@@ -88,11 +87,11 @@ export async function POST(
       } else {
         await tx.insert(stock).values({
           productId,
-          locationId: warehouse.id,
-          quantityOnHand: physicalQty.toString(),
-          quantityReserved: "0",
-          reorderLevel: (product.minStock || 0).toString(),
-          reorderQuantity: "20",
+          locationId: session.locationId || (await tx.select({ id: locations.id }).from(locations).limit(1))[0]?.id || "",
+          quantityOnHand: physicalQty,
+          quantityReserved: 0,
+          reorderLevel: Number(product.minStock || 10),
+          reorderQuantity: 20,
           lastCountedDate: new Date(),
           updatedAt: new Date(),
         })
@@ -104,9 +103,12 @@ export async function POST(
         await tx.insert(stockMovements).values({
           productId,
           productName: product.name || "Unknown",
-          type: "adjustment",
+          type: "inventory",
           quantity: variance.toString(),
           userId: session.countedBy,
+          locationId: session.locationId,
+          referenceId: id,
+          referenceType: "inventory_session",
           notes: `Inventory quick adjust (Session ${id})`,
         })
 

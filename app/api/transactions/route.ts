@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 import db from "@/lib/db"
-import { transactions, transactionItems, products, stockMovements, clients, creditRecords, cashFlow, stock } from "@/lib/db/schema"
+import { transactions, transactionItems, products, stock, stockMovements, clients, locations, cashFlow, creditRecords } from "@/lib/db/schema"
 import { eq, sql, gte, lte, and, max } from "drizzle-orm"
 import { resolveWarehouse } from "@/lib/db/location-utils"
 
@@ -151,6 +151,7 @@ export async function POST(request: Request) {
                     .select({
                         id: products.id,
                         name: products.name,
+                        productType: products.productType,
                         stock: products.stock,
                         minStock: products.minStock,
                         productType: products.productType,
@@ -205,9 +206,10 @@ export async function POST(request: Request) {
                         .where(eq(stock.id, stockRecord.id))
                 } else {
                     const fallbackQty = Number(product.stock || 0) + quantityChange
+                    const [fallbackLocation] = await tx.select().from(locations).where(eq(locations.type, "bar")).limit(1)
                     await tx.insert(stock).values({
                         productId: item.productId,
-                        locationId: warehouse.id,
+                        locationId: fallbackLocation?.id || (await resolveWarehouse(tx, product?.productType || "ingredient")).id,
                         quantityOnHand: Math.max(0, fallbackQty).toString(),
                         quantityReserved: "0",
                         reorderLevel: product.minStock || "0",
@@ -217,12 +219,20 @@ export async function POST(request: Request) {
                 }
 
                 // 4. Create Stock Movement Record
+                const movementType = normalizedType === "sale" ? "out" : "in"
+                const [saleLocation] = normalizedType === "sale"
+                    ? await tx.select().from(locations).where(eq(locations.type, "bar")).limit(1)
+                    : [await resolveWarehouse(tx, product?.productType || "ingredient")]
+
                 await tx.insert(stockMovements).values({
                     productId: item.productId,
                     productName: item.productName,
-                    type: normalizedType === "sale" ? "sale" : "purchase",
+                    type: movementType,
                     quantity: quantityChange.toString(),
                     userId: sanitizedUserId,
+                    locationId: saleLocation?.id || null,
+                    referenceId: newTransaction.id,
+                    referenceType: "transaction",
                     notes: `Transaction ${newTransaction.id}`,
                 })
             }

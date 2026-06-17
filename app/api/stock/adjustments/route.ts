@@ -76,8 +76,11 @@ export async function POST(request: Request) {
                 productId,
                 productName: productName || product?.name || "Unknown",
                 type: "adjustment",
-                quantity: quantityChange,
+                quantity: String(quantityChange),
                 userId: effectiveUserId,
+                locationId: targetLocationId,
+                referenceId: newAdjustment.id,
+                referenceType: "stock_adjustment",
                 notes: `Adjustment: ${reason}`,
             })
 

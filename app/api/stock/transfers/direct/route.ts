@@ -98,8 +98,11 @@ export async function POST(request: Request) {
                     productId,
                     productName: product?.name || "Unknown",
                     type: "transfer",
-                    quantity: (-Number(quantity)).toString(),
+                    quantity: String(-quantity),
                     userId,
+                    locationId: fromLocationId,
+                    referenceId: newTransfer.id,
+                    referenceType: "stock_transfer",
                     notes: `Direct transfer: ${notes || `to ${toLocationId}`}`,
                 })
             }

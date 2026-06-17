@@ -12,7 +12,8 @@ export async function GET(
         const session = await db.query.inventory.findFirst({
             where: eq(inventory.id, id),
             with: {
-                user: true,
+                user: { columns: { id: true, name: true } },
+                location: { columns: { id: true, name: true, type: true } },
                 items: {
                     with: {
                         product: true

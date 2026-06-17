@@ -82,12 +82,16 @@ export async function POST(request: Request) {
         })
         .where(eq(products.id, productId))
 
+      const [bakeryStock] = await tx.select().from(stock).where(eq(stock.productId, productId)).limit(1)
       await tx.insert(stockMovements).values({
         productId,
         productName: product.name,
         type: "adjustment",
-        quantity: numericQty.toString(),
+        quantity: String(numericQty),
         userId,
+        locationId: bakeryStock?.locationId || null,
+        referenceId: null,
+        referenceType: "bakery",
         notes: note || "Production entry",
       })
     })

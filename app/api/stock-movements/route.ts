@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
             with: {
                 product: true,
                 user: true,
+                location: true,
             },
         })
         return NextResponse.json(allMovements)
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { productId, type, quantity, notes, userId } = body
+        const { productId, type, quantity, notes, userId, locationId, referenceId, referenceType } = body
 
         if (!productId || !type || quantity === undefined || !userId) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -62,6 +63,9 @@ export async function POST(request: Request) {
                     type,
                     quantity,
                     userId,
+                    locationId,
+                    referenceId,
+                    referenceType,
                     notes,
                 })
                 .returning()

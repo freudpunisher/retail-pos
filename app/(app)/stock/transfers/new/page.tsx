@@ -29,7 +29,10 @@ import {
 interface LineItem {
     key: string
     productId: string
-    quantity: string
+    productType: string
+    quantity: number
+    boxes: number
+    quantityPerBox: number
 }
 
 export default function NewTransferPage() {
@@ -44,7 +47,7 @@ export default function NewTransferPage() {
     const [toLocationId, setToLocationId] = useState("")
     const [notes, setNotes] = useState("")
     const [lineItems, setLineItems] = useState<LineItem[]>([
-        { key: uuid(), productId: "", quantity: "" },
+        { key: uuid(), productId: "", productType: "", quantity: 0, boxes: 0, quantityPerBox: 1 },
     ])
     const [stockByLocation, setStockByLocation] = useState<any[]>([])
     const [loadingStock, setLoadingStock] = useState(false)
@@ -74,19 +77,16 @@ export default function NewTransferPage() {
     const getProductQty = (pid: string) => stockByLocation.find((s: any) => s.productId === pid)?.quantityOnHand ?? 0
 
     const getItemError = (item: LineItem): string | null => {
-        if (!item.productId || !item.quantity) return null
-        const qty = parseInt(item.quantity)
-        if (isNaN(qty) || qty < 1) return "Invalid quantity"
+        if (!item.productId || item.quantity < 1) return null
         const avail = getProductQty(item.productId)
-        return qty > avail ? `Only ${avail} available` : null
+        return item.quantity > avail ? `Only ${avail} available` : null
     }
 
     const totalRequestedByProduct = useMemo(() => {
         const map = new Map<string, number>()
         for (const item of lineItems) {
-            if (item.productId && item.quantity) {
-                const qty = parseInt(item.quantity)
-                if (!isNaN(qty)) map.set(item.productId, (map.get(item.productId) || 0) + qty)
+            if (item.productId && item.quantity > 0) {
+                map.set(item.productId, (map.get(item.productId) || 0) + item.quantity)
             }
         }
         return map
@@ -94,7 +94,7 @@ export default function NewTransferPage() {
 
     const canSubmit = useMemo(() => {
         if (!fromLocationId || !toLocationId) return false
-        if (!lineItems.some((i) => i.productId && i.quantity)) return false
+        if (!lineItems.some((i) => i.productId && i.quantity > 0)) return false
         for (const item of lineItems) if (getItemError(item)) return false
         for (const [pid, total] of totalRequestedByProduct) if (total > getProductQty(pid)) return false
         return true
@@ -105,13 +105,62 @@ export default function NewTransferPage() {
     const barLocations = locations.filter((l: any) => l.type === "bar")
     const kitchenLocations = locations.filter((l: any) => l.type === "kitchen")
 
-    const addLineItem = () => setLineItems([...lineItems, { key: uuid(), productId: "", quantity: "" }])
+    const addLineItem = () => setLineItems([...lineItems, { key: uuid(), productId: "", productType: "", quantity: 0, boxes: 0, quantityPerBox: 1 }])
+
     const removeLineItem = (key: string) => lineItems.length > 1 && setLineItems(lineItems.filter((i) => i.key !== key))
-    const updateLineItem = (key: string, field: keyof LineItem, value: string) =>
+
+    const updateLineItem = (key: string, field: keyof LineItem, value: any) =>
         setLineItems(lineItems.map((i) => (i.key === key ? { ...i, [field]: value } : i)))
 
+    const handleProductSelect = (key: string, productId: string) => {
+        const product = products.find((p) => p.id === productId)
+        if (!product) return
+        const isDrink = product.productType === "drink"
+        const qpb = product.quantityPerBox || 1
+        setLineItems((prev) =>
+            prev.map((i) =>
+                i.key === key
+                    ? {
+                        ...i,
+                        productId,
+                        productType: product.productType,
+                        boxes: isDrink ? 1 : 0,
+                        quantityPerBox: qpb,
+                        quantity: isDrink ? qpb : 0,
+                    }
+                    : i
+            )
+        )
+    }
+
+    const updateBoxes = (key: string, newBoxes: number) => {
+        const bxs = Math.max(0, newBoxes)
+        if (bxs === 0) {
+            setLineItems((prev) => prev.filter((i) => i.key !== key))
+        } else {
+            setLineItems((prev) =>
+                prev.map((i) =>
+                    i.key === key
+                        ? { ...i, boxes: bxs, quantity: bxs * i.quantityPerBox }
+                        : i
+                )
+            )
+        }
+    }
+
+    const updateUnitQty = (key: string, newQty: number) => {
+        const qty = Math.max(0, newQty)
+        if (qty === 0) {
+            setLineItems((prev) => prev.filter((i) => i.key !== key))
+        } else {
+            setLineItems((prev) =>
+                prev.map((i) => (i.key === key ? { ...i, quantity: qty } : i))
+            )
+        }
+    }
+
     const handleSubmit = async () => {
-        const items = lineItems.filter((i) => i.productId && i.quantity).map((i) => ({ productId: i.productId, quantity: parseInt(i.quantity) }))
+        const items = lineItems.filter((i) => i.productId && i.quantity > 0).map((i) => ({ productId: i.productId, quantity: i.quantity }))
         if (!items.length || !currentUserId) return
         setSubmitting(true)
         try {
@@ -222,7 +271,7 @@ export default function NewTransferPage() {
                             </div>
                         ) : (
                             <div className="border rounded-lg overflow-hidden">
-                                <div className="grid grid-cols-[1fr,8rem,5rem,auto] gap-3 px-4 py-2.5 bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                <div className="grid grid-cols-[1fr,11rem,5rem,auto] gap-3 px-4 py-2.5 bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                     <span>Product</span>
                                     <span className="text-center">Quantity</span>
                                     <span className="text-right">Stock</span>
@@ -231,9 +280,10 @@ export default function NewTransferPage() {
                                 <div className="divide-y">
                                     {lineItems.map((item) => {
                                         const error = getItemError(item)
+                                        const isDrink = item.productType === "drink"
                                         return (
-                                            <div key={item.key} className="grid grid-cols-[1fr,8rem,5rem,auto] gap-3 px-4 py-3 items-start">
-                                                <Select value={item.productId} onValueChange={(v) => updateLineItem(item.key, "productId", v)}>
+                                            <div key={item.key} className="grid grid-cols-[1fr,11rem,5rem,auto] gap-3 px-4 py-3 items-start">
+                                                <Select value={item.productId} onValueChange={(v) => handleProductSelect(item.key, v)}>
                                                     <SelectTrigger className={`h-9 ${error ? "border-destructive" : ""}`}>
                                                         <SelectValue placeholder="Choose product..." />
                                                     </SelectTrigger>
@@ -249,16 +299,42 @@ export default function NewTransferPage() {
                                                     </SelectContent>
                                                 </Select>
                                                 <div className="space-y-0.5">
-                                                    <Input
-                                                        type="number"
-                                                        min={1}
-                                                        max={item.productId ? getProductQty(item.productId) : undefined}
-                                                        value={item.quantity}
-                                                        onChange={(e) => updateLineItem(item.key, "quantity", e.target.value)}
-                                                        placeholder="0"
-                                                        className={`h-9 text-center ${error ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                                                    />
-                                                    {error && <p className="text-xs text-destructive text-center">{error}</p>}
+                                                    {isDrink && item.productId ? (
+                                                        <div className="flex flex-col gap-1 items-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <Input
+                                                                    type="number"
+                                                                    min={0}
+                                                                    max={item.productId ? Math.floor(getProductQty(item.productId) / item.quantityPerBox) : undefined}
+                                                                    value={item.boxes}
+                                                                    onChange={(e) => updateBoxes(item.key, Number(e.target.value))}
+                                                                    className={`w-20 text-center h-8 ${error ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                                                                />
+                                                                <span className="text-sm font-medium">Boxes</span>
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground flex gap-1.5 items-center mt-0.5">
+                                                                <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                                                                    {item.quantityPerBox} units/box
+                                                                </Badge>
+                                                                <span>=</span>
+                                                                <span className="font-semibold text-foreground">{item.quantity} total units</span>
+                                                            </div>
+                                                            {error && <p className="text-xs text-destructive text-center">{error}</p>}
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <Input
+                                                                type="number"
+                                                                min={0}
+                                                                max={item.productId ? getProductQty(item.productId) : undefined}
+                                                                value={item.quantity || ""}
+                                                                onChange={(e) => updateUnitQty(item.key, Number(e.target.value))}
+                                                                placeholder="0"
+                                                                className={`h-9 text-center ${error ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                                                            />
+                                                            {error && <p className="text-xs text-destructive text-center">{error}</p>}
+                                                        </>
+                                                    )}
                                                 </div>
                                                 <div className="text-sm text-muted-foreground text-right pt-2">
                                                     {item.productId ? (
@@ -276,13 +352,17 @@ export default function NewTransferPage() {
                         )}
 
                         {/* Summary bar */}
-                        {lineItems.some((i) => i.productId && i.quantity) && (
+                        {lineItems.some((i) => i.productId && i.quantity > 0) && (
                             <div className="flex items-center justify-between text-sm bg-muted/30 rounded-lg px-4 py-2.5">
                                 <span className="text-muted-foreground">
-                                    {lineItems.filter((i) => i.productId && i.quantity).length} product(s)
+                                    {lineItems.filter((i) => i.productId && i.quantity > 0).length} product(s)
                                 </span>
                                 <span className="font-medium">
-                                    Total: {lineItems.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0)} units
+                                    {(() => {
+                                        const totalBoxes = lineItems.filter(i => i.productType === "drink").reduce((s, i) => s + i.boxes, 0)
+                                        const totalUnits = lineItems.reduce((s, i) => s + i.quantity, 0)
+                                        return totalBoxes > 0 ? `${totalBoxes} boxes / ${totalUnits} units` : `${totalUnits} units`
+                                    })()}
                                 </span>
                             </div>
                         )}
@@ -312,7 +392,7 @@ export default function NewTransferPage() {
                     <div className="flex items-center gap-2">
                         <Button type="button" variant="ghost" onClick={() => {
                             setFromLocationId(""); setToLocationId(""); setNotes("")
-                            setLineItems([{ key: uuid(), productId: "", quantity: "" }])
+                            setLineItems([{ key: uuid(), productId: "", productType: "", quantity: 0, boxes: 0, quantityPerBox: 1 }])
                         }}>
                             Reset
                         </Button>

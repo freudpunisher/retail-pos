@@ -17,16 +17,24 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Store, Tag, Shield, Plus, Trash2, Save, Loader2, Search, Pencil, Ruler, MapPin } from "lucide-react"
+import { Store, Tag, Shield, Plus, Trash2, Save, Loader2, Search, Pencil, Ruler, MapPin, Layers } from "lucide-react"
 import { useSettings } from "@/hooks/use-settings"
 import { useCategories } from "@/hooks/use-products"
 import { useUnits } from "@/hooks/use-units"
 import { useLocations } from "@/hooks/use-locations"
+import { useCategoryGroups } from "@/hooks/use-category-groups"
 import { cn } from "@/lib/utils"
 import { UserManagement } from "@/components/user-management"
 import Swal from "sweetalert2"
 
 type Category = {
+  id: string
+  name: string
+  description?: string
+  groupId?: string | null
+}
+
+type CategoryGroup = {
   id: string
   name: string
   description?: string
@@ -47,6 +55,7 @@ export default function SettingsPage() {
   const { categories, loading: categoriesLoading, createCategory, updateCategory, deleteCategory } = useCategories()
   const { units, loading: unitsLoading, createUnit, updateUnit, deleteUnit } = useUnits()
   const { locations, loading: locationsLoading, createLocation, updateLocation, deleteLocation } = useLocations()
+  const { groups: categoryGroups, loading: catGroupsLoading, createGroup, updateGroup, deleteGroup } = useCategoryGroups()
 
   const [storeInfo, setStoreInfo] = useState<any>(null)
   const [newCategory, setNewCategory] = useState({ name: "", description: "" })
@@ -79,6 +88,12 @@ export default function SettingsPage() {
 
   const [editUnit, setEditUnit] = useState<any>(null)
   const [showEditUnit, setShowEditUnit] = useState(false)
+
+  const [newGroup, setNewGroup] = useState({ name: "", description: "" })
+  const [showAddGroup, setShowAddGroup] = useState(false)
+  const [editGroup, setEditGroup] = useState<any>(null)
+  const [showEditGroup, setShowEditGroup] = useState(false)
+  const [categoryGroupFilter, setCategoryGroupFilter] = useState<string>("all")
   const handleStartEditUnit = (unit: any) => {
     setEditUnit(unit)
     setShowEditUnit(true)
@@ -125,7 +140,7 @@ export default function SettingsPage() {
     if (newCategory.name.trim()) {
       try {
         await createCategory(newCategory)
-        setNewCategory({ name: "", description: "" })
+        setNewCategory({ name: "", description: "", groupId: null })
         setShowAddCategory(false)
         await Swal.fire({
           icon: "success",
@@ -172,10 +187,14 @@ export default function SettingsPage() {
 
   const filteredCategories = categories.filter((category) => {
     const searchValue = categorySearch.trim().toLowerCase()
-    if (!searchValue) return true
-    const name = category.name?.toLowerCase() ?? ""
-    const description = category.description?.toLowerCase() ?? ""
-    return name.includes(searchValue) || description.includes(searchValue)
+    if (!searchValue && categoryGroupFilter === "all") return true
+    if (searchValue) {
+      const name = category.name?.toLowerCase() ?? ""
+      const description = category.description?.toLowerCase() ?? ""
+      if (!name.includes(searchValue) && !description.includes(searchValue)) return false
+    }
+    if (categoryGroupFilter !== "all" && category.groupId !== categoryGroupFilter) return false
+    return true
   })
   const categoryTotalPages = Math.max(1, Math.ceil(filteredCategories.length / categoryPageSize))
   const categoryCurrentPage = Math.min(categoryPage, categoryTotalPages)
@@ -200,6 +219,7 @@ export default function SettingsPage() {
       id: category.id,
       name: category.name ?? "",
       description: category.description ?? "",
+      groupId: category.groupId ?? null,
     })
     setShowEditCategory(true)
   }
@@ -211,6 +231,7 @@ export default function SettingsPage() {
         await updateCategory(editCategory.id, {
           name: editCategory.name,
           description: editCategory.description,
+          groupId: editCategory.groupId,
         })
         setShowEditCategory(false)
         setEditCategory(null)
@@ -225,6 +246,57 @@ export default function SettingsPage() {
           icon: "error",
           title: "Failed to update category",
         })
+      }
+    }
+  }
+
+  const handleAddGroup = async () => {
+    if (newGroup.name.trim()) {
+      try {
+        await createGroup(newGroup)
+        setNewGroup({ name: "", description: "" })
+        setShowAddGroup(false)
+        await Swal.fire({ icon: "success", title: "Group added", timer: 1500, showConfirmButton: false })
+      } catch {
+        await Swal.fire({ icon: "error", title: "Failed to add group" })
+      }
+    }
+  }
+
+  const handleStartEditGroup = (group: any) => {
+    setEditGroup({ id: group.id, name: group.name ?? "", description: group.description ?? "" })
+    setShowEditGroup(true)
+  }
+
+  const handleUpdateGroup = async () => {
+    if (!editGroup) return
+    if (editGroup.name.trim()) {
+      try {
+        await updateGroup(editGroup.id, { name: editGroup.name, description: editGroup.description })
+        setShowEditGroup(false)
+        setEditGroup(null)
+        await Swal.fire({ icon: "success", title: "Group updated", timer: 1500, showConfirmButton: false })
+      } catch {
+        await Swal.fire({ icon: "error", title: "Failed to update group" })
+      }
+    }
+  }
+
+  const handleDeleteGroup = async (id: string) => {
+    const result = await Swal.fire({
+      title: "Delete group?",
+      text: "Categories in this group will be unassigned.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+    })
+    if (result.isConfirmed) {
+      try {
+        await deleteGroup(id)
+        await Swal.fire({ icon: "success", title: "Group deleted", timer: 1500, showConfirmButton: false })
+      } catch {
+        await Swal.fire({ icon: "error", title: "Failed to delete group" })
       }
     }
   }
@@ -414,9 +486,10 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="store">
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
           <TabsTrigger value="store">Store Info</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="category-groups">Groups</TabsTrigger>
           <TabsTrigger value="units">Units</TabsTrigger>
           <TabsTrigger value="locations">Locations</TabsTrigger>
           <TabsTrigger value="menus">Menu Permissions</TabsTrigger>
@@ -528,15 +601,26 @@ export default function SettingsPage() {
                 <CardDescription>Manage product categories</CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="relative w-64">
+                <div className="relative w-48">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Search categories..."
+                    placeholder="Search..."
                     value={categorySearch}
                     onChange={(e) => handleCategorySearchChange(e.target.value)}
                     className="pl-10"
                   />
                 </div>
+                <Select value={categoryGroupFilter} onValueChange={(v) => { setCategoryGroupFilter(v); setCategoryPage(1) }}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="All Groups" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Groups</SelectItem>
+                    {categoryGroups.map((g: any) => (
+                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Select value={String(categoryPageSize)} onValueChange={handleCategoryPageSizeChange}>
                   <SelectTrigger className="w-[120px]">
                     <SelectValue placeholder="Rows" />
@@ -576,6 +660,23 @@ export default function SettingsPage() {
                           onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label>Group</Label>
+                        <Select
+                          value={newCategory.groupId ?? "none"}
+                          onValueChange={(v) => setNewCategory({ ...newCategory, groupId: v === "none" ? null : v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="No group" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No group</SelectItem>
+                            {categoryGroups.map((g: any) => (
+                              <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setShowAddCategory(false)}>
@@ -594,6 +695,7 @@ export default function SettingsPage() {
                     <TableRow className="hover:bg-transparent border-border">
                       <TableHead className="text-muted-foreground">ID</TableHead>
                       <TableHead className="text-muted-foreground">Name</TableHead>
+                      <TableHead className="text-muted-foreground">Group</TableHead>
                       <TableHead className="text-muted-foreground">Description</TableHead>
                       <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
                     </TableRow>
@@ -601,13 +703,13 @@ export default function SettingsPage() {
                   <TableBody>
                     {categoriesLoading ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
+                        <TableCell colSpan={5} className="h-24 text-center">
                           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
                     ) : paginatedCategories.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                           No categories found
                         </TableCell>
                       </TableRow>
@@ -616,6 +718,7 @@ export default function SettingsPage() {
                         <TableRow key={category.id} className="border-border">
                           <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{category.id}</TableCell>
                           <TableCell className="font-medium">{category.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{categoryGroups.find((g: any) => g.id === category.groupId)?.name || "-"}</TableCell>
                           <TableCell className="text-muted-foreground">{category.description || "-"}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -686,33 +789,200 @@ export default function SettingsPage() {
                 <DialogTitle>Edit Category</DialogTitle>
                 <DialogDescription>Update category details</DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input
-                    placeholder="e.g. Bakery"
-                    value={editCategory?.name ?? ""}
-                    onChange={(e) =>
-                      setEditCategory((prev) => (prev ? { ...prev, name: e.target.value } : prev))
-                    }
-                  />
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Name</Label>
+                    <Input
+                      placeholder="e.g. Bakery"
+                      value={editCategory?.name ?? ""}
+                      onChange={(e) =>
+                        setEditCategory((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description (optional)</Label>
+                    <Input
+                      placeholder="Category description"
+                      value={editCategory?.description ?? ""}
+                      onChange={(e) =>
+                        setEditCategory((prev) => (prev ? { ...prev, description: e.target.value } : prev))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Group</Label>
+                    <Select
+                      value={editCategory?.groupId ?? "none"}
+                      onValueChange={(v) =>
+                        setEditCategory((prev) => (prev ? { ...prev, groupId: v === "none" ? null : v } : prev))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="No group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No group</SelectItem>
+                        {categoryGroups.map((g: any) => (
+                          <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Description (optional)</Label>
-                  <Input
-                    placeholder="Category description"
-                    value={editCategory?.description ?? ""}
-                    onChange={(e) =>
-                      setEditCategory((prev) => (prev ? { ...prev, description: e.target.value } : prev))
-                    }
-                  />
-                </div>
-              </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowEditCategory(false)}>
                   Cancel
                 </Button>
                 <Button onClick={handleUpdateCategory}>Save Changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        {/* Category Groups */}
+        <TabsContent value="category-groups" className="mt-4">
+          <Card className="border-border bg-card">
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="h-5 w-5" />
+                  Category Groups
+                </CardTitle>
+                <CardDescription>Organize categories into groups</CardDescription>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Dialog open={showAddGroup} onOpenChange={setShowAddGroup}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Group
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Category Group</DialogTitle>
+                      <DialogDescription>Create a new category group</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Group Name</Label>
+                        <Input
+                          placeholder="Enter group name"
+                          value={newGroup.name}
+                          onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Input
+                          placeholder="Enter description"
+                          value={newGroup.description}
+                          onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddGroup(false)}>Cancel</Button>
+                      <Button onClick={handleAddGroup}>Add Group</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="rounded-md border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-border">
+                      <TableHead className="text-muted-foreground">ID</TableHead>
+                      <TableHead className="text-muted-foreground">Name</TableHead>
+                      <TableHead className="text-muted-foreground">Description</TableHead>
+                      <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {catGroupsLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                        </TableCell>
+                      </TableRow>
+                    ) : categoryGroups.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                          No groups found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      categoryGroups.map((group: any) => (
+                        <TableRow key={group.id} className="border-border">
+                          <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{group.id}</TableCell>
+                          <TableCell className="font-medium">{group.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{group.description || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground"
+                                title="Edit group"
+                                aria-label="Edit group"
+                                onClick={() => handleStartEditGroup(group)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => handleDeleteGroup(group.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+          <Dialog
+            open={showEditGroup}
+            onOpenChange={(open) => {
+              setShowEditGroup(open)
+              if (!open) setEditGroup(null)
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Category Group</DialogTitle>
+                <DialogDescription>Update group details</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    placeholder="Group name"
+                    value={editGroup?.name ?? ""}
+                    onChange={(e) => setEditGroup((prev: any) => (prev ? { ...prev, name: e.target.value } : prev))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Input
+                    placeholder="Group description"
+                    value={editGroup?.description ?? ""}
+                    onChange={(e) => setEditGroup((prev: any) => (prev ? { ...prev, description: e.target.value } : prev))}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowEditGroup(false)}>Cancel</Button>
+                <Button onClick={handleUpdateGroup}>Save Changes</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

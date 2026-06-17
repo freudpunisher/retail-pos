@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { inventory, inventoryItems, stock, stockMovements, products, stockAdjustments } from "@/lib/db/schema"
-import { and, eq, sql } from "drizzle-orm"
-import { resolveWarehouse } from "@/lib/db/location-utils"
+import { eq, and, sql } from "drizzle-orm"
 
 export async function POST(
     request: Request,
@@ -30,36 +29,64 @@ export async function POST(
         }
 
         const result = await db.transaction(async (tx) => {
+            // Validate: check that physical counts don't exceed reserved stock limits
+            const errors: string[] = []
+            for (const item of session.items) {
+                const physicalQty = Number(item.physicalQuantity ?? 0)
+                const logicalQty = Number(item.quantityInStock ?? 0)
+                if (physicalQty < 0) {
+                    errors.push(`${item.product?.name}: physical count cannot be negative`)
+                }
+                // Check reserved stock
+                const [stockRow] = session.locationId
+                    ? await tx.select().from(stock).where(and(
+                        eq(stock.productId, item.productId),
+                        eq(stock.locationId, session.locationId)
+                    ))
+                    : await tx.select().from(stock).where(eq(stock.productId, item.productId))
+                if (stockRow && physicalQty < stockRow.quantityReserved) {
+                    errors.push(
+                        `${item.product?.name}: physical count (${physicalQty}) is less than reserved stock (${stockRow.quantityReserved})`
+                    )
+                }
+            }
+            if (errors.length > 0) {
+                throw new Error(
+                    `Cannot reconcile: ${errors.length} issue(s) found.\n${errors.join("\n")}`
+                )
+            }
+
             // 1. Update stock levels and record movements for each variance
             for (const item of session.items) {
                 const variance = Number(item.variance ?? 0)
                 const physicalQty = Number(item.physicalQuantity ?? 0)
-                const warehouse = await resolveWarehouse(tx, item.product?.productType || "ingredient")
+
+                // Resolve the location stock row
+                const [stockRow] = session.locationId
+                    ? await tx.select().from(stock).where(and(
+                        eq(stock.productId, item.productId),
+                        eq(stock.locationId, session.locationId)
+                    ))
+                    : await tx.select().from(stock).where(eq(stock.productId, item.productId))
 
                 if (variance !== 0) {
-                    // Update Stock table
-                    const [stockRow] = await tx
-                        .select()
-                        .from(stock)
-                        .where(and(eq(stock.productId, item.productId), eq(stock.locationId, warehouse.id)))
-
                     if (stockRow) {
                         await tx
                             .update(stock)
                             .set({
-                                quantityOnHand: physicalQty.toString(),
+                                quantityOnHand: physicalQty,
                                 lastCountedDate: new Date(),
                                 updatedAt: new Date(),
                             })
                             .where(eq(stock.id, stockRow.id))
-                    } else {
+                    } else if (session.locationId) {
                         await tx.insert(stock).values({
                             productId: item.productId,
-                            locationId: warehouse.id,
-                            quantityOnHand: physicalQty.toString(),
-                            quantityReserved: "0",
-                            reorderLevel: (item.product?.minStock || 0).toString(),
-                            reorderQuantity: "20",
+                            locationId: session.locationId,
+                            quantityOnHand: physicalQty,
+                            quantityReserved: 0,
+                            reorderLevel: Number(item.product?.minStock || 10),
+                            reorderQuantity: 20,
                             lastCountedDate: new Date(),
                             updatedAt: new Date(),
                         })
@@ -74,13 +101,16 @@ export async function POST(
                     await tx.insert(stockMovements).values({
                         productId: item.productId,
                         productName: item.product.name,
-                        type: "adjustment",
+                        type: "inventory",
                         quantity: variance.toString(),
                         userId: session.countedBy,
+                        locationId: session.locationId,
+                        referenceId: session.id,
+                        referenceType: "inventory_session",
                         notes: `Inventory Count Reconciliation (Session ${session.id})`,
                     })
 
-                    // Record detailed adjustment (loss/surplus correction) for reporting
+                    // Record detailed adjustment
                     await tx.insert(stockAdjustments).values({
                         productId: item.productId,
                         quantityChange: variance.toString(),
@@ -91,11 +121,6 @@ export async function POST(
                     })
                 } else {
                     // Even if variance is 0, update last counted date
-                    const [stockRow] = await tx
-                        .select()
-                        .from(stock)
-                        .where(and(eq(stock.productId, item.productId), eq(stock.locationId, warehouse.id)))
-
                     if (stockRow) {
                         await tx
                             .update(stock)
@@ -104,14 +129,14 @@ export async function POST(
                                 updatedAt: new Date(),
                             })
                             .where(eq(stock.id, stockRow.id))
-                    } else {
+                    } else if (session.locationId) {
                         await tx.insert(stock).values({
                             productId: item.productId,
-                            locationId: warehouse.id,
-                            quantityOnHand: physicalQty.toString(),
-                            quantityReserved: "0",
-                            reorderLevel: (item.product?.minStock || 0).toString(),
-                            reorderQuantity: "20",
+                            locationId: session.locationId,
+                            quantityOnHand: physicalQty,
+                            quantityReserved: 0,
+                            reorderLevel: Number(item.product?.minStock || 10),
+                            reorderQuantity: 20,
                             lastCountedDate: new Date(),
                             updatedAt: new Date(),
                         })
@@ -133,8 +158,8 @@ export async function POST(
         })
 
         return NextResponse.json(result)
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to reconcile inventory session:", error)
-        return NextResponse.json({ error: "Failed to reconcile inventory session" }, { status: 500 })
+        return NextResponse.json({ error: error.message || "Failed to reconcile inventory session" }, { status: 500 })
     }
 }

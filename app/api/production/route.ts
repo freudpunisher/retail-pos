@@ -144,9 +144,12 @@ export async function POST(request: Request) {
                 await tx.insert(stockMovements).values({
                     productId: item.ingredientId,
                     productName: item.ingredient.name,
-                    type: "sale",
-                    quantity: (-requiredQty).toString(),
+                    type: "out",
+                    quantity: String(requiredQty),
                     userId: userId,
+                    locationId: stockRecord?.locationId || null,
+                    referenceId: run.id,
+                    referenceType: "production_run",
                     notes: `Used in production run ${run.batchNumber}`,
                 })
             }

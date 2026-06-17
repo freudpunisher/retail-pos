@@ -71,9 +71,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       await tx.insert(stockMovements).values({
         productId: recipe.productId,
         productName: recipe.product?.name || "Produit fini",
-        type: "purchase", // Or 'production' if type exists
-        quantity: numericQty.toString(),
+        type: "in",
+        quantity: String(numericQty),
         userId,
+        locationId: finishedStock?.locationId || null,
+        referenceId: id,
+        referenceType: "production_run",
         notes: `Produced in run ${run.batchNumber || run.id}`,
       })
 

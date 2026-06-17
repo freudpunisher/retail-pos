@@ -51,7 +51,7 @@ export default function StaffTablesPage() {
     let list = users
     if (staffSearch) {
       const q = staffSearch.toLowerCase()
-      list = list.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))
+      list = list.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q))
     }
     if (staffRoleFilter !== "all") list = list.filter((u) => u.role === staffRoleFilter)
     return list
@@ -196,6 +196,7 @@ export default function StaffTablesPage() {
                     <TableRow className="hover:bg-transparent border-border">
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead className="w-24 text-right">Actions</TableHead>
                     </TableRow>
@@ -215,6 +216,9 @@ export default function StaffTablesPage() {
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Mail className="h-3 w-3" /> {u.email}
                           </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {u.phone || "-"}
                         </TableCell>
                         <TableCell>
                           <Badge className={roleColors[u.role] || ""}>

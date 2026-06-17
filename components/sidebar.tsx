@@ -30,6 +30,8 @@ import {
   ChefHat,
   ArrowLeftRight,
   RefreshCw,
+  Store,
+  Landmark,
 } from "lucide-react"
 
 const iconMap: Record<string, any> = {
@@ -37,7 +39,7 @@ const iconMap: Record<string, any> = {
   ArrowLeftRight, Users, UserCog, CreditCard,
   BarChart3, Settings, Truck, RefreshCw,
   ClipboardList, Receipt, ArrowRightLeft, Wallet,
-  ChefHat,
+  ChefHat, Landmark,
 }
 
 const DEFAULT_MENUS = [
@@ -55,8 +57,9 @@ const DEFAULT_MENUS = [
   { id: "12", href: "/staff-tables", label: "Staff & Tables", icon: "UserCog", roles: ["admin", "manager"], sortOrder: 12 },
   { id: "13", href: "/clients", label: "Clients", icon: "Users", roles: ["admin", "manager", "cashier"], sortOrder: 13 },
   { id: "14", href: "/credit", label: "Credit Management", icon: "CreditCard", roles: ["admin", "manager"], sortOrder: 14 },
-  { id: "15", href: "/reports", label: "Reports", icon: "BarChart3", roles: ["admin", "manager"], sortOrder: 15 },
-  { id: "16", href: "/settings", label: "Settings", icon: "Settings", roles: ["admin"], sortOrder: 16 },
+  { id: "15", href: "/finance", label: "Finance", icon: "Landmark", roles: ["admin", "manager"], sortOrder: 15 },
+  { id: "16", href: "/reports", label: "Reports", icon: "BarChart3", roles: ["admin", "manager"], sortOrder: 16 },
+  { id: "17", href: "/settings", label: "Settings", icon: "Settings", roles: ["admin"], sortOrder: 17 },
 ]
 
 interface MenuItem {
@@ -110,14 +113,14 @@ export function Sidebar() {
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Warehouse className="h-5 w-5 text-primary-foreground" />
+              <Store className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-lg font-semibold text-foreground">SmartPOS</span>
           </Link>
         )}
         {collapsed && (
           <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Warehouse className="h-5 w-5 text-primary-foreground" />
+            <Store className="h-5 w-5 text-primary-foreground" />
           </div>
         )}
       </div>

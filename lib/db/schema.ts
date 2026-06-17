@@ -13,7 +13,7 @@ export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "purchase
 export const transactionStatusEnum = pgEnum("transaction_status", ["completed", "pending", "cancelled"])
 export const paymentMethodEnum = pgEnum("payment_method", ["cash", "credit", "card"])
 export const poStatusEnum = pgEnum("po_status", ["pending", "received", "cancelled"])
-export const stockMovementTypeEnum = pgEnum("stock_movement_type", ["sale", "purchase", "adjustment", "transfer"])
+export const stockMovementTypeEnum = pgEnum("stock_movement_type", ["in", "out", "adjustment", "transfer", "inventory"])
 export const creditStatusEnum = pgEnum("credit_status", ["paid", "partial", "overdue", "pending"])
 export const creditPaymentMethodEnum = pgEnum("credit_payment_method", ["cash", "card"])
 export const inventoryAdjustmentTypeEnum = pgEnum("inventory_adjustment_type", ["stock_count", "damage", "loss", "return", "transfer", "correction", "opening_stock", "addition", "subtraction"])
@@ -40,10 +40,17 @@ export const users = pgTable("users", {
     avatar: text("avatar"),
 })
 
+export const categoryGroups = pgTable("category_groups", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull().unique(),
+    description: text("description"),
+})
+
 export const categories = pgTable("categories", {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     description: text("description"),
+    groupId: uuid("group_id").references(() => categoryGroups.id),
 })
 
 export const products = pgTable("products", {
@@ -139,6 +146,7 @@ export const inventory = pgTable("inventory", {
     id: uuid("id").primaryKey().defaultRandom(),
     countDate: timestamp("count_date").notNull().defaultNow(),
     countedBy: uuid("counted_by").notNull().references(() => users.id),
+    locationId: uuid("location_id").references(() => locations.id),
     status: inventorySessionStatusEnum("status").notNull().default("in_progress"),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -229,6 +237,9 @@ export const stockMovements = pgTable("stock_movements", {
     quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
     date: timestamp("date").notNull().defaultNow(),
     userId: uuid("user_id").notNull().references(() => users.id),
+    locationId: uuid("location_id").references(() => locations.id),
+    referenceId: uuid("reference_id"),
+    referenceType: text("reference_type"),
     notes: text("notes"),
 })
 
@@ -329,10 +340,23 @@ export const usersRelations = relations(users, ({ many }) => ({
     inventorySessions: many(inventory),
     productionRuns: many(productionRuns),
     expenses: many(expenses),
+    expensesPaid: many(expenses, { relationName: "paidBy" }),
 }))
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
     products: many(products),
+}))
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+    user: one(users, {
+        fields: [expenses.userId],
+        references: [users.id],
+    }),
+    paidByUser: one(users, {
+        fields: [expenses.paidBy],
+        references: [users.id],
+        relationName: "paidBy",
+    }),
 }))
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -398,6 +422,7 @@ export const locationsRelations = relations(locations, ({ many }) => ({
     stock: many(stock),
     transfersFrom: many(stockTransfers, { relationName: "fromLocation" }),
     transfersTo: many(stockTransfers, { relationName: "toLocation" }),
+    stockMovements: many(stockMovements),
 }))
 
 export const stockTransfersRelations = relations(stockTransfers, ({ one, many }) => ({
@@ -457,6 +482,10 @@ export const inventoryRelations = relations(inventory, ({ one, many }) => ({
     user: one(users, {
         fields: [inventory.countedBy],
         references: [users.id],
+    }),
+    location: one(locations, {
+        fields: [inventory.locationId],
+        references: [locations.id],
     }),
     items: many(inventoryItems),
 }))
@@ -544,6 +573,10 @@ export const stockMovementsRelations = relations(stockMovements, ({ one }) => ({
     user: one(users, {
         fields: [stockMovements.userId],
         references: [users.id],
+    }),
+    location: one(locations, {
+        fields: [stockMovements.locationId],
+        references: [locations.id],
     }),
 }))
 

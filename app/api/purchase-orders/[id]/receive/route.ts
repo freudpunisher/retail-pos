@@ -38,6 +38,7 @@ export async function POST(
                 .where(eq(purchaseOrderItems.purchaseOrderId, id));
 
             for (const item of items) {
+                const qty = Math.round(Number(item.quantity) || 0)
                 const [product] = await tx
                     .select({
                         productType: products.productType,
@@ -52,7 +53,7 @@ export async function POST(
                 await tx
                     .update(products)
                     .set({
-                        stock: sql`${products.stock} + ${item.quantity}`,
+                        stock: sql`${products.stock} + ${qty}`,
                     })
                     .where(eq(products.id, item.productId));
 
@@ -69,7 +70,7 @@ export async function POST(
                     await tx
                         .update(stock)
                         .set({
-                            quantityOnHand: sql`${stock.quantityOnHand} + ${item.quantity}`,
+                            quantityOnHand: sql`${stock.quantityOnHand} + ${qty}`,
                             updatedAt: new Date(),
                         })
                         .where(eq(stock.id, stockRecord.id));
@@ -77,9 +78,7 @@ export async function POST(
                     await tx.insert(stock).values({
                         productId: item.productId,
                         locationId: warehouse.id,
-                        quantityOnHand: item.quantity,
-                        reorderLevel: product?.minStock || "10",
-                        reorderQuantity: "20",
+                        quantityOnHand: qty,
                     });
                 }
 
@@ -87,9 +86,12 @@ export async function POST(
                 await tx.insert(stockMovements).values({
                     productId: item.productId,
                     productName: item.productName,
-                    type: "purchase",
+                    type: "in",
                     quantity: item.quantity,
                     userId,
+                    locationId: warehouse.id,
+                    referenceId: id,
+                    referenceType: "purchase_order",
                     notes: `Received from PO ${id} at ${warehouse.name}`,
                 });
             }

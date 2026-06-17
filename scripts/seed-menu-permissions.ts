@@ -113,6 +113,13 @@ const SEED_MENU_PERMISSIONS = [
     sortOrder: 15,
   },
   {
+    href: "/finance",
+    label: "Finance",
+    icon: "Landmark",
+    roles: ["admin", "manager"],
+    sortOrder: 15,
+  },
+  {
     href: "/reports",
     label: "Reports",
     icon: "BarChart3",

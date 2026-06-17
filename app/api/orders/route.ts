@@ -109,9 +109,12 @@ export async function POST(request: Request) {
             await db.insert(stockMovements).values({
                 productId: item.productId,
                 productName: item.productName,
-                type: "sale",
-                quantity: (-item.quantity).toString(),
+                type: "out",
+                quantity: String(-item.quantity),
                 userId,
+                locationId: saleLocation.id,
+                referenceId: newOrder.id,
+                referenceType: "order",
                 notes: `Order ${newOrder.id}`,
             })
         }
