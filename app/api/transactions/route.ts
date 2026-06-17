@@ -5,6 +5,11 @@ import { caisseSessions, transactions, transactionItems, products, stock, stockM
 import { eq, sql, gte, lte, and, max } from "drizzle-orm"
 import { resolveWarehouse } from "@/lib/db/location-utils"
 
+function fmt(date: Date) {
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`
+}
+
 export async function GET(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams
@@ -13,11 +18,15 @@ export async function GET(request: NextRequest) {
         const dateTo = searchParams.get("dateTo")
 
         const conditions = []
-        if (dateFrom) conditions.push(gte(transactions.date, new Date(dateFrom)))
+        if (dateFrom) {
+            const d = new Date(dateFrom)
+            d.setHours(0, 0, 0, 0)
+            conditions.push(gte(transactions.date, sql`${fmt(d)}::timestamp`))
+        }
         if (dateTo) {
-            const end = new Date(dateTo)
-            end.setHours(23, 59, 59, 999)
-            conditions.push(lte(transactions.date, end))
+            const d = new Date(dateTo)
+            d.setHours(23, 59, 59, 999)
+            conditions.push(lte(transactions.date, sql`${fmt(d)}::timestamp`))
         }
 
         const allTransactions = await db.query.transactions.findMany({
