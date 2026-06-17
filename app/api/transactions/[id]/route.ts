@@ -172,7 +172,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const auth = await requireAuth()
         if (auth.error) return auth.error
@@ -181,6 +181,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         }
 
         const { id } = await params
+        const body = await request.json()
 
         const [existing] = await db
             .select()
@@ -191,56 +192,77 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
             return NextResponse.json({ error: "Transaction not found" }, { status: 404 })
         }
 
-        if (existing.status === "completed" || existing.status === "cancelled") {
-            return NextResponse.json({ error: "Cannot delete a completed or cancelled transaction" }, { status: 400 })
+        if (existing.status === "cancelled") {
+            return NextResponse.json({ error: "Transaction is already cancelled" }, { status: 400 })
         }
 
-        await db.transaction(async (tx) => {
-            // Restore stock from stock movements (they have the correct converted quantities)
-            const movements = await tx
-                .select()
-                .from(stockMovements)
-                .where(eq(stockMovements.referenceId, id))
+        if (body.action === "cancel") {
+            await db.transaction(async (tx) => {
+                // Restore stock from stock movements
+                const movements = await tx
+                    .select()
+                    .from(stockMovements)
+                    .where(eq(stockMovements.referenceId, id))
 
-            for (const mov of movements) {
-                const qty = Number.parseFloat(mov.quantity)
-                const reverseQty = -qty
+                for (const mov of movements) {
+                    const qty = Number.parseFloat(mov.quantity)
+                    const reverseQty = -qty
 
-                await tx.update(products).set({
-                    stock: sql`${products.stock} + ${reverseQty}`,
-                }).where(eq(products.id, mov.productId))
+                    await tx.update(products).set({
+                        stock: sql`${products.stock} + ${reverseQty}`,
+                    }).where(eq(products.id, mov.productId))
 
-                if (mov.locationId) {
-                    const [existingStock] = await tx
-                        .select()
-                        .from(stock)
-                        .where(and(eq(stock.productId, mov.productId), eq(stock.locationId, mov.locationId)))
-                        .limit(1)
-                    if (existingStock) {
-                        await tx.update(stock).set({
-                            quantityOnHand: sql`${stock.quantityOnHand} + ${reverseQty}`,
-                            updatedAt: new Date(),
-                        }).where(eq(stock.id, existingStock.id))
-                    } else {
-                        await tx.insert(stock).values({
-                            productId: mov.productId,
-                            locationId: mov.locationId,
-                            quantityOnHand: Math.max(0, reverseQty).toString(),
-                        })
+                    if (mov.locationId) {
+                        const [existingStock] = await tx
+                            .select()
+                            .from(stock)
+                            .where(and(eq(stock.productId, mov.productId), eq(stock.locationId, mov.locationId)))
+                            .limit(1)
+                        if (existingStock) {
+                            await tx.update(stock).set({
+                                quantityOnHand: sql`${stock.quantityOnHand} + ${reverseQty}`,
+                                updatedAt: new Date(),
+                            }).where(eq(stock.id, existingStock.id))
+                        } else {
+                            await tx.insert(stock).values({
+                                productId: mov.productId,
+                                locationId: mov.locationId,
+                                quantityOnHand: Math.max(0, reverseQty).toString(),
+                            })
+                        }
                     }
                 }
-            }
 
-            await tx.delete(transactionItems).where(eq(transactionItems.transactionId, id))
-            await tx.delete(stockMovements).where(eq(stockMovements.referenceId, id))
-            await tx.delete(cashFlow).where(eq(cashFlow.referenceId, id))
-            await tx.delete(creditRecords).where(eq(creditRecords.transactionId, id))
-            await tx.delete(transactions).where(eq(transactions.id, id))
-        })
+                // Record cancel movement
+                if (movements.length > 0) {
+                    await tx.insert(stockMovements).values({
+                        productId: movements[0].productId,
+                        productName: movements[0].productName,
+                        type: "in",
+                        quantity: String(-movements.reduce((sum, m) => sum + Number.parseFloat(m.quantity), 0)),
+                        userId: existing.userId,
+                        locationId: movements[0].locationId || undefined,
+                        referenceId: id,
+                        referenceType: "cancellation",
+                    })
+                }
 
-        return NextResponse.json({ success: true })
+                await tx.update(transactions).set({
+                    status: "cancelled",
+                }).where(eq(transactions.id, id))
+            })
+
+            const updated = await db.query.transactions.findFirst({
+                where: eq(transactions.id, id),
+                with: { items: true, client: true, user: true, table: true },
+            })
+
+            return NextResponse.json(updated)
+        }
+
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 })
     } catch (error) {
-        console.error("Failed to delete transaction:", error)
-        return NextResponse.json({ error: "Failed to delete transaction" }, { status: 500 })
+        console.error("Failed to cancel transaction:", error)
+        return NextResponse.json({ error: "Failed to cancel transaction" }, { status: 500 })
     }
 }

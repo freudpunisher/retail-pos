@@ -7,6 +7,11 @@ import { eq, desc, and, gte, lte, lt } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { resolveWarehouse } from "@/lib/db/location-utils";
 
+function fmt(date: Date) {
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`
+}
+
 // GET - list orders with optional date range filter
 export async function GET(request: NextRequest) {
   try {
@@ -15,11 +20,15 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo")
 
     const conditions = []
-    if (dateFrom) conditions.push(gte(purchaseOrders.date, new Date(dateFrom)))
+    if (dateFrom) {
+      const d = new Date(dateFrom)
+      d.setHours(0, 0, 0, 0)
+      conditions.push(gte(purchaseOrders.date, sql`${fmt(d)}::timestamp`))
+    }
     if (dateTo) {
-      const end = new Date(dateTo)
-      end.setHours(23, 59, 59, 999)
-      conditions.push(lte(purchaseOrders.date, end))
+      const d = new Date(dateTo)
+      d.setHours(23, 59, 59, 999)
+      conditions.push(lte(purchaseOrders.date, sql`${fmt(d)}::timestamp`))
     }
 
     const orders = await db
@@ -197,7 +206,10 @@ export async function receive(request: Request) {
       // Update stock for each item
       for (const item of items) {
         const [product] = await tx
-          .select({ productType: products.productType })
+          .select({
+            productType: products.productType,
+            minStock: products.minStock
+          })
           .from(products)
           .where(eq(products.id, item.productId))
           .limit(1)

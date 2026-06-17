@@ -2,30 +2,34 @@ import { NextResponse } from "next/server"
 import { NextRequest } from "next/server"
 import db from "@/lib/db"
 import { transactions, products, clients, transactionItems, users, purchaseOrders, inventory, stockAdjustments, categories, measurementUnits, stockMovements } from "@/lib/db/schema"
-import { desc, eq, sql, and, gte } from "drizzle-orm"
+import { desc, eq, ne, sql, and, gte, lte } from "drizzle-orm"
+
+function fmt(date: Date) {
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`
+}
 
 function getPeriodDateRange(period: string = "today") {
   const now = new Date()
   const today = new Date(now)
   today.setHours(0, 0, 0, 0)
 
-  let startDate: Date
+  let startDate: string
 
   switch (period) {
     case "week":
-      startDate = new Date(today)
-      startDate.setDate(today.getDate() - 7)
+      startDate = fmt(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000))
       break
     case "month":
-      startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+      startDate = fmt(new Date(today.getFullYear(), today.getMonth(), 1))
       break
     case "today":
     default:
-      startDate = today
+      startDate = fmt(today)
       break
   }
 
-  return { startDate, endDate: now }
+  return { startDate, endDate: fmt(now) }
 }
 
 export async function GET(request: NextRequest) {
@@ -47,14 +51,14 @@ export async function GET(request: NextRequest) {
                   .from(transactionItems)
                   .innerJoin(transactions, eq(transactionItems.transactionId, transactions.id))
                   .innerJoin(products, eq(transactionItems.productId, products.id))
-                  .where(
-                      and(
-                          gte(transactions.date, startDate),
-                          sql`${transactions.date} <= ${endDate.toISOString()}`,
-                          eq(transactions.status, "completed"),
-                          eq(products.sector, sector)
-                      )
-                  )
+                    .where(
+                        and(
+                            gte(transactions.date, sql`${startDate}::timestamp`),
+                            lte(transactions.date, sql`${endDate}::timestamp`),
+                            ne(transactions.status, "cancelled"),
+                            eq(products.sector, sector)
+                        )
+                    )
             : db
                   .select({
                       total: sql<number>`sum(${transactions.total})`,
@@ -64,9 +68,9 @@ export async function GET(request: NextRequest) {
                   .from(transactions)
                   .where(
                       and(
-                          gte(transactions.date, startDate),
-                          sql`${transactions.date} <= ${endDate.toISOString()}`,
-                          eq(transactions.status, "completed")
+                          gte(transactions.date, sql`${startDate}::timestamp`),
+                          lte(transactions.date, sql`${endDate}::timestamp`),
+                          ne(transactions.status, "cancelled")
                       )
                   )
 
@@ -81,10 +85,8 @@ export async function GET(request: NextRequest) {
                   .innerJoin(products, eq(transactionItems.productId, products.id))
                   .where(
                       and(
-                          period === "month"
-                              ? gte(transactions.date, new Date(startDate.getFullYear(), startDate.getMonth(), 1))
-                              : gte(transactions.date, startDate),
-                          eq(transactions.status, "completed"),
+                          gte(transactions.date, sql`${startDate}::timestamp`),
+                          ne(transactions.status, "cancelled"),
                           eq(products.sector, sector)
                       )
                   )
@@ -95,10 +97,8 @@ export async function GET(request: NextRequest) {
                   .from(transactions)
                   .where(
                       and(
-                          period === "month"
-                              ? gte(transactions.date, new Date(startDate.getFullYear(), startDate.getMonth(), 1))
-                              : gte(transactions.date, startDate),
-                          eq(transactions.status, "completed")
+                          gte(transactions.date, sql`${startDate}::timestamp`),
+                          ne(transactions.status, "cancelled")
                       )
                   )
 
@@ -128,16 +128,16 @@ export async function GET(request: NextRequest) {
             .innerJoin(products, eq(transactionItems.productId, products.id))
             .where(
                 and(
-                    gte(transactions.date, startDate),
-                    sql`${transactions.date} <= ${endDate.toISOString()}`,
-                    eq(transactions.status, "completed"),
+                    gte(transactions.date, sql`${startDate}::timestamp`),
+                    lte(transactions.date, sql`${endDate}::timestamp`),
+                    ne(transactions.status, "cancelled"),
                     sector ? eq(products.sector, sector) : sql`true`
                 )
             )
 
         // 6. Recent Transactions
         const recentTransactionsPromise = db.query.transactions.findMany({
-            where: eq(transactions.status, "completed"),
+            where: ne(transactions.status, "cancelled"),
             orderBy: [desc(transactions.date)],
             limit: sector ? 40 : 5,
             with: {
@@ -172,8 +172,8 @@ export async function GET(request: NextRequest) {
             .from(stockAdjustments)
             .where(
                 and(
-                    gte(stockAdjustments.createdDate, startDate),
-                    sql`${stockAdjustments.createdDate} <= ${endDate.toISOString()}`
+                    gte(stockAdjustments.createdDate, sql`${startDate}::timestamp`),
+                    lte(stockAdjustments.createdDate, sql`${endDate}::timestamp`)
                 )
             )
 
@@ -282,6 +282,10 @@ export async function GET(request: NextRequest) {
                   .where(eq(products.sector, sector))
             : Promise.resolve([])
 
+        async function safeQuery<T>(query: Promise<T>, fallback: T): Promise<T> {
+            try { return await query } catch (e) { console.error("Dashboard query failed:", e); return fallback }
+        }
+
         const [
             salesResult,
             revenueResult,
@@ -305,27 +309,27 @@ export async function GET(request: NextRequest) {
             inventoryHistoryResult,
             sectorProductIdsResult
         ] = await Promise.all([
-            salesPromise,
-            revenuePromise,
-            lowStockPromise,
-            totalCreditPromise,
-            productsSoldPromise,
-            recentTransactionsPromise,
-            totalUsersPromise,
-            adminUsersPromise,
-            pendingPurchaseOrdersPromise,
-            inProgressInventoriesPromise,
-            stockAdjustmentsInPeriodPromise,
-            totalProductsPromise,
-            totalCategoriesPromise,
-            totalMeasurementUnitsPromise,
-            transactionActivityPromise,
-            stockMovementActivityPromise,
-            stockAdjustmentActivityPromise,
-            inventoryActivityPromise,
-            stockAdjustmentHistoryPromise,
-            inventoryHistoryPromise,
-            sectorProductIdsPromise
+            safeQuery(salesPromise, [{ total: 0, count: 0, creditCount: 0 }]),
+            safeQuery(revenuePromise, [{ total: 0 }]),
+            safeQuery(lowStockPromise, [{ count: 0 }]),
+            safeQuery(totalCreditPromise, [{ total: 0 }]),
+            safeQuery(productsSoldPromise, [{ quantity: 0 }]),
+            safeQuery(recentTransactionsPromise, []),
+            safeQuery(totalUsersPromise, [{ count: 0 }]),
+            safeQuery(adminUsersPromise, [{ count: 0 }]),
+            safeQuery(pendingPurchaseOrdersPromise, [{ count: 0 }]),
+            safeQuery(inProgressInventoriesPromise, [{ count: 0 }]),
+            safeQuery(stockAdjustmentsInPeriodPromise, [{ count: 0 }]),
+            safeQuery(totalProductsPromise, [{ count: 0 }]),
+            safeQuery(totalCategoriesPromise, [{ count: 0 }]),
+            safeQuery(totalMeasurementUnitsPromise, [{ count: 0 }]),
+            safeQuery(transactionActivityPromise, []),
+            safeQuery(stockMovementActivityPromise, []),
+            safeQuery(stockAdjustmentActivityPromise, []),
+            safeQuery(inventoryActivityPromise, []),
+            safeQuery(stockAdjustmentHistoryPromise, []),
+            safeQuery(inventoryHistoryPromise, []),
+            safeQuery(sectorProductIdsPromise, [])
         ])
 
         const combinedActivity = [

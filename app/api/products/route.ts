@@ -112,7 +112,7 @@ export async function POST(request: Request) {
                     trackStock: trackStock || false,
                     image,
                     sector,
-                    quantityPerBox: quantityPerBox || 1,
+                    quantityPerBox: parseInt(quantityPerBox) || 1,
                 })
                 .returning()
 

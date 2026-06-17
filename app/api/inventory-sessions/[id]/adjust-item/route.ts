@@ -72,7 +72,9 @@ export async function POST(
         })
         .where(eq(inventoryItems.id, sessionItemId))
 
-      const [stockRow] = await tx.select().from(stock).where(eq(stock.productId, productId))
+      const warehouse = await resolveWarehouse(tx, product.productType || "ingredient")
+      const [stockRow] = await tx.select().from(stock).where(and(eq(stock.productId, productId), eq(stock.locationId, warehouse.id)))
+
       if (stockRow) {
         await tx
           .update(stock)
@@ -81,7 +83,7 @@ export async function POST(
             lastCountedDate: new Date(),
             updatedAt: new Date(),
           })
-          .where(eq(stock.productId, productId))
+          .where(and(eq(stock.productId, productId), eq(stock.locationId, warehouse.id)))
       } else {
         await tx.insert(stock).values({
           productId,

@@ -47,8 +47,8 @@ export default function ProductManagementPage() {
         (user?.role as string) === "cashier_bakery" || (user?.role as string) === "supervisor_bakery" || (user?.role as string) === "production_bakery"
             ? "Boulangerie"
             : (user?.role as string) === "cashier_food" || (user?.role as string) === "supervisor_food"
-            ? "Alimentation"
-            : null
+                ? "Alimentation"
+                : null
 
     const categoryIdsByGroup = useMemo(() => {
         if (groupFilter === "all") return null
@@ -314,12 +314,20 @@ export default function ProductManagementPage() {
                                                 {isMadeToOrder ? (
                                                     <Badge variant="outline" className="text-xs border-dashed">FSP</Badge>
                                                 ) : (
+<<<<<<< HEAD
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${Number(product.stock) <= Number(product.minStock)
+                                                        ? "bg-destructive/10 text-destructive"
+                                                        : "bg-primary/10 text-primary"
+                                                        }`}>
+                                                        {product.stock}
+=======
                                                     <span className={`px-2 py-1 rounded-md text-xs font-bold ${
                                                         Number(product.stock) <= Number(product.minStock)
                                                             ? "bg-destructive/10 text-destructive"
                                                             : "bg-primary/10 text-primary"
                                                     }`}>
                                                         {Number(product.stock)}
+>>>>>>> origin/augustin1
                                                     </span>
                                                 )}
                                             </TableCell>

@@ -93,12 +93,18 @@ export async function POST(
                     }
 
                     // Update Products table (denormalized total stock)
+<<<<<<< HEAD
+                    await tx.update(products).set({
+                        stock: physicalQty.toString()
+                    }).where(eq(products.id, item.productId))
+=======
                     const [product] = await tx.select().from(products).where(eq(products.id, item.productId))
                     if (product) {
                         await tx.update(products).set({
                             stock: physicalQty.toString()
                         }).where(eq(products.id, item.productId))
                     }
+>>>>>>> origin/augustin1
 
                     // Record Stock Movement
                     await tx.insert(stockMovements).values({

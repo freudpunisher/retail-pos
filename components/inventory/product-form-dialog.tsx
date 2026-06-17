@@ -16,8 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { useCategories } from "@/hooks/use-products"
 import { useUnits } from "@/hooks/use-units"
-import { Loader2, Beer, Utensils, Package, Plus, Trash2, GripVertical } from "lucide-react"
+import { Loader2, Beer, Utensils, Package, Plus, Trash2, GripVertical, Save } from "lucide-react"
 import Swal from "sweetalert2"
+import { toast } from "sonner"
 
 interface ProductFormDialogProps {
     product?: any
@@ -142,15 +143,11 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                 data.minStock = parseInt(formData.minStock) || 10
                 data.trackStock = true
                 data.price = 0
-            } else if (formData.productType === "drink") {
+            } else {
                 data.price = parseFloat(formData.price) || 0
                 data.trackStock = formData.trackStock
                 data.minStock = formData.trackStock ? (parseInt(formData.minStock) || 10) : 0
                 data.quantityPerBox = parseInt(formData.quantityPerBox) || 1
-            } else {
-                data.price = parseFloat(formData.price) || 0
-                data.trackStock = false
-                data.minStock = 0
             }
 
             // Include selling units if any
@@ -169,8 +166,10 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
 
             await onSubmit(data)
             onOpenChange(false)
-        } catch (error) {
+            toast.success(product ? "Produit mis à jour" : "Produit ajouté")
+        } catch (error: any) {
             console.error("Failed to save product:", error)
+            toast.error(error.message || "Erreur lors de l'enregistrement du produit")
         } finally {
             setLoading(false)
         }
@@ -182,7 +181,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>{product ? "Edit Product" : "Add New Product"}</DialogTitle>
@@ -195,7 +194,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label className="text-right">Type</Label>
                             <div className="col-span-3 flex gap-2">
-                                {(["drink", "food", "ingredient"] as const).map((type) => (
+                                {(['drink', 'food', 'ingredient'] as const).map((type) => (
                                     <Button
                                         key={type}
                                         type="button"
@@ -226,7 +225,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                             />
                         </div>
 
-                        {/* Category */}
+                        {/* Sector */}
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="category" className="text-right">
                                 Category
@@ -235,7 +234,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                 value={formData.categoryId}
                                 onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
                             >
-                                <SelectTrigger className="col-span-3">
+                                <SelectTrigger id="category" className="col-span-3">
                                     <SelectValue placeholder="Select category" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -516,7 +515,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                             Cancel
                         </Button>
                         <Button type="submit" disabled={loading}>
-                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                             {product ? "Save Changes" : "Add Product"}
                         </Button>
                     </DialogFooter>

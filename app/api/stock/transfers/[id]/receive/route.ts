@@ -38,7 +38,10 @@ export async function PATCH(
                 const { productId, quantity } = item
 
                 const [product] = await tx
-                    .select({ name: products.name })
+                    .select({
+                        name: products.name,
+                        minStock: products.minStock
+                    })
                     .from(products)
                     .where(eq(products.id, productId))
                     .limit(1)

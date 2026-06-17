@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useStockTransfers } from "@/hooks/use-stock-transfers"
 import { useUsers } from "@/hooks/use-users"
 import { useAuth } from "@/lib/auth-context"
@@ -17,8 +17,8 @@ import { printReport } from "@/lib/print-report"
 import {
     ArrowRightLeft, Loader2, Plus, CheckCircle, Package,
     Warehouse, Store, Clock, User, FileText, XCircle,
-    ChevronRight, Hash, CalendarDays, Beer, UtensilsCrossed,
-    Layers, ListChecks, Printer, Search, X
+    ChevronRight, ChevronLeft, Hash, CalendarDays, Beer, UtensilsCrossed,
+    Layers, ListChecks, Printer, Search, X, RotateCcw
 } from "lucide-react"
 
 export default function StockTransfersPage() {
@@ -26,11 +26,13 @@ export default function StockTransfersPage() {
     const { users } = useUsers()
     const { user } = useAuth()
     const currentUserId = user?.id || users[0]?.id || ""
-    const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin"
+    const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin" || user?.role === "stock_manager"
 
     const [productFilter, setProductFilter] = useState("all")
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
+    const [page, setPage] = useState(1)
+    const pageSize = 10
 
     const productNames = useMemo(() => {
         const set = new Set<string>()
@@ -67,6 +69,16 @@ export default function StockTransfersPage() {
         completed: transfers.filter((t: any) => t.status === "completed").length,
         cancelled: transfers.filter((t: any) => t.status === "cancelled").length,
     }), [transfers])
+
+    const totalPages = Math.max(1, Math.ceil(filteredTransfers.length / pageSize))
+    const paginatedTransfers = useMemo(() => {
+        const start = (page - 1) * pageSize
+        return filteredTransfers.slice(start, start + pageSize)
+    }, [filteredTransfers, page])
+
+    useEffect(() => {
+        setPage(1)
+    }, [productFilter, startDate, endDate])
 
     const handleApprove = async (id: string) => {
         try { await approveTransfer(id, currentUserId) } catch (err: any) { alert(err.message) }
@@ -158,6 +170,13 @@ export default function StockTransfersPage() {
                             </Link>
                         </Button>
                     )}
+                    {isManagerOrAdmin && (
+                        <Button size="sm" variant="outline" asChild>
+                            <Link href="/stock/transfers/retour-cuisine">
+                                <RotateCcw className="h-4 w-4 mr-1.5" /> Retour cuisine
+                            </Link>
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -244,9 +263,9 @@ export default function StockTransfersPage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    <ScrollArea className="h-[calc(100vh-28rem)]">
-                        <div className="space-y-3 pr-4">
-                            {filteredTransfers.map((t: any) => {
+                    <>
+                        <div className="space-y-3">
+                            {paginatedTransfers.map((t: any) => {
                                 const items = t.items || []
                                 const totalQty = items.reduce((sum: number, i: any) => sum + i.quantity, 0) || t.quantity || 0
                                 const itemCount = items.length || (t.productId ? 1 : 0)
@@ -365,7 +384,35 @@ export default function StockTransfersPage() {
                                 )
                             })}
                         </div>
-                    </ScrollArea>
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between pt-2">
+                                <p className="text-sm text-muted-foreground">
+                                    {filteredTransfers.length} résultat{filteredTransfers.length > 1 ? "s" : ""}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                                        disabled={page === 1}
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                    <span className="text-sm font-medium">
+                                        {page} / {totalPages}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={page === totalPages}
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 

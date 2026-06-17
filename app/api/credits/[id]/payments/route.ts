@@ -75,7 +75,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         .where(eq(transactions.id, record.transactionId))
 
       await tx.insert(cashFlow).values({
-        date: new Date(),
         amount: numericAmount.toString(),
         type: "inflow",
         category: "sale",

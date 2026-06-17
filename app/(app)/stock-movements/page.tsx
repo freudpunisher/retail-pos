@@ -140,11 +140,11 @@ export default function StockMovementsPage() {
   const getMovementIcon = (type: string) => {
     switch (type) {
       case "in":
-        return <ArrowDownCircle className="h-4 w-4 text-accent" />
+        return <ArrowDownCircle className="h-4 w-4 text-emerald-500" />
       case "out":
         return <ArrowUpCircle className="h-4 w-4 text-destructive" />
       case "adjustment":
-        return <RefreshCw className="h-4 w-4 text-warning" />
+        return <RefreshCw className="h-4 w-4 text-orange-500" />
       case "transfer":
         return <ArrowUpCircle className="h-4 w-4 text-blue-500" />
       case "inventory":
@@ -157,11 +157,11 @@ export default function StockMovementsPage() {
   const getMovementBadge = (type: string) => {
     switch (type) {
       case "in":
-        return <Badge className="bg-accent/20 text-accent">ENTRÉE</Badge>
+        return <Badge className="bg-emerald-500/20 text-emerald-600">ENTRÉE</Badge>
       case "out":
         return <Badge className="bg-primary/20 text-primary">SORTIE</Badge>
       case "adjustment":
-        return <Badge className="bg-warning/20 text-warning">Ajustement</Badge>
+        return <Badge className="bg-orange-500/20 text-orange-600">Ajustement</Badge>
       case "transfer":
         return <Badge className="bg-blue-500/20 text-blue-600">Transfert</Badge>
       case "inventory":
@@ -343,9 +343,9 @@ export default function StockMovementsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Entrées</p>
-                <p className="text-2xl font-bold text-accent">{loading ? "..." : inboundCount}</p>
+                <p className="text-2xl font-bold text-emerald-500">{loading ? "..." : inboundCount}</p>
               </div>
-              <ArrowDownCircle className="h-8 w-8 text-accent" />
+              <ArrowDownCircle className="h-8 w-8 text-emerald-500" />
             </div>
           </CardContent>
         </Card>
@@ -365,9 +365,9 @@ export default function StockMovementsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Ajustements</p>
-                <p className="text-2xl font-bold text-warning">{loading ? "..." : adjustmentCount}</p>
+                <p className="text-2xl font-bold text-orange-500">{loading ? "..." : adjustmentCount}</p>
               </div>
-              <RefreshCw className="h-8 w-8 text-warning" />
+              <RefreshCw className="h-8 w-8 text-orange-500" />
             </div>
           </CardContent>
         </Card>

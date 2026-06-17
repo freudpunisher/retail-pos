@@ -2,13 +2,19 @@ import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { products, categories, stock } from "@/lib/db/schema"
 import { eq, desc, sql, and } from "drizzle-orm"
+import { resolveWarehouse } from "@/lib/db/location-utils"
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search")
 
     try {
-        let query = db
+        const conditions = [eq(products.type, 'raw_material')]
+        if (search) {
+            conditions.push(sql`${products.name} ILIKE ${`%${search}%`} OR ${products.sku} ILIKE ${`%${search}%`}`)
+        }
+
+        const rawMaterials = await db
             .select({
                 id: products.id,
                 sku: products.sku,
@@ -23,16 +29,8 @@ export async function GET(request: Request) {
             })
             .from(products)
             .leftJoin(categories, eq(products.categoryId, categories.id))
-            .where(eq(products.type, 'raw_material'))
-
-        if (search) {
-            query = query.where(and(
-                eq(products.type, 'raw_material'),
-                sql`${products.name} ILIKE ${`%${search}%`} OR ${products.sku} ILIKE ${`%${search}%`}`
-            )) as any
-        }
-
-        const rawMaterials = await query.orderBy(desc(products.name))
+            .where(and(...conditions))
+            .orderBy(desc(products.name))
 
         return NextResponse.json(rawMaterials)
     } catch (error) {
@@ -68,21 +66,23 @@ export async function POST(request: Request) {
                     type: 'raw_material',
                     sector: "Boulangerie",
                     unit: unit || 'kg',
-                    price: '0', // Raw materials are not executed to be sold directly usually, or price is 0
-                    cost: cost.toString(),
-                    stock: 0,
-                    minStock: minStock || 10,
+                    price: '0',
+                    cost: (cost || 0).toString(),
+                    stock: "0",
+                    minStock: (minStock || 0).toString(),
                     image,
                 })
                 .returning()
 
-            // Initialize stock record
+            // Initialize stock record at principal warehouse
+            const warehouse = await resolveWarehouse(tx, 'raw_material')
             await tx.insert(stock).values({
                 productId: newProduct.id,
+                locationId: warehouse.id,
                 quantityOnHand: "0",
                 quantityReserved: "0",
-                reorderLevel: minStock || 10,
-                reorderQuantity: 20
+                reorderLevel: (minStock || 0).toString(),
+                reorderQuantity: "20"
             })
 
             return newProduct

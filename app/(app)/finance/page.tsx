@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Link from "next/link"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell,
 } from "recharts"
-import { Loader2, DollarSign, Package, Truck, TrendingUp, TrendingDown, BarChart3, Beer, Utensils, Warehouse, Store, CalendarIcon, Printer } from "lucide-react"
+import { Loader2, DollarSign, Package, Truck, TrendingUp, TrendingDown, BarChart3, Beer, Utensils, Warehouse, Store, CalendarIcon, Printer, ChevronRight } from "lucide-react"
 import { printReport } from "@/lib/print-report"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -312,6 +313,38 @@ export default function FinanceOverviewPage() {
                         <p className="text-xs text-muted-foreground">Marge {data.profit.margin.toFixed(1)}%</p>
                     </CardContent>
                 </Card>
+            </div>
+
+            {/* Navigation to detail pages */}
+            <div className="grid gap-4 md:grid-cols-2">
+                <Link href="/finance/cuisine" className="block">
+                    <Card className="hover:bg-muted/50 transition-colors cursor-pointer border-amber-200 dark:border-amber-800">
+                        <CardContent className="p-4 flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                <Utensils className="h-6 w-6 text-amber-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-semibold">Analyse Cuisine</h3>
+                                <p className="text-sm text-muted-foreground">Ventes et rentabilité des produits alimentaires</p>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </CardContent>
+                    </Card>
+                </Link>
+                <Link href="/finance/reports" className="block">
+                    <Card className="hover:bg-muted/50 transition-colors cursor-pointer border-blue-200 dark:border-blue-800">
+                        <CardContent className="p-4 flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                <BarChart3 className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-semibold">Rapports Financiers</h3>
+                                <p className="text-sm text-muted-foreground">Trésorerie et rentabilité globale</p>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
 
             <Tabs defaultValue="overview" className="space-y-4">

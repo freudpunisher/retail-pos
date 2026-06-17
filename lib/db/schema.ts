@@ -2,7 +2,7 @@ import { pgTable, text, integer, timestamp, numeric, uuid, pgEnum, boolean } fro
 import { relations } from "drizzle-orm"
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "cashier", "waiter", "chef"])
+export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "cashier", "waiter", "chef", "stock_manager"])
 export const productTypeEnum = pgEnum("product_type", ["drink", "food", "ingredient"])
 export const orderStatusEnum = pgEnum("order_status", ["pending", "preparing", "ready", "served", "paid", "cancelled"])
 export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "purchase", "credit_payment"])
@@ -113,7 +113,7 @@ export const stockTransfers = pgTable("stock_transfers", {
     productId: uuid("product_id").references(() => products.id),
     fromLocationId: uuid("from_location_id").notNull().references(() => locations.id),
     toLocationId: uuid("to_location_id").notNull().references(() => locations.id),
-    quantity: integer("quantity"),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }),
     transferType: transferTypeEnum("transfer_type").notNull().default("demand"),
     userId: uuid("user_id").notNull().references(() => users.id),
     date: timestamp("date").notNull().defaultNow(),
@@ -128,7 +128,7 @@ export const stockTransferItems = pgTable("stock_transfer_items", {
     id: uuid("id").primaryKey().defaultRandom(),
     transferId: uuid("transfer_id").notNull().references(() => stockTransfers.id, { onDelete: "cascade" }),
     productId: uuid("product_id").notNull().references(() => products.id),
-    quantity: integer("quantity").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
 })
 
 export const tables = pgTable("tables", {
@@ -207,6 +207,7 @@ export const transactions = pgTable("transactions", {
     waiterId: uuid("waiter_id").references(() => users.id),
     tableId: uuid("table_id").references(() => tables.id),
     reference: text("reference"),
+    clientProof: text("client_proof"),
 })
 
 export const transactionItems = pgTable("transaction_items", {

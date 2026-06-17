@@ -432,7 +432,7 @@ export default function InventoryStatusPage() {
                   ))}
                 </TableBody>
               </Table>
-              
+
               <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
                   Affichage de {(currentPage - 1) * pageSize + 1} à {Math.min(currentPage * pageSize, filteredInventory.length)} sur {filteredInventory.length} produits

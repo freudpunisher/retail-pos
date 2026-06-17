@@ -170,7 +170,7 @@ export interface Category {
 export interface Location {
   id: string
   name: string
-  type: "principal" | "transitional" | "bar" | "kitchen"
+  type: "principal" | "transitional" | "bar" | "kitchen" | "bakery" | "restaurant" | "stock"
   isActive: boolean
 }
 

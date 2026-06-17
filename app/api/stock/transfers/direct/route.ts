@@ -36,7 +36,10 @@ export async function POST(request: Request) {
                 const { productId, quantity } = item
 
                 const [product] = await tx
-                    .select({ name: products.name })
+                    .select({
+                        name: products.name,
+                        minStock: products.minStock
+                    })
                     .from(products)
                     .where(eq(products.id, productId))
                     .limit(1)
@@ -46,7 +49,7 @@ export async function POST(request: Request) {
                 await tx.insert(stockTransferItems).values({
                     transferId: newTransfer.id,
                     productId,
-                    quantity,
+                    quantity: quantity.toString(),
                 })
 
                 const [sourceStock] = await tx

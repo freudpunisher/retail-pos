@@ -40,7 +40,10 @@ export async function POST(
             for (const item of items) {
                 const qty = Math.round(Number(item.quantity) || 0)
                 const [product] = await tx
-                    .select({ productType: products.productType })
+                    .select({
+                        productType: products.productType,
+                        minStock: products.minStock
+                    })
                     .from(products)
                     .where(eq(products.id, item.productId))
                     .limit(1)
@@ -63,7 +66,7 @@ export async function POST(
                     )
                     .limit(1);
 
-                 if (stockRecord) {
+                if (stockRecord) {
                     await tx
                         .update(stock)
                         .set({
