@@ -121,8 +121,8 @@ export async function GET(
             (sum, e) => sum + Number.parseFloat(e.amount || "0"), 0
         )
 
-        // Get manual movements (excluding automatic expense movements to avoid double counting)
-        const movements = (session.movements || []).filter(m => !m.reason.startsWith("Dépense :"))
+        // Get manual movements (excluding automatic expense and credit payment movements to avoid double counting)
+        const movements = (session.movements || []).filter(m => !m.reason.startsWith("Dépense :") && !m.reason.startsWith("Paiement facture"))
         const manualIn = movements
             .filter((m) => m.type === "in")
             .reduce((sum, m) => sum + Number.parseFloat(m.amount), 0)
@@ -179,6 +179,15 @@ export async function PUT(
                 return NextResponse.json({ error: "Session already closed" }, { status: 400 })
             }
 
+            // Only the user who opened the session (or admin/manager) can close it
+            const currentUserId = auth.payload?.userId
+            const userRole = auth.payload?.role
+            if (session.userId !== currentUserId && userRole !== "admin" && userRole !== "manager") {
+                return NextResponse.json({
+                    error: "Seul l'utilisateur qui a ouvert la caisse peut la fermer"
+                }, { status: 403 })
+            }
+
             // Calculate expected balance and difference
             const openedAt = new Date(session.openedAt)
 
@@ -227,13 +236,13 @@ export async function PUT(
                 (sum, e) => sum + Number.parseFloat(e.amount || "0"), 0
             )
 
-            // Get manual movements (excluding automatic expense movements)
+            // Get manual movements (excluding automatic expense and credit payment movements)
             const allMovements = await db
                 .select()
                 .from(caisseMovements)
                 .where(eq(caisseMovements.sessionId, id))
 
-            const movements = allMovements.filter(m => !m.reason.startsWith("Dépense :"))
+            const movements = allMovements.filter(m => !m.reason.startsWith("Dépense :") && !m.reason.startsWith("Paiement facture"))
 
             const manualIn = movements
                 .filter((m) => m.type === "in")

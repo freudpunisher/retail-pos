@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
 import { notifications, stock, products } from "@/lib/db/schema"
-import { eq, and, desc, sql } from "drizzle-orm"
+import { eq, and, desc, sql, ne } from "drizzle-orm"
 
 export async function GET() {
     try {
@@ -34,7 +34,8 @@ export async function POST() {
             .where(
                 and(
                     sql`${stock.quantityOnHand} <= ${stock.reorderLevel}`,
-                    sql`${stock.quantityOnHand} > 0`
+                    sql`${stock.quantityOnHand} > 0`,
+                    ne(products.productType, "food")
                 )
             )
 
@@ -46,7 +47,12 @@ export async function POST() {
             })
             .from(stock)
             .innerJoin(products, eq(products.id, stock.productId))
-            .where(eq(stock.quantityOnHand, "0"))
+            .where(
+                and(
+                    eq(stock.quantityOnHand, "0"),
+                    ne(products.productType, "food")
+                )
+            )
 
         // Create notifications for low stock
         const created: any[] = []

@@ -89,6 +89,9 @@ export default function CaisseManagementPage() {
 
     const isAdmin = user?.role === "admin" || user?.role === "manager"
 
+    // Only the user who opened the session (or admin/manager) can close it
+    const canCloseSession = !!(user && openSession && (user.id === openSession.userId || isAdmin))
+
     const handleOpenSession = async () => {
         if (!user) return
         try {
@@ -242,7 +245,7 @@ export default function CaisseManagementPage() {
                             </Button>
                             <Button variant="default" onClick={() => {
                                 handleViewDetails(openSession).then(() => setShowCloseDialog(true))
-                            }}>
+                            }} disabled={!canCloseSession} title={!canCloseSession ? "Seul l'utilisateur qui a ouvert la caisse peut la fermer" : ""}>
                                 <Square className="mr-2 h-4 w-4" />
                                 Clôturer
                             </Button>
@@ -393,13 +396,13 @@ export default function CaisseManagementPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge
-                                                    variant="outline"
                                                     className={
                                                         session.status === "open"
-                                                            ? "border-green-500/30 bg-green-500/10 text-green-700"
-                                                            : "border-gray-500/30 bg-gray-500/10 text-gray-700"
+                                                            ? "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
+                                                            : "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
                                                     }
                                                 >
+                                                    <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${session.status === "open" ? "bg-green-500" : "bg-gray-400"}`} />
                                                     {session.status === "open" ? "Ouverte" : "Fermée"}
                                                 </Badge>
                                             </TableCell>
@@ -791,6 +794,8 @@ export default function CaisseManagementPage() {
                                     setShowDetailsDialog(false)
                                     setShowCloseDialog(true)
                                 }}
+                                disabled={!canCloseSession}
+                                title={!canCloseSession ? "Seul l'utilisateur qui a ouvert la caisse peut la fermer" : ""}
                             >
                                 <Square className="mr-2 h-4 w-4" />
                                 Clôturer la Caisse

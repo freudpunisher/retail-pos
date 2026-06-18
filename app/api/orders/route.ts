@@ -50,13 +50,17 @@ export async function POST(request: Request) {
             0,
         )
 
-        // Generate sequential reference: FACT0001, FACT0002, ...
+        // Generate sequential reference: FACT-YYYY-MM-XXXXX
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, "0")
+        const prefix = `FACT-${year}-${month}-`
         const [lastRef] = await db
             .select({ maxRef: max(transactions.reference) })
             .from(transactions)
-            .where(sql`${transactions.reference} ~ '^FACT[0-9]+$'`)
-        const lastNum = lastRef?.maxRef ? parseInt(lastRef.maxRef.replace("FACT", ""), 10) : 0
-        const reference = `FACT${String(lastNum + 1).padStart(4, "0")}`
+            .where(sql`${transactions.reference} ~ ${`^FACT-${year}-${month}-[0-9]+$`}`)
+        const lastNum = lastRef?.maxRef ? parseInt(lastRef.maxRef.split("-").pop()!, 10) : 0
+        const reference = `${prefix}${String(lastNum + 1).padStart(5, "0")}`
 
         const [newOrder] = await db
             .insert(transactions)

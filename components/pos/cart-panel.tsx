@@ -63,6 +63,21 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
   const isCreditExceeded = !!(selectedClient && paymentMethod === "credit" &&
     (Number.parseFloat(String(selectedClient.creditBalance)) + total > Number.parseFloat(String(selectedClient.creditLimit))))
 
+  const maxQtyForItem = (item: CartItem): number => {
+    if (item.productType === "food" || !item.trackStock) return Infinity
+    const totalStock = productStockMap[item.id] ?? 0
+    if (totalStock <= 0) return 0
+    const cf = item.sellingUnits?.find((s) => s.id === item.sellingUnitId)?.conversionFactor ?? 1
+    const otherConsumption = items
+      .filter((i) => i.id === item.id && i.sellingUnitId !== item.sellingUnitId)
+      .reduce((sum, i) => {
+        const icf = i.sellingUnits?.find((s) => s.id === i.sellingUnitId)?.conversionFactor ?? 1
+        return sum + i.quantity * icf
+      }, 0)
+    const available = totalStock - otherConsumption
+    return available <= 0 ? 0 : Math.floor(available / cf)
+  }
+
   const handleCheckout = async () => {
     if (!user) {
       toast.error("Vous devez être connecté pour effectuer une vente")
@@ -206,7 +221,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
             ) : (
               <div className="space-y-3 pb-4">
                 {items.map((item) => (
-                  <div key={item.id} className="rounded-lg border border-border bg-secondary/30 p-3">
+                  <div key={`${item.id}-${item.sellingUnitId || 'default'}`} className="rounded-lg border border-border bg-secondary/30 p-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <p className="font-medium text-sm">{item.name}</p>
@@ -238,7 +253,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
                         <Input
                           type="number"
                           min="1"
-                          max={productStockMap[item.id] ?? 0}
+                          max={maxQtyForItem(item)}
                           value={item.quantity}
                           onChange={(e) => {
                             const val = parseInt(e.target.value) || 0
@@ -251,7 +266,7 @@ export function CartPanel({ orderMode, onCreateOrder, creatingOrder = false }: C
                           size="icon"
                           className="h-7 w-7 bg-transparent"
                           onClick={() => updateQuantity(item.id, item.quantity + 1, item.sellingUnitId)}
-                          disabled={item.quantity >= (productStockMap[item.id] ?? 0)}
+                          disabled={item.quantity >= maxQtyForItem(item)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>

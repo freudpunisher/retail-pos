@@ -37,6 +37,8 @@ export default function InventoryStatusPage() {
       items = items.filter(item => item.product.productType === "ingredient")
     } else if (productType === "food") {
       items = items.filter(item => item.product.productType === "food")
+    } else {
+      items = items.filter(item => item.product.productType !== "food" && item.product.trackStock !== false)
     }
     if (selectedLocationId) {
       items = items.filter(item => item.locationId === selectedLocationId)
@@ -235,12 +237,12 @@ export default function InventoryStatusPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Produits</p>
-                <p className="text-3xl font-black text-accent mt-1">
+                <p className="text-3xl font-black text-foreground mt-1">
                   {new Set(filteredByLocation.map(i => i.product.id)).size}
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
-                <ArrowDownCircle className="h-6 w-6 text-accent" />
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Package className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
