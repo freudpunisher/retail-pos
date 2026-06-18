@@ -102,16 +102,16 @@ export async function GET(request: NextRequest) {
                       )
                   )
 
-        // 3. Low Stock Items
+        // 3. Low Stock Items (exclude food products — made-to-order / recipe-based)
         const lowStockPromise = sector
             ? db
                   .select({ count: sql<number>`count(*)` })
                   .from(products)
-                  .where(and(eq(products.sector, sector), sql`${products.stock} <= ${products.minStock}`))
+                  .where(and(eq(products.sector, sector), ne(products.productType, "food"), sql`${products.stock} <= ${products.minStock}`))
             : db
                   .select({ count: sql<number>`count(*)` })
                   .from(products)
-                  .where(sql`${products.stock} <= ${products.minStock}`)
+                  .where(and(ne(products.productType, "food"), sql`${products.stock} <= ${products.minStock}`))
 
         // 4. Total Credit Balance
         const totalCreditPromise = db

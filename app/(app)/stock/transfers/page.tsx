@@ -165,6 +165,13 @@ export default function StockTransfersPage() {
                     </Button>
                     {isManagerOrAdmin && (
                         <Button size="sm" variant="outline" asChild>
+                            <Link href="/stock/transfers/sortie-bar">
+                                <Beer className="h-4 w-4 mr-1.5" /> Sortie bar
+                            </Link>
+                        </Button>
+                    )}
+                    {isManagerOrAdmin && (
+                        <Button size="sm" variant="outline" asChild>
                             <Link href="/stock/transfers/sortie-cuisine">
                                 <UtensilsCrossed className="h-4 w-4 mr-1.5" /> Sortie cuisine
                             </Link>

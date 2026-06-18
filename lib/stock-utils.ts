@@ -18,9 +18,11 @@ export function formatStockFromSellingUnits(
     const parts: string[] = []
     let remaining = totalBaseUnits
 
+    const EPSILON = 1e-9
+
     for (const su of sorted) {
         const unitsInBase = su.conversionFactor / smallestCf
-        const qty = Math.floor(remaining / unitsInBase)
+        const qty = Math.floor(remaining / unitsInBase + EPSILON)
         if (qty > 0) {
             parts.push(`${qty} ${su.name}${qty > 1 ? "s" : ""}`)
             remaining -= qty * unitsInBase

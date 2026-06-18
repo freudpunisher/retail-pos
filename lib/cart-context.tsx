@@ -45,18 +45,65 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback((product: Product, sellingUnit?: SellingUnit) => {
     setItems((prev) => {
-      const unitKey = sellingUnit?.id || product.id
-      const compositeId = `${product.id}::${unitKey}`
       const existing = prev.find((item) => {
         if (sellingUnit) {
           return item.id === product.id && item.sellingUnitId === sellingUnit.id
         }
         return item.id === product.id && !item.sellingUnitId
       })
-      const currentQty = existing ? existing.quantity : 0
-      const isTracked = product.productType === "food" || product.trackStock
-      const maxQty = isTracked ? (productStocksRef.current[product.id] ?? 0) : Infinity
-      if (product.productType !== "food" && currentQty >= maxQty) return prev
+
+      const addLineItem = (qty: number) => ({
+        ...product,
+        price: sellingUnit ? sellingUnit.price : product.price,
+        quantity: qty,
+        discount: 0,
+        sellingUnitName: sellingUnit?.name,
+        sellingUnitId: sellingUnit?.id,
+      })
+
+      if (product.productType === "food") {
+        if (existing) {
+          return prev.map((item) => {
+            if (sellingUnit) {
+              if (item.id === product.id && item.sellingUnitId === sellingUnit.id) {
+                return { ...item, quantity: item.quantity + 1 }
+              }
+            } else if (item.id === product.id && !item.sellingUnitId) {
+              return { ...item, quantity: item.quantity + 1 }
+            }
+            return item
+          })
+        }
+        return [...prev, addLineItem(1)]
+      }
+
+      if (!product.trackStock) {
+        if (existing) {
+          return prev.map((item) => {
+            if (sellingUnit) {
+              if (item.id === product.id && item.sellingUnitId === sellingUnit.id) {
+                return { ...item, quantity: item.quantity + 1 }
+              }
+            } else if (item.id === product.id && !item.sellingUnitId) {
+              return { ...item, quantity: item.quantity + 1 }
+            }
+            return item
+          })
+        }
+        return [...prev, addLineItem(1)]
+      }
+
+      const totalStock = productStocksRef.current[product.id] ?? 0
+      const consumedStock = prev
+        .filter((i) => i.id === product.id)
+        .reduce((sum, i) => {
+          const icf = i.sellingUnits?.find((s) => s.id === i.sellingUnitId)?.conversionFactor ?? 1
+          return sum + i.quantity * icf
+        }, 0)
+      const cf = sellingUnit?.conversionFactor ?? 1
+
+      if (consumedStock + cf > totalStock) return prev
+
       if (existing) {
         return prev.map((item) => {
           if (sellingUnit) {
@@ -69,14 +116,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           return item
         })
       }
-      return [...prev, {
-        ...product,
-        price: sellingUnit ? sellingUnit.price : product.price,
-        quantity: 1,
-        discount: 0,
-        sellingUnitName: sellingUnit?.name,
-        sellingUnitId: sellingUnit?.id,
-      }]
+      return [...prev, addLineItem(1)]
     })
   }, [])
 
@@ -102,13 +142,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
             ? item.id === productId && item.sellingUnitId === sellingUnitId
             : item.id === productId && !item.sellingUnitId
           if (match) {
-            return {
-              ...item,
-              quantity:
-                item.productType !== "food"
-                  ? Math.min(quantity, item.trackStock ? (productStocksRef.current[item.id] ?? 0) : Infinity)
-                  : quantity,
-            }
+            if (item.productType === "food") return { ...item, quantity }
+            if (!item.trackStock) return { ...item, quantity }
+            const totalStock = productStocksRef.current[productId] ?? 0
+            const cf = sellingUnitId
+              ? (item.sellingUnits?.find((s) => s.id === sellingUnitId)?.conversionFactor ?? 1)
+              : 1
+            const otherConsumption = prev
+              .filter((i) => i.id === productId && !(sellingUnitId
+                ? i.sellingUnitId === sellingUnitId
+                : !i.sellingUnitId))
+              .reduce((sum, i) => {
+                const icf = i.sellingUnits?.find((s) => s.id === i.sellingUnitId)?.conversionFactor ?? 1
+                return sum + i.quantity * icf
+              }, 0)
+            const maxForThis = Math.max(0, Math.floor((totalStock - otherConsumption) / cf))
+            return { ...item, quantity: Math.min(quantity, maxForThis) }
           }
           return item
         }),
