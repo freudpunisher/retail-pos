@@ -17,11 +17,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Plus, Trash2, Shield, Loader2, Edit2 } from "lucide-react"
+import { Users, Plus, Shield, Loader2, Edit2 } from "lucide-react"
 import { useUsers } from "@/hooks/use-users"
 
 export function UserManagement() {
-  const { users, loading: usersLoading, createUser, deleteUser, updateUser } = useUsers()
+  const { users, loading: usersLoading, createUser, updateUser } = useUsers()
   const [newUser, setNewUser] = useState({ name: "", email: "", phone: "", password: "", role: "cashier_food" })
   const [showAddUser, setShowAddUser] = useState(false)
   const [showEditUser, setShowEditUser] = useState(false)
@@ -56,12 +56,6 @@ export function UserManagement() {
       await createUser(newUser)
       setNewUser({ name: "", email: "", phone: "", password: "", role: "cashier_food" })
       setShowAddUser(false)
-    }
-  }
-
-  const handleDeleteUser = async (id: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
-      await deleteUser(id)
     }
   }
 
@@ -219,14 +213,6 @@ export function UserManagement() {
                           onClick={() => handleOpenEdit(user)}
                         >
                           <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => handleDeleteUser(user.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
