@@ -91,7 +91,7 @@ export function printThermal(data: ReceiptData): void {
 
   <!-- Store Header -->
   <div class="header">
-    <img src="/assets/icon.png" alt="Logo" class="logo" />
+    <div style="font-size:16px;font-weight:bold;letter-spacing:2px;margin-bottom:1mm;">${data.header.name}</div>
     ${data.header.address ? `<div class="sub">${data.header.address}</div>` : ""}
     ${data.header.phone ? `<div class="sub">Tel: ${data.header.phone}</div>` : ""}
     ${data.header.taxId ? `<div class="tax">NIF: ${data.header.taxId}</div>` : ""}

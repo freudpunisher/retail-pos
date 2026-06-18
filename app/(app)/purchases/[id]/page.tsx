@@ -261,8 +261,8 @@ export default function EditPurchaseOrderPage() {
       ],
       columns: [
         { header: "Produit", key: "product" },
-        { header: "Qté/Caisse", key: "boxes", align: "center" },
-        { header: "Unités", key: "quantity", align: "center" },
+        { header: "Caisses", key: "boxes", align: "center" },
+        { header: "Bouteilles", key: "quantity", align: "center" },
         { header: "Prix unit.", key: "unitPrice", format: "currency", align: "right" },
         { header: "Total", key: "total", format: "currency", align: "right" },
       ],
@@ -324,7 +324,7 @@ export default function EditPurchaseOrderPage() {
                 <span className="font-bold text-lg">{items.length}</span> produits
               </div>
               <div>
-                <span className="font-bold text-lg">{totalBoxes}</span> caisses / <span className="font-bold text-lg">{totalUnits}</span> total unités
+                <span className="font-bold text-lg">{totalUnits}</span> bouteilles
               </div>
               <Badge variant="outline" className="mt-2">
                 {order.status === "pending"
@@ -478,19 +478,14 @@ export default function EditPurchaseOrderPage() {
                               </div>
                               <div className="text-xs text-muted-foreground flex gap-1.5 items-center mt-0.5">
                                 <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-                                  {item.quantityPerBox || 1} unités/caisse
+                                  {item.quantityPerBox || 1} bouteilles/caisse
                                 </Badge>
                                 <span>=</span>
-                                <span className="font-semibold text-foreground">{item.quantity} total unités</span>
+                                <span className="font-semibold text-foreground">{item.quantity} total bouteilles</span>
                               </div>
                             </div>
                           ) : (
-                            <div className="flex flex-col items-center">
-                              <span className="font-semibold">{item.boxes || 0} caisses</span>
-                              <span className="text-xs text-muted-foreground">
-                                {item.quantityPerBox || 1} unités/caisse • {item.quantity} total unités
-                              </span>
-                            </div>
+                            <span className="font-semibold">{item.quantity} bouteilles</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium">
