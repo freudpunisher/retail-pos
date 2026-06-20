@@ -21,7 +21,7 @@ const routePermissions: Record<string, string[]> = {
   "/inventory/adjustments": ["admin", "manager", "stock_manager"],
   "/inventory/count": ["admin", "manager", "stock_manager"],
   "/stock-movements": ["admin", "manager", "stock_manager"],
-  "/stock/transfers": ["admin", "manager", "stock_manager"],
+  "/stock/transfers": ["admin", "manager", "stock_manager", "cashier"],
   "/caisse": ["admin", "manager", "cashier"],
   "/expenses": ["admin", "manager", "stock_manager"],
   "/staff-tables": ["admin", "manager"],
