@@ -64,7 +64,7 @@ export default function SettingsPage() {
   const [editingSupplier, setEditingSupplier] = useState<any | null>(null)
 
   const [storeInfo, setStoreInfo] = useState<any>(null)
-  const [newCategory, setNewCategory] = useState({ name: "", description: "" })
+  const [newCategory, setNewCategory] = useState({ name: "", description: "", groupId: null as string | null })
   const [showAddCategory, setShowAddCategory] = useState(false)
   const [newUnit, setNewUnit] = useState({ code: "", name: "", symbol: "" })
   const [showAddUnit, setShowAddUnit] = useState(false)
@@ -158,34 +158,6 @@ export default function SettingsPage() {
         await Swal.fire({
           icon: "error",
           title: "Échec de l'ajout de la catégorie",
-        })
-      }
-    }
-  }
-
-  const handleDeleteCategory = async (id: string) => {
-    const result = await Swal.fire({
-      title: "Supprimer la catégorie ?",
-      text: "Cette action est irréversible.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Supprimer",
-      cancelButtonText: "Annuler",
-    })
-
-    if (result.isConfirmed) {
-      try {
-        await deleteCategory(id)
-        await Swal.fire({
-          icon: "success",
-          title: "Catégorie supprimée",
-          timer: 1500,
-          showConfirmButton: false,
-        })
-      } catch {
-        await Swal.fire({
-          icon: "error",
-          title: "Échec de la suppression de la catégorie",
         })
       }
     }
@@ -288,25 +260,6 @@ export default function SettingsPage() {
     }
   }
 
-  const handleDeleteGroup = async (id: string) => {
-    const result = await Swal.fire({
-      title: "Supprimer le groupe ?",
-      text: "Les catégories de ce groupe seront désaffectées.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Supprimer",
-      cancelButtonText: "Annuler",
-    })
-    if (result.isConfirmed) {
-      try {
-        await deleteGroup(id)
-        await Swal.fire({ icon: "success", title: "Groupe supprimé", timer: 1500, showConfirmButton: false })
-      } catch {
-        await Swal.fire({ icon: "error", title: "Échec de la suppression du groupe" })
-      }
-    }
-  }
-
   const filteredUnits = units.filter((unit) => {
     const searchValue = unitSearch.trim().toLowerCase()
     if (!searchValue) return true
@@ -326,34 +279,6 @@ export default function SettingsPage() {
     const nextSize = Number(value)
     setUnitPageSize(nextSize)
     setUnitPage(1)
-  }
-
-  const handleDeleteUnit = async (id: string) => {
-    const result = await Swal.fire({
-      title: "Supprimer l'unité ?",
-      text: "Cette action est irréversible.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Supprimer",
-      cancelButtonText: "Annuler",
-    })
-
-    if (result.isConfirmed) {
-      try {
-        await deleteUnit(id)
-        await Swal.fire({
-          icon: "success",
-          title: "Unité supprimée",
-          timer: 1500,
-          showConfirmButton: false,
-        })
-      } catch {
-        await Swal.fire({
-          icon: "error",
-          title: "Échec de la suppression de l'unité",
-        })
-      }
-    }
   }
 
   // ----- Location handlers -----
@@ -382,25 +307,6 @@ export default function SettingsPage() {
       await Swal.fire({ icon: "success", title: "Emplacement mis à jour", timer: 1500, showConfirmButton: false })
     } catch {
       await Swal.fire({ icon: "error", title: "Échec de la mise à jour de l'emplacement" })
-    }
-  }
-
-  const handleDeleteLocation = async (id: string) => {
-    const result = await Swal.fire({
-      title: "Supprimer l'emplacement ?",
-      text: "Cela peut affecter les enregistrements de stock liés à cet emplacement.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Supprimer",
-      cancelButtonText: "Annuler",
-    })
-    if (result.isConfirmed) {
-      try {
-        await deleteLocation(id)
-        await Swal.fire({ icon: "success", title: "Emplacement supprimé", timer: 1500, showConfirmButton: false })
-      } catch {
-        await Swal.fire({ icon: "error", title: "Échec de la suppression de l'emplacement" })
-      }
     }
   }
 
@@ -486,7 +392,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-col gap-1 rounded-lg bg-gradient-to-r from-primary/5 via-primary/10 to-transparent p-6 border border-primary/10">
         <h2 className="text-2xl font-bold text-foreground">Paramètres</h2>
         <p className="text-muted-foreground">Gérez la configuration de votre magasin</p>
       </div>
@@ -505,15 +411,15 @@ export default function SettingsPage() {
 
         {/* Store Information */}
         <TabsContent value="store" className="mt-4">
-          <Card className="border-border bg-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Store className="h-5 w-5" />
+          <Card className="border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="border-b border-border/40">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Store className="h-5 w-5 text-primary" />
                 Informations de la boutique
               </CardTitle>
               <CardDescription>Mettez à jour les détails de votre boutique</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="storeName">Nom du magasin</Label>
@@ -586,8 +492,8 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              <div className="flex justify-end">
-                <Button onClick={handleSaveStore} disabled={isSaving}>
+              <div className="flex justify-end border-t border-border/40 pt-4">
+                <Button onClick={handleSaveStore} disabled={isSaving} size="lg" className="min-w-[200px]">
                   {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Enregistrer les modifications
                 </Button>
@@ -598,11 +504,11 @@ export default function SettingsPage() {
 
         {/* Categories */}
         <TabsContent value="categories" className="mt-4">
-          <Card className="border-border bg-card">
-            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Card className="border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-col gap-4 border-b border-border/40 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Tag className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Tag className="h-5 w-5 text-primary" />
                   Catégories de produits
                 </CardTitle>
                 <CardDescription>Gérer les catégories de produits</CardDescription>
@@ -696,15 +602,15 @@ export default function SettingsPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="rounded-md border border-border">
+              <div className="rounded-md border border-border/60">
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-muted-foreground">ID</TableHead>
-                      <TableHead className="text-muted-foreground">Nom</TableHead>
-                      <TableHead className="text-muted-foreground">Groupe</TableHead>
-                      <TableHead className="text-muted-foreground">Description</TableHead>
-                      <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
+                    <TableRow className="hover:bg-transparent border-border/60 bg-muted/30">
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">ID</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Nom</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Groupe</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Description</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider w-24 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -722,8 +628,8 @@ export default function SettingsPage() {
                       </TableRow>
                     ) : (
                       paginatedCategories.map((category) => (
-                        <TableRow key={category.id} className="border-border">
-                          <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{category.id}</TableCell>
+                        <TableRow key={category.id} className="border-border/60 hover:bg-muted/20 transition-colors">
+                          <TableCell className="font-mono text-xs text-muted-foreground/60 overflow-hidden text-ellipsis block max-w-[100px]">{category.id}</TableCell>
                           <TableCell className="font-medium">{category.name}</TableCell>
                           <TableCell className="text-muted-foreground">{categoryGroups.find((g: any) => g.id === category.groupId)?.name || "-"}</TableCell>
                           <TableCell className="text-muted-foreground">{category.description || "-"}</TableCell>
@@ -732,20 +638,12 @@ export default function SettingsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-muted-foreground"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
                                 title="Modifier la catégorie"
                                 aria-label="Modifier la catégorie"
                                 onClick={() => handleStartEditCategory(category)}
                               >
                                 <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => handleDeleteCategory(category.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -755,7 +653,7 @@ export default function SettingsPage() {
                   </TableBody>
                 </Table>
               </div>
-              <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 border-t border-border/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between bg-muted/10">
                 <div className="text-sm text-muted-foreground">
                   Affichage de {(categoryCurrentPage - 1) * categoryPageSize + 1}-
                   {Math.min(categoryCurrentPage * categoryPageSize, filteredCategories.length)} sur {filteredCategories.length}
@@ -764,6 +662,7 @@ export default function SettingsPage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-8"
                     onClick={() => setCategoryPage((p) => Math.max(1, p - 1))}
                     disabled={categoryCurrentPage === 1}
                   >
@@ -775,6 +674,7 @@ export default function SettingsPage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-8"
                     onClick={() => setCategoryPage((p) => Math.min(categoryTotalPages, p + 1))}
                     disabled={categoryCurrentPage === categoryTotalPages}
                   >
@@ -803,7 +703,7 @@ export default function SettingsPage() {
                       placeholder="ex. Boulangerie"
                       value={editCategory?.name ?? ""}
                       onChange={(e) =>
-                        setEditCategory((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                        setEditCategory((prev: any) => (prev ? { ...prev, name: e.target.value } : prev))
                       }
                     />
                   </div>
@@ -813,7 +713,7 @@ export default function SettingsPage() {
                       placeholder="Description de la catégorie"
                       value={editCategory?.description ?? ""}
                       onChange={(e) =>
-                        setEditCategory((prev) => (prev ? { ...prev, description: e.target.value } : prev))
+                        setEditCategory((prev: any) => (prev ? { ...prev, description: e.target.value } : prev))
                       }
                     />
                   </div>
@@ -822,7 +722,7 @@ export default function SettingsPage() {
                     <Select
                       value={editCategory?.groupId ?? "none"}
                       onValueChange={(v) =>
-                        setEditCategory((prev) => (prev ? { ...prev, groupId: v === "none" ? null : v } : prev))
+                        setEditCategory((prev: any) => (prev ? { ...prev, groupId: v === "none" ? null : v } : prev))
                       }
                     >
                       <SelectTrigger>
@@ -849,11 +749,11 @@ export default function SettingsPage() {
 
         {/* Category Groups */}
         <TabsContent value="category-groups" className="mt-4">
-          <Card className="border-border bg-card">
-            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Card className="border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-col gap-4 border-b border-border/40 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Layers className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Layers className="h-5 w-5 text-primary" />
                   Groupes de catégories
                 </CardTitle>
                 <CardDescription>Organiser les catégories en groupes</CardDescription>
@@ -898,14 +798,14 @@ export default function SettingsPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="rounded-md border border-border">
+              <div className="rounded-md border border-border/60">
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-muted-foreground">ID</TableHead>
-                      <TableHead className="text-muted-foreground">Nom</TableHead>
-                      <TableHead className="text-muted-foreground">Description</TableHead>
-                      <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
+                    <TableRow className="hover:bg-transparent border-border/60 bg-muted/30">
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">ID</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Nom</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Description</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider w-24 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -923,8 +823,8 @@ export default function SettingsPage() {
                       </TableRow>
                     ) : (
                       categoryGroups.map((group: any) => (
-                        <TableRow key={group.id} className="border-border">
-                          <TableCell className="font-mono text-xs overflow-hidden text-ellipsis block max-w-[100px]">{group.id}</TableCell>
+                        <TableRow key={group.id} className="border-border/60 hover:bg-muted/20 transition-colors">
+                          <TableCell className="font-mono text-xs text-muted-foreground/60 overflow-hidden text-ellipsis block max-w-[100px]">{group.id}</TableCell>
                           <TableCell className="font-medium">{group.name}</TableCell>
                           <TableCell className="text-muted-foreground">{group.description || "-"}</TableCell>
                           <TableCell className="text-right">
@@ -932,20 +832,12 @@ export default function SettingsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-muted-foreground"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
                                 title="Modifier le groupe"
                                 aria-label="Modifier le groupe"
                                 onClick={() => handleStartEditGroup(group)}
                               >
                                 <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => handleDeleteGroup(group.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -997,11 +889,11 @@ export default function SettingsPage() {
 
         {/* Units */}
         <TabsContent value="units" className="mt-4">
-          <Card className="border-border bg-card">
-            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Card className="border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-col gap-4 border-b border-border/40 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Ruler className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Ruler className="h-5 w-5 text-primary" />
                   Unités de mesure
                 </CardTitle>
                 <CardDescription>Gérer les unités de mesure pour les produits</CardDescription>
@@ -1075,14 +967,14 @@ export default function SettingsPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="rounded-md border border-border">
+              <div className="rounded-md border border-border/60">
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-muted-foreground">Code</TableHead>
-                      <TableHead className="text-muted-foreground">Nom</TableHead>
-                      <TableHead className="text-muted-foreground">Symbole</TableHead>
-                      <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
+                    <TableRow className="hover:bg-transparent border-border/60 bg-muted/30">
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Code</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Nom</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Symbole</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider w-24 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1100,7 +992,7 @@ export default function SettingsPage() {
                       </TableRow>
                     ) : (
                       paginatedUnits.map((unit) => (
-                        <TableRow key={unit.id} className="border-border">
+                        <TableRow key={unit.id} className="border-border/60 hover:bg-muted/20 transition-colors">
                           <TableCell className="font-mono">{unit.code}</TableCell>
                           <TableCell className="font-medium">{unit.name}</TableCell>
                           <TableCell className="text-muted-foreground">{unit.symbol || "-"}</TableCell>
@@ -1109,19 +1001,11 @@ export default function SettingsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-muted-foreground"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
                                 title="Modifier l'unité"
                                 onClick={() => handleStartEditUnit(unit)}
                               >
                                 <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => handleDeleteUnit(unit.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -1131,7 +1015,7 @@ export default function SettingsPage() {
                   </TableBody>
                 </Table>
               </div>
-              <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 border-t border-border/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between bg-muted/10">
                 <div className="text-sm text-muted-foreground">
                   Affichage de {(unitCurrentPage - 1) * unitPageSize + 1}-
                   {Math.min(unitCurrentPage * unitPageSize, filteredUnits.length)} sur {filteredUnits.length}
@@ -1140,6 +1024,7 @@ export default function SettingsPage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-8"
                     onClick={() => setUnitPage((p) => Math.max(1, p - 1))}
                     disabled={unitCurrentPage === 1}
                   >
@@ -1151,6 +1036,7 @@ export default function SettingsPage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-8"
                     onClick={() => setUnitPage((p) => Math.min(unitTotalPages, p + 1))}
                     disabled={unitCurrentPage === unitTotalPages}
                   >
@@ -1179,7 +1065,7 @@ export default function SettingsPage() {
                     placeholder="ex. kg"
                     value={editUnit?.code ?? ""}
                     onChange={(e) =>
-                      setEditUnit((prev) => (prev ? { ...prev, code: e.target.value } : prev))
+                      setEditUnit((prev: any) => (prev ? { ...prev, code: e.target.value } : prev))
                     }
                   />
                 </div>
@@ -1189,7 +1075,7 @@ export default function SettingsPage() {
                     placeholder="ex. Kilogramme"
                     value={editUnit?.name ?? ""}
                     onChange={(e) =>
-                      setEditUnit((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                      setEditUnit((prev: any) => (prev ? { ...prev, name: e.target.value } : prev))
                     }
                   />
                 </div>
@@ -1199,7 +1085,7 @@ export default function SettingsPage() {
                     placeholder="ex. kg"
                     value={editUnit?.symbol ?? ""}
                     onChange={(e) =>
-                      setEditUnit((prev) => (prev ? { ...prev, symbol: e.target.value } : prev))
+                      setEditUnit((prev: any) => (prev ? { ...prev, symbol: e.target.value } : prev))
                     }
                   />
                 </div>
@@ -1216,12 +1102,12 @@ export default function SettingsPage() {
 
         {/* Menu Permissions */}
         <TabsContent value="menus" className="mt-4">
-          <Card className="border-border bg-card">
-            <CardHeader>
+          <Card className="border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="border-b border-border/40">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Shield className="h-5 w-5 text-primary" />
                     Permissions des menus
                   </CardTitle>
                   <CardDescription>Contrôlez quels rôles peuvent voir chaque élément de menu</CardDescription>
@@ -1237,15 +1123,15 @@ export default function SettingsPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="rounded-md border border-border">
+              <div className="rounded-md border border-border/60">
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-muted-foreground">Élément de menu</TableHead>
-                      <TableHead className="text-muted-foreground">Admin</TableHead>
-                      <TableHead className="text-muted-foreground">Manager</TableHead>
-                      <TableHead className="text-muted-foreground">Caissier</TableHead>
-                      <TableHead className="text-muted-foreground">Serveur</TableHead>
+                    <TableRow className="hover:bg-transparent border-border/60 bg-muted/30">
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Élément de menu</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Admin</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Manager</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Caissier</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Serveur</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1265,7 +1151,7 @@ export default function SettingsPage() {
                       menuItems.map((item) => {
                         const roles: string[] = item.roles || []
                         return (
-                          <TableRow key={item.id} className="border-border">
+                          <TableRow key={item.id} className="border-border/60 hover:bg-muted/20 transition-colors">
                             <TableCell className="font-medium">{item.label}</TableCell>
                             {["admin", "manager", "cashier", "waiter"].map((role) => (
                               <TableCell key={role}>
@@ -1275,8 +1161,8 @@ export default function SettingsPage() {
                                   className={cn(
                                     "h-7 w-7 p-0",
                                     roles.includes(role)
-                                      ? "bg-primary text-primary-foreground"
-                                      : "text-muted-foreground border-border"
+                                      ? "bg-primary text-primary-foreground shadow-sm"
+                                      : "text-muted-foreground border-border/60"
                                   )}
                                   onClick={() => toggleMenuRole(item.id, role)}
                                 >
@@ -1400,11 +1286,11 @@ export default function SettingsPage() {
 
         {/* Locations */}
         <TabsContent value="locations" className="mt-4">
-          <Card className="border-border bg-card">
-            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Card className="border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-col gap-4 border-b border-border/40 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <MapPin className="h-5 w-5 text-primary" />
                   Emplacements
                 </CardTitle>
                 <CardDescription>Gérer les entrepôts, bars, cuisines et points de transit</CardDescription>
@@ -1464,14 +1350,14 @@ export default function SettingsPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="rounded-md border border-border">
+              <div className="rounded-md border border-border/60">
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-muted-foreground">Nom</TableHead>
-                      <TableHead className="text-muted-foreground">Type</TableHead>
-                      <TableHead className="text-muted-foreground">Statut</TableHead>
-                      <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
+                    <TableRow className="hover:bg-transparent border-border/60 bg-muted/30">
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Nom</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Type</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Statut</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider w-24 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1489,16 +1375,16 @@ export default function SettingsPage() {
                       </TableRow>
                     ) : (
                       filteredLocations.map((loc) => (
-                        <TableRow key={loc.id} className="border-border">
+                        <TableRow key={loc.id} className="border-border/60 hover:bg-muted/20 transition-colors">
                           <TableCell className="font-medium">{loc.name}</TableCell>
                           <TableCell>
-                            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize bg-muted text-muted-foreground">
+                            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize bg-primary/10 text-primary">
                               {loc.type}
                             </span>
                           </TableCell>
                           <TableCell>
                             <span className={cn(
-                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
                               loc.isActive
                                 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                                 : "bg-muted text-muted-foreground"
@@ -1510,18 +1396,11 @@ export default function SettingsPage() {
                             <div className="flex items-center justify-end gap-1">
                               <Button
                                 variant="ghost" size="icon"
-                                className="h-8 w-8 text-muted-foreground"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
                                 title="Modifier l'emplacement"
                                 onClick={() => { setEditLocation({ ...loc }); setShowEditLocation(true) }}
                               >
                                 <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost" size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => handleDeleteLocation(loc.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
