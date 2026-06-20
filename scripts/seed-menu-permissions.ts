@@ -140,6 +140,13 @@ const SEED_MENU_PERMISSIONS = [
     roles: ["admin"],
     sortOrder: 19,
   },
+  {
+    href: "/notifications",
+    label: "Notifications",
+    icon: "Bell",
+    roles: ["admin", "manager", "cashier"],
+    sortOrder: 111,
+  },
 ]
 
 async function seedMenuPermissions() {
