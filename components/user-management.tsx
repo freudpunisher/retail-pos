@@ -145,15 +145,13 @@ export function UserManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin système</SelectItem>
-                    <SelectItem value="cashier_food">Caissier - Alimentation</SelectItem>
-                    <SelectItem value="supervisor_food">Superviseur - Alimentation</SelectItem>
-                    <SelectItem value="cashier_bakery">Caissier - Boulangerie</SelectItem>
-                    <SelectItem value="supervisor_bakery">Superviseur - Boulangerie</SelectItem>
-                    <SelectItem value="production_bakery">Responsable production</SelectItem>
+                    <SelectItem value="cashier">Caissier</SelectItem>
+
                     <SelectItem value="manager">Gérant</SelectItem>
                     <SelectItem value="stock_manager">Gestionnaire de stock</SelectItem>
-                    <SelectItem value="investor">Investisseur</SelectItem>
-                    <SelectItem value="accountant">Comptable</SelectItem>
+                    <SelectItem value="waiter">Serveur</SelectItem>
+                    {/* <SelectItem value="investor">Investisseur</SelectItem> */}
+                    {/* <SelectItem value="accountant">Comptable</SelectItem> */}
                   </SelectContent>
                 </Select>
               </div>
@@ -174,18 +172,18 @@ export function UserManagement() {
               <TableRow className="hover:bg-transparent border-border">
                 <TableHead className="text-muted-foreground">Utilisateur</TableHead>
                 <TableHead className="text-muted-foreground">Email</TableHead>
-              <TableHead className="text-muted-foreground">Rôle</TableHead>
-              <TableHead className="text-muted-foreground">Téléphone</TableHead>
-              <TableHead className="text-muted-foreground text-right w-24">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-                    {usersLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-                        </TableCell>
-                      </TableRow>
+                <TableHead className="text-muted-foreground">Rôle</TableHead>
+                <TableHead className="text-muted-foreground">Téléphone</TableHead>
+                <TableHead className="text-muted-foreground text-right w-24">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {usersLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                  </TableCell>
+                </TableRow>
               ) : users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
