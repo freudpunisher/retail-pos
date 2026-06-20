@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -56,7 +56,7 @@ const DEFAULT_MENUS = [
   { id: "7", href: "/inventory/adjustments", label: "Ajustements de stock", icon: "RefreshCw", roles: ["admin", "manager", "stock_manager"], sortOrder: 7 },
   { id: "8", href: "/inventory/count", label: "Inventaire", icon: "ClipboardList", roles: ["admin", "manager", "stock_manager"], sortOrder: 8 },
   { id: "9", href: "/stock-movements", label: "Mouvements de stock", icon: "ArrowLeftRight", roles: ["admin", "manager", "stock_manager"], sortOrder: 9 },
-  { id: "10", href: "/stock/transfers", label: "Transferts de stock", icon: "ArrowRightLeft", roles: ["admin", "manager", "stock_manager"], sortOrder: 10 },
+  { id: "10", href: "/stock/transfers", label: "Transferts de stock", icon: "ArrowRightLeft", roles: ["admin", "manager", "stock_manager", "cashier"], sortOrder: 10 },
   { id: "11", href: "/caisse", label: "Caisse", icon: "Banknote", roles: ["admin", "manager", "cashier"], sortOrder: 11 },
   { id: "111", href: "/notifications", label: "Notifications", icon: "Bell", roles: ["admin", "manager", "cashier", "stock_manager"], sortOrder: 111 },
   { id: "12", href: "/expenses", label: "Dépenses", icon: "Wallet", roles: ["admin", "manager", "stock_manager"], sortOrder: 12 },
@@ -85,6 +85,11 @@ export function Sidebar() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(true)
 
+  const visibleDefaultMenus = useMemo(() =>
+    DEFAULT_MENUS.filter(m => user && m.roles.includes(user.role)),
+    [user]
+  )
+
   useEffect(() => {
     const fetchMenus = async () => {
       try {
@@ -98,11 +103,12 @@ export function Sidebar() {
           }
         }
       } catch { } finally {
+        setMenuItems(visibleDefaultMenus)
         setLoading(false)
       }
     }
     fetchMenus()
-  }, [user?.role])
+  }, [user?.role, visibleDefaultMenus])
 
   const handleLogout = async () => {
     await logout()
