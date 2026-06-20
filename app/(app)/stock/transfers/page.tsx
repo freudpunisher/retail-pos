@@ -27,6 +27,7 @@ export default function StockTransfersPage() {
     const { user } = useAuth()
     const currentUserId = user?.id || users[0]?.id || ""
     const isManagerOrAdmin = user?.role === "manager" || user?.role === "admin" || user?.role === "stock_manager"
+    const isManagerOrAdminOnly = user?.role === "manager" || user?.role === "admin"
 
     const [productFilter, setProductFilter] = useState("all")
     const [startDate, setStartDate] = useState("")
@@ -151,19 +152,21 @@ export default function StockTransfersPage() {
                     }} disabled={filteredTransfers.length === 0}>
                         <Printer className="h-4 w-4 mr-1.5" /> Imprimer
                     </Button>
-                    {isManagerOrAdmin && (
+                    {isManagerOrAdminOnly && (
                         <Button size="sm" variant="outline" asChild>
                             <Link href="/stock/transfers/to-transitional">
                                 <Layers className="h-4 w-4 mr-1.5" /> Réapprovisionner le stock de transition
                             </Link>
                         </Button>
                     )}
-                    <Button size="sm" variant="outline" asChild>
-                        <Link href="/stock/transfers/to-bar">
-                            <Beer className="h-4 w-4 mr-1.5" /> Demande au bar
-                        </Link>
-                    </Button>
-                    {isManagerOrAdmin && (
+                    {user?.role !== "stock_manager" && (
+                        <Button size="sm" variant="outline" asChild>
+                            <Link href="/stock/transfers/to-bar">
+                                <Beer className="h-4 w-4 mr-1.5" /> Demande au bar
+                            </Link>
+                        </Button>
+                    )}
+                    {isManagerOrAdminOnly && (
                         <Button size="sm" variant="outline" asChild>
                             <Link href="/stock/transfers/sortie-bar">
                                 <Beer className="h-4 w-4 mr-1.5" /> Sortie bar

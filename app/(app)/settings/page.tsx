@@ -1130,6 +1130,7 @@ export default function SettingsPage() {
                       <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Élément de menu</TableHead>
                       <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Admin</TableHead>
                       <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Manager</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Gestionnaire de stock</TableHead>
                       <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Caissier</TableHead>
                       <TableHead className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">Serveur</TableHead>
                     </TableRow>
@@ -1137,13 +1138,13 @@ export default function SettingsPage() {
                   <TableBody>
                     {menuLoading ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
+                        <TableCell colSpan={6} className="h-24 text-center">
                           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
                     ) : menuItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                           Aucun élément de menu trouvé
                         </TableCell>
                       </TableRow>
@@ -1153,7 +1154,7 @@ export default function SettingsPage() {
                         return (
                           <TableRow key={item.id} className="border-border/60 hover:bg-muted/20 transition-colors">
                             <TableCell className="font-medium">{item.label}</TableCell>
-                            {["admin", "manager", "cashier", "waiter"].map((role) => (
+                            {["admin", "manager", "stock_manager", "cashier", "waiter"].map((role) => (
                               <TableCell key={role}>
                                 <Button
                                   variant={roles.includes(role) ? "default" : "outline"}
