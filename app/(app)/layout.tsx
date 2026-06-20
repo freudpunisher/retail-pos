@@ -8,6 +8,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Breadcrumbs } from "@/components/breadcrumbs"
 import { useAuth } from "@/lib/auth-context"
+import { RouteGuard } from "@/components/route-guard"
 
 function LayoutSkeleton() {
   return (
@@ -73,7 +74,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="mb-4">
             <Breadcrumbs />
           </div>
-          {children}
+          <RouteGuard>
+            {children}
+          </RouteGuard>
         </main>
         <Footer />
       </div>

@@ -66,15 +66,15 @@ export function SupplierFormDialog({ supplier, open, onOpenChange, onSubmit }: S
             <DialogContent className="sm:max-w-[425px]">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
-                        <DialogTitle>{supplier ? "Edit Supplier" : "Add New Supplier"}</DialogTitle>
+                        <DialogTitle>{supplier ? "Modifier le fournisseur" : "Ajouter un fournisseur"}</DialogTitle>
                         <DialogDescription>
-                            {supplier ? "Update supplier information." : "Enter the details for the new supplier."}
+                            {supplier ? "Mettre à jour les informations du fournisseur." : "Saisissez les détails du nouveau fournisseur."}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="name" className="text-right">
-                                Name
+                                Nom
                             </Label>
                             <Input
                                 id="name"
@@ -99,7 +99,7 @@ export function SupplierFormDialog({ supplier, open, onOpenChange, onSubmit }: S
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="phone" className="text-right">
-                                Phone
+                                Téléphone
                             </Label>
                             <Input
                                 id="phone"
@@ -124,11 +124,11 @@ export function SupplierFormDialog({ supplier, open, onOpenChange, onSubmit }: S
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                            Cancel
+                            Annuler
                         </Button>
                         <Button type="submit" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {supplier ? "Save Changes" : "Add Supplier"}
+                            {supplier ? "Enregistrer" : "Ajouter"}
                         </Button>
                     </DialogFooter>
                 </form>
