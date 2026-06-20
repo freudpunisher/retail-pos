@@ -377,7 +377,7 @@ export default function StockTransfersPage() {
                                                             <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Approuver
                                                         </Button>
                                                     )}
-                                                    {t.status === "approved" && t.transferType === "demand" && t.userId === currentUserId && (
+                                                    {t.status === "approved" && t.transferType === "demand" && (t.userId === currentUserId || isManagerOrAdminOnly) && (
                                                         <Button size="sm" onClick={() => handleReceive(t.id)} className="w-full md:w-auto">
                                                             <Package className="h-3.5 w-3.5 mr-1.5" /> Recevoir
                                                         </Button>
