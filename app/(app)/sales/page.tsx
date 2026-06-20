@@ -26,39 +26,54 @@ import { toast } from "sonner"
 import { Table2, User, Utensils, ShoppingBag, Wine, AlertCircle } from "lucide-react"
 import { printThermal } from "@/lib/thermal-print"
 
+function StockLoader() {
+  const { locations } = useLocations()
+  const barLocation = useMemo(() => locations.find(l => l.type === "bar"), [locations])
+  const principalLocation = useMemo(() => locations.find(l => l.type === "principal"), [locations])
+  const barId = barLocation?.id
+  const principalId = principalLocation?.id
+
+  const { stockItems, refresh: refreshBar } = useStock(barId, !!barId)
+  const { stockItems: principalStock, refresh: refreshPrincipal } = useStock(principalId, !!principalId)
+  const { setProductStocks, setPrincipalStocks } = useCart()
+
+  useEffect(() => {
+    if (!barId) return
+    const map: Record<string, number> = {}
+    for (const si of stockItems) {
+      map[si.productId] = Number(si.quantityOnHand)
+    }
+    setProductStocks(map)
+  }, [stockItems, setProductStocks, barId])
+
+  useEffect(() => {
+    if (!principalId) return
+    const map: Record<string, number> = {}
+    for (const si of principalStock) {
+      map[si.productId] = Number(si.quantityOnHand)
+    }
+    setPrincipalStocks(map)
+  }, [principalStock, setPrincipalStocks, principalId])
+
+  useEffect(() => {
+    const onTransactionCompleted = () => {
+      refreshBar()
+      refreshPrincipal()
+    }
+    window.addEventListener("pos:transaction-completed", onTransactionCompleted)
+    return () => window.removeEventListener("pos:transaction-completed", onTransactionCompleted)
+  }, [refreshBar, refreshPrincipal])
+
+  return null
+}
+
 export default function SalesPage() {
   const { user } = useAuth()
   const { settings } = useSettings()
   const { users } = useUsers()
   const { tables } = useTables()
   const { createOrder } = useOrders()
-  const { items, selectedClient, total, clearCart, setProductStocks, setPrincipalStocks } = useCart()
-
-  const { locations } = useLocations()
-  const barLocation = useMemo(() => locations.find(l => l.type === "bar"), [locations])
-  const principalLocation = useMemo(() => locations.find(l => l.type === "principal"), [locations])
-  const { stockItems } = useStock(barLocation?.id)
-  const { stockItems: principalStock } = useStock(principalLocation?.id)
-
-  useEffect(() => {
-    if (stockItems.length > 0) {
-      const map: Record<string, number> = {}
-      for (const si of stockItems) {
-        map[si.productId] = Number(si.quantityOnHand)
-      }
-      setProductStocks(map)
-    }
-  }, [stockItems, setProductStocks])
-
-  useEffect(() => {
-    if (principalStock.length > 0) {
-      const map: Record<string, number> = {}
-      for (const si of principalStock) {
-        map[si.productId] = Number(si.quantityOnHand)
-      }
-      setPrincipalStocks(map)
-    }
-  }, [principalStock, setPrincipalStocks])
+  const { items, selectedClient, total, clearCart } = useCart()
 
   const [orderMode, setOrderMode] = useState<"dinein" | "counter" | "takeaway">("dinein")
   const [selectedTableId, setSelectedTableId] = useState<string>("")
@@ -133,6 +148,7 @@ export default function SalesPage() {
         billReference: order.reference || "BL-" + order.id.slice(0, 8).toUpperCase(),
       })
 
+      window.dispatchEvent(new CustomEvent("pos:transaction-completed"))
       toast.success("Commande créée ! Facture imprimée.")
     } catch (err: any) {
       toast.error(err.message || "Échec de la création de la commande")
@@ -143,6 +159,7 @@ export default function SalesPage() {
 
   return (
     <div className="flex h-full flex-col bg-background">
+      <StockLoader />
       {/* Compact toolbar */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 shrink-0 overflow-x-auto">
         <div className="flex rounded-lg border border-border overflow-hidden shrink-0">
