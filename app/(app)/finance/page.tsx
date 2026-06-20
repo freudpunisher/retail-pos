@@ -12,7 +12,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell,
 } from "recharts"
-import { Loader2, DollarSign, Package, Truck, TrendingUp, TrendingDown, BarChart3, Beer, Utensils, Warehouse, Store, CalendarIcon, Printer, ChevronRight } from "lucide-react"
+import { Loader2, DollarSign, Package, Truck, TrendingUp, TrendingDown, BarChart3, Beer, Utensils, Warehouse, Store, CalendarIcon, Printer, ChevronRight, ShoppingBag } from "lucide-react"
 import { printReport } from "@/lib/print-report"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -27,11 +27,17 @@ export default function FinanceOverviewPage() {
     const [dateTo, setDateTo] = useState<Date>(today)
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+    const [barData, setBarData] = useState<any>(null)
+    const [barLoading, setBarLoading] = useState(false)
+    const [cuisineData, setCuisineData] = useState<any>(null)
+    const [cuisineLoading, setCuisineLoading] = useState(false)
 
     const currencySymbol = settings?.currencySymbol || "Fbu"
 
     useEffect(() => {
         fetchData()
+        fetchBarData()
+        fetchCuisineData()
     }, [])
 
     const fetchData = async (from?: Date, to?: Date) => {
@@ -54,10 +60,52 @@ export default function FinanceOverviewPage() {
         }
     }
 
+    const fetchBarData = async (from?: Date, to?: Date) => {
+        setBarLoading(true)
+        try {
+            const start = from || dateFrom
+            const end = to || dateTo
+            const params = new URLSearchParams({
+                startDate: start.toISOString(),
+                endDate: end.toISOString(),
+            })
+            const res = await fetch(`/api/finance/bar?${params}`)
+            if (res.ok) {
+                setBarData(await res.json())
+            }
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setBarLoading(false)
+        }
+    }
+
+    const fetchCuisineData = async (from?: Date, to?: Date) => {
+        setCuisineLoading(true)
+        try {
+            const start = from || dateFrom
+            const end = to || dateTo
+            const params = new URLSearchParams({
+                startDate: start.toISOString(),
+                endDate: end.toISOString(),
+            })
+            const res = await fetch(`/api/finance/cuisine?${params}`)
+            if (res.ok) {
+                setCuisineData(await res.json())
+            }
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setCuisineLoading(false)
+        }
+    }
+
     const handleDateFilter = (from: Date, to: Date) => {
         setDateFrom(from)
         setDateTo(to)
         fetchData(from, to)
+        fetchBarData(from, to)
+        fetchCuisineData(from, to)
     }
 
     const presets = [
@@ -116,6 +164,78 @@ export default function FinanceOverviewPage() {
 
     const formatCurrency = (val: number) =>
         val.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ` ${currencySymbol}`
+
+    const handlePrintCuisine = () => {
+        if (!cuisineData) return
+        const period = `Période: ${format(dateFrom, "dd/MM/yyyy", { locale: fr })} — ${format(dateTo, "dd/MM/yyyy", { locale: fr })}`
+        const origin = window.location.origin
+        printReport({
+            title: "Rapport Financier — Cuisine",
+            subtitle: "Smart POS System — Analyse Cuisine",
+            period,
+            logoUrl: `${origin}/ahava.png`,
+            metrics: [
+                { label: "Chiffre d'Affaires", value: formatCurrency(cuisineData.summary.revenue), highlight: true },
+                { label: "Coût des Ventes", value: formatCurrency(cuisineData.summary.cogs) },
+                { label: "Bénéfice Brut", value: formatCurrency(cuisineData.summary.grossProfit), highlight: true },
+                { label: "Marge", value: `${cuisineData.summary.margin.toFixed(1)}%` },
+                { label: "Panier Moyen", value: formatCurrency(cuisineData.summary.averageOrderValue) },
+                { label: "Transactions", value: String(cuisineData.summary.transactionCount) },
+            ],
+            columns: [
+                { header: "Produit", key: "product" },
+                { header: "Revenu", key: "revenue", format: "currency", align: "right" },
+                { header: "Coût", key: "cogs", format: "currency", align: "right" },
+                { header: "Bénéfice", key: "profit", format: "currency", align: "right" },
+                { header: "Marge", key: "margin", align: "right" },
+                { header: "Qté", key: "quantity", align: "right" },
+            ],
+            rows: (cuisineData.topSelling || []).slice(0, 20).map((p: any) => ({
+                product: p.productName,
+                revenue: p.revenue,
+                cogs: p.cogs,
+                profit: p.profit,
+                margin: `${p.margin.toFixed(1)}%`,
+                quantity: p.quantitySold,
+            })),
+        })
+    }
+
+    const handlePrintBar = () => {
+        if (!barData) return
+        const period = `Période: ${format(dateFrom, "dd/MM/yyyy", { locale: fr })} — ${format(dateTo, "dd/MM/yyyy", { locale: fr })}`
+        const origin = window.location.origin
+        printReport({
+            title: "Rapport Financier — Bar",
+            subtitle: "Smart POS System — Analyse Bar",
+            period,
+            logoUrl: `${origin}/ahava.png`,
+            metrics: [
+                { label: "Chiffre d'Affaires", value: formatCurrency(barData.summary.revenue), highlight: true },
+                { label: "Coût des Ventes", value: formatCurrency(barData.summary.cogs) },
+                { label: "Bénéfice Brut", value: formatCurrency(barData.summary.grossProfit), highlight: true },
+                { label: "Marge", value: `${barData.summary.margin.toFixed(1)}%` },
+                { label: "Panier Moyen", value: formatCurrency(barData.summary.averageOrderValue) },
+                { label: "Transactions", value: String(barData.summary.transactionCount) },
+            ],
+            columns: [
+                { header: "Produit", key: "product" },
+                { header: "Revenu", key: "revenue", format: "currency", align: "right" },
+                { header: "Coût", key: "cogs", format: "currency", align: "right" },
+                { header: "Bénéfice", key: "profit", format: "currency", align: "right" },
+                { header: "Marge", key: "margin", align: "right" },
+                { header: "Qté", key: "quantity", align: "right" },
+            ],
+            rows: (barData.topSelling || []).slice(0, 20).map((p: any) => ({
+                product: p.productName,
+                revenue: p.revenue,
+                cogs: p.cogs,
+                profit: p.profit,
+                margin: `${p.margin.toFixed(1)}%`,
+                quantity: p.quantitySold,
+            })),
+        })
+    }
 
     const handlePrint = () => {
         const period = `Période: ${format(dateFrom, "dd/MM/yyyy", { locale: fr })} — ${format(dateTo, "dd/MM/yyyy", { locale: fr })}`
@@ -350,6 +470,8 @@ export default function FinanceOverviewPage() {
             <Tabs defaultValue="overview" className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="overview">Rentabilité</TabsTrigger>
+                    <TabsTrigger value="finance-bar">Finance Bar</TabsTrigger>
+                    <TabsTrigger value="finance-cuisine">Finance Cuisine</TabsTrigger>
                     <TabsTrigger value="stock">Stock par Emplacement</TabsTrigger>
                 </TabsList>
 
@@ -544,6 +666,290 @@ export default function FinanceOverviewPage() {
                             </CardContent>
                         </Card>
                     </div>
+                </TabsContent>
+
+                {/* Finance Bar tab */}
+                <TabsContent value="finance-bar" className="space-y-4">
+                    {barLoading || !barData ? (
+                        <div className="flex items-center justify-center h-64">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex justify-end">
+                                <Button variant="default" onClick={handlePrintBar}>
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Imprimer
+                                </Button>
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Chiffre d&apos;Affaires</CardTitle>
+                                        <TrendingUp className="h-4 w-4 text-green-500" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-2xl font-bold text-green-600">{formatCurrency(barData.summary.revenue)}</div>
+                                        <p className="text-xs text-muted-foreground">{barData.summary.transactionCount} transactions</p>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Coût des Ventes</CardTitle>
+                                        <TrendingDown className="h-4 w-4 text-red-500" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-2xl font-bold text-red-600">{formatCurrency(barData.summary.cogs)}</div>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Bénéfice Brut</CardTitle>
+                                        <DollarSign className="h-4 w-4 text-purple-500" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className={`text-2xl font-bold ${barData.summary.grossProfit >= 0 ? "text-purple-600" : "text-destructive"}`}>
+                                            {formatCurrency(barData.summary.grossProfit)}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">Marge {barData.summary.margin.toFixed(1)}%</p>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Panier Moyen</CardTitle>
+                                        <ShoppingBag className="h-4 w-4 text-blue-500" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-2xl font-bold text-blue-600">{formatCurrency(barData.summary.averageOrderValue)}</div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            {barData.categories.length > 0 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Performance par Catégorie</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b">
+                                                        <th className="text-left py-3 px-2 font-medium">Catégorie</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Revenu</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Coût</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Bénéfice</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Marge</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Qté</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {barData.categories.map((cat: any) => (
+                                                        <tr key={cat.categoryId} className="border-b hover:bg-muted/50">
+                                                            <td className="py-3 px-2 font-medium">{cat.categoryName}</td>
+                                                            <td className="text-right py-3 px-2 text-green-600">{formatCurrency(cat.revenue)}</td>
+                                                            <td className="text-right py-3 px-2 text-red-500">{formatCurrency(cat.cogs)}</td>
+                                                            <td className={`text-right py-3 px-2 font-medium ${cat.profit >= 0 ? "text-purple-600" : "text-destructive"}`}>
+                                                                {formatCurrency(cat.profit)}
+                                                            </td>
+                                                            <td className="text-right py-3 px-2">
+                                                                <Badge variant={cat.margin >= 30 ? "default" : cat.margin >= 10 ? "secondary" : "destructive"} className="text-xs">
+                                                                    {cat.margin.toFixed(1)}%
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="text-right py-3 px-2">{cat.quantity}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                            {barData.topSelling.length > 0 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Meilleurs Produits</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b">
+                                                        <th className="text-left py-3 px-2 font-medium">Produit</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Revenu</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Coût</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Bénéfice</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Marge</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Qté</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {barData.topSelling.slice(0, 10).map((product: any) => (
+                                                        <tr key={product.productId} className="border-b hover:bg-muted/50">
+                                                            <td className="py-3 px-2 font-medium">{product.productName}</td>
+                                                            <td className="text-right py-3 px-2 text-green-600">{formatCurrency(product.revenue)}</td>
+                                                            <td className="text-right py-3 px-2 text-red-500">{formatCurrency(product.cogs)}</td>
+                                                            <td className={`text-right py-3 px-2 font-medium ${product.profit >= 0 ? "text-purple-600" : "text-destructive"}`}>
+                                                                {formatCurrency(product.profit)}
+                                                            </td>
+                                                            <td className="text-right py-3 px-2">
+                                                                <Badge variant={product.margin >= 30 ? "default" : product.margin >= 10 ? "secondary" : "destructive"} className="text-xs">
+                                                                    {product.margin.toFixed(1)}%
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="text-right py-3 px-2">{product.quantitySold}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </>
+                    )}
+                </TabsContent>
+
+                {/* Finance Cuisine tab */}
+                <TabsContent value="finance-cuisine" className="space-y-4">
+                    {cuisineLoading || !cuisineData ? (
+                        <div className="flex items-center justify-center h-64">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex justify-end">
+                                <Button variant="default" onClick={handlePrintCuisine}>
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Imprimer
+                                </Button>
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Chiffre d&apos;Affaires</CardTitle>
+                                        <TrendingUp className="h-4 w-4 text-green-500" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-2xl font-bold text-green-600">{formatCurrency(cuisineData.summary.revenue)}</div>
+                                        <p className="text-xs text-muted-foreground">{cuisineData.summary.transactionCount} transactions</p>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Coût des Ventes</CardTitle>
+                                        <TrendingDown className="h-4 w-4 text-red-500" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-2xl font-bold text-red-600">{formatCurrency(cuisineData.summary.cogs)}</div>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Bénéfice Brut</CardTitle>
+                                        <DollarSign className="h-4 w-4 text-purple-500" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className={`text-2xl font-bold ${cuisineData.summary.grossProfit >= 0 ? "text-purple-600" : "text-destructive"}`}>
+                                            {formatCurrency(cuisineData.summary.grossProfit)}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">Marge {cuisineData.summary.margin.toFixed(1)}%</p>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Panier Moyen</CardTitle>
+                                        <ShoppingBag className="h-4 w-4 text-blue-500" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-2xl font-bold text-blue-600">{formatCurrency(cuisineData.summary.averageOrderValue)}</div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            {cuisineData.categories.length > 0 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Performance par Catégorie</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b">
+                                                        <th className="text-left py-3 px-2 font-medium">Catégorie</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Revenu</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Coût</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Bénéfice</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Marge</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Qté</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {cuisineData.categories.map((cat: any) => (
+                                                        <tr key={cat.categoryId} className="border-b hover:bg-muted/50">
+                                                            <td className="py-3 px-2 font-medium">{cat.categoryName}</td>
+                                                            <td className="text-right py-3 px-2 text-green-600">{formatCurrency(cat.revenue)}</td>
+                                                            <td className="text-right py-3 px-2 text-red-500">{formatCurrency(cat.cogs)}</td>
+                                                            <td className={`text-right py-3 px-2 font-medium ${cat.profit >= 0 ? "text-purple-600" : "text-destructive"}`}>
+                                                                {formatCurrency(cat.profit)}
+                                                            </td>
+                                                            <td className="text-right py-3 px-2">
+                                                                <Badge variant={cat.margin >= 30 ? "default" : cat.margin >= 10 ? "secondary" : "destructive"} className="text-xs">
+                                                                    {cat.margin.toFixed(1)}%
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="text-right py-3 px-2">{cat.quantity}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                            {cuisineData.topSelling.length > 0 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Meilleurs Produits</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b">
+                                                        <th className="text-left py-3 px-2 font-medium">Produit</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Revenu</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Coût</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Bénéfice</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Marge</th>
+                                                        <th className="text-right py-3 px-2 font-medium">Qté</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {cuisineData.topSelling.slice(0, 10).map((product: any) => (
+                                                        <tr key={product.productId} className="border-b hover:bg-muted/50">
+                                                            <td className="py-3 px-2 font-medium">{product.productName}</td>
+                                                            <td className="text-right py-3 px-2 text-green-600">{formatCurrency(product.revenue)}</td>
+                                                            <td className="text-right py-3 px-2 text-red-500">{formatCurrency(product.cogs)}</td>
+                                                            <td className={`text-right py-3 px-2 font-medium ${product.profit >= 0 ? "text-purple-600" : "text-destructive"}`}>
+                                                                {formatCurrency(product.profit)}
+                                                            </td>
+                                                            <td className="text-right py-3 px-2">
+                                                                <Badge variant={product.margin >= 30 ? "default" : product.margin >= 10 ? "secondary" : "destructive"} className="text-xs">
+                                                                    {product.margin.toFixed(1)}%
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="text-right py-3 px-2">{product.quantitySold}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </>
+                    )}
                 </TabsContent>
             </Tabs>
         </div>

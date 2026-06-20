@@ -18,7 +18,7 @@ import Swal from "sweetalert2"
 const typeConfig: Record<string, { label: string; icon: any; color: string }> = {
     drink: { label: "Boisson", icon: Beer, color: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
     food: { label: "Plat", icon: Utensils, color: "bg-amber-500/20 text-amber-700 dark:text-amber-400" },
-    ingredient: { label: "Ingrédient", icon: Wheat, color: "bg-green-500/20 text-green-700 dark:text-green-400" },
+    ingredient: { label: "Cuisine", icon: Wheat, color: "bg-green-500/20 text-green-700 dark:text-green-400" },
 }
 
 export default function ProductManagementPage() {

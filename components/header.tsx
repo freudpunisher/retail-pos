@@ -79,11 +79,22 @@ export function Header() {
     router.push("/")
   }
 
+  const roleLabels: Record<string, string> = {
+    admin: "Admin système",
+    manager: "Gérant",
+    cashier: "Caissier",
+    waiter: "Serveur",
+    chef: "Chef",
+    stock_manager: "Gestionnaire de stock",
+  }
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case "admin": return "bg-destructive/20 text-destructive"
-      case "manager": return "bg-primary/20 text-primary"
-      default: return "bg-accent/20 text-accent"
+      case "admin": return "bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-300"
+      case "manager": return "bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300"
+      case "cashier": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300"
+      case "waiter": return "bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-300"
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
     }
   }
 
@@ -175,8 +186,8 @@ export function Header() {
               </Avatar>
               <div className="hidden flex-col items-start md:flex">
                 <span className="text-sm font-medium">{user?.name}</span>
-                <Badge variant="outline" className={getRoleBadgeColor(user?.role || "")}>
-                  {user?.role}
+                <Badge variant="outline" className={`font-medium ${getRoleBadgeColor(user?.role || "")}`}>
+                  {roleLabels[user?.role || ""] || user?.role}
                 </Badge>
               </div>
             </Button>

@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Store, Tag, Shield, Plus, Save, Loader2, Search, Pencil, Ruler, MapPin, Layers } from "lucide-react"
+import { Store, Tag, Shield, Plus, Trash2, Save, Loader2, Search, Pencil, Ruler, MapPin, Layers, Building2 } from "lucide-react"
 import { useSettings } from "@/hooks/use-settings"
 import { useCategories } from "@/hooks/use-products"
 import { useUnits } from "@/hooks/use-units"
@@ -25,6 +25,8 @@ import { useLocations } from "@/hooks/use-locations"
 import { useCategoryGroups } from "@/hooks/use-category-groups"
 import { cn } from "@/lib/utils"
 import { UserManagement } from "@/components/user-management"
+import { useSuppliers } from "@/hooks/use-suppliers"
+import { SupplierFormDialog } from "@/components/inventory/supplier-form-dialog"
 import Swal from "sweetalert2"
 
 type Category = {
@@ -52,13 +54,17 @@ type LocationType = typeof LOCATION_TYPES[number]
 
 export default function SettingsPage() {
   const { settings, loading: settingsLoading, updateSettings } = useSettings()
-  const { categories, loading: categoriesLoading, createCategory, updateCategory } = useCategories()
-  const { units, loading: unitsLoading, createUnit, updateUnit } = useUnits()
-  const { locations, loading: locationsLoading, createLocation, updateLocation } = useLocations()
-  const { groups: categoryGroups, loading: catGroupsLoading, createGroup, updateGroup } = useCategoryGroups()
+  const { categories, loading: categoriesLoading, createCategory, updateCategory, deleteCategory } = useCategories()
+  const { units, loading: unitsLoading, createUnit, updateUnit, deleteUnit } = useUnits()
+  const { locations, loading: locationsLoading, createLocation, updateLocation, deleteLocation } = useLocations()
+  const { groups: categoryGroups, loading: catGroupsLoading, createGroup, updateGroup, deleteGroup } = useCategoryGroups()
+  const { suppliers, loading: suppliersLoading, createSupplier, updateSupplier, toggleSupplierStatus } = useSuppliers()
+
+  const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false)
+  const [editingSupplier, setEditingSupplier] = useState<any | null>(null)
 
   const [storeInfo, setStoreInfo] = useState<any>(null)
-  const [newCategory, setNewCategory] = useState({ name: "", description: "" })
+  const [newCategory, setNewCategory] = useState({ name: "", description: "", groupId: null as string | null })
   const [showAddCategory, setShowAddCategory] = useState(false)
   const [newUnit, setNewUnit] = useState({ code: "", name: "", symbol: "" })
   const [showAddUnit, setShowAddUnit] = useState(false)
@@ -392,14 +398,15 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="store">
-        <TabsList className="grid w-full grid-cols-7 gap-1 bg-muted/50 p-1 lg:w-auto lg:inline-flex">
-          <TabsTrigger value="store" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Infos boutique</TabsTrigger>
-          <TabsTrigger value="categories" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Catégories</TabsTrigger>
-          <TabsTrigger value="category-groups" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Groupes</TabsTrigger>
-          <TabsTrigger value="units" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Unités</TabsTrigger>
-          <TabsTrigger value="locations" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Emplacements</TabsTrigger>
-          <TabsTrigger value="menus" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Permissions des menus</TabsTrigger>
-          <TabsTrigger value="users" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Utilisateurs & Rôles</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
+          <TabsTrigger value="store">Infos boutique</TabsTrigger>
+          <TabsTrigger value="categories">Catégories</TabsTrigger>
+          <TabsTrigger value="category-groups">Groupes</TabsTrigger>
+          <TabsTrigger value="units">Unités</TabsTrigger>
+          <TabsTrigger value="suppliers">Fournisseurs</TabsTrigger>
+          <TabsTrigger value="locations">Emplacements</TabsTrigger>
+          <TabsTrigger value="menus">Permissions des menus</TabsTrigger>
+          <TabsTrigger value="users">Utilisateurs & Rôles</TabsTrigger>
         </TabsList>
 
         {/* Store Information */}
@@ -696,7 +703,7 @@ export default function SettingsPage() {
                       placeholder="ex. Boulangerie"
                       value={editCategory?.name ?? ""}
                       onChange={(e) =>
-                        setEditCategory((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                        setEditCategory((prev: any) => (prev ? { ...prev, name: e.target.value } : prev))
                       }
                     />
                   </div>
@@ -706,7 +713,7 @@ export default function SettingsPage() {
                       placeholder="Description de la catégorie"
                       value={editCategory?.description ?? ""}
                       onChange={(e) =>
-                        setEditCategory((prev) => (prev ? { ...prev, description: e.target.value } : prev))
+                        setEditCategory((prev: any) => (prev ? { ...prev, description: e.target.value } : prev))
                       }
                     />
                   </div>
@@ -715,7 +722,7 @@ export default function SettingsPage() {
                     <Select
                       value={editCategory?.groupId ?? "none"}
                       onValueChange={(v) =>
-                        setEditCategory((prev) => (prev ? { ...prev, groupId: v === "none" ? null : v } : prev))
+                        setEditCategory((prev: any) => (prev ? { ...prev, groupId: v === "none" ? null : v } : prev))
                       }
                     >
                       <SelectTrigger>
@@ -1058,7 +1065,7 @@ export default function SettingsPage() {
                     placeholder="ex. kg"
                     value={editUnit?.code ?? ""}
                     onChange={(e) =>
-                      setEditUnit((prev) => (prev ? { ...prev, code: e.target.value } : prev))
+                      setEditUnit((prev: any) => (prev ? { ...prev, code: e.target.value } : prev))
                     }
                   />
                 </div>
@@ -1068,7 +1075,7 @@ export default function SettingsPage() {
                     placeholder="ex. Kilogramme"
                     value={editUnit?.name ?? ""}
                     onChange={(e) =>
-                      setEditUnit((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                      setEditUnit((prev: any) => (prev ? { ...prev, name: e.target.value } : prev))
                     }
                   />
                 </div>
@@ -1078,7 +1085,7 @@ export default function SettingsPage() {
                     placeholder="ex. kg"
                     value={editUnit?.symbol ?? ""}
                     onChange={(e) =>
-                      setEditUnit((prev) => (prev ? { ...prev, symbol: e.target.value } : prev))
+                      setEditUnit((prev: any) => (prev ? { ...prev, symbol: e.target.value } : prev))
                     }
                   />
                 </div>
@@ -1172,6 +1179,109 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Suppliers (Fournisseurs) */}
+        <TabsContent value="suppliers" className="mt-4">
+          <Card className="border-border bg-card">
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Fournisseurs
+                </CardTitle>
+                <CardDescription>Gérer les fournisseurs</CardDescription>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button onClick={() => { setEditingSupplier(null); setIsSupplierDialogOpen(true) }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter un fournisseur
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="rounded-md border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-border">
+                      <TableHead className="text-muted-foreground">Nom</TableHead>
+                      <TableHead className="text-muted-foreground">Email</TableHead>
+                      <TableHead className="text-muted-foreground">Téléphone</TableHead>
+                      <TableHead className="text-muted-foreground">Adresse</TableHead>
+                      <TableHead className="text-muted-foreground">Statut</TableHead>
+                      <TableHead className="text-muted-foreground w-24 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {suppliersLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-24 text-center">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                        </TableCell>
+                      </TableRow>
+                    ) : suppliers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                          Aucun fournisseur trouvé
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      suppliers.map((supplier) => (
+                        <TableRow key={supplier.id} className="border-border">
+                          <TableCell className="font-medium">{supplier.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{supplier.email}</TableCell>
+                          <TableCell className="text-muted-foreground">{supplier.phone}</TableCell>
+                          <TableCell className="text-muted-foreground">{supplier.address}</TableCell>
+                          <TableCell>
+                            <span className={cn(
+                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                              supplier.isActive
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                : "bg-muted text-muted-foreground"
+                            )}>
+                              {supplier.isActive ? "Actif" : "Inactif"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost" size="icon"
+                                className="h-8 w-8 text-muted-foreground"
+                                title="Modifier"
+                                onClick={() => { setEditingSupplier(supplier); setIsSupplierDialogOpen(true) }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost" size="icon"
+                                className="h-8 w-8"
+                                title={supplier.isActive ? "Désactiver" : "Activer"}
+                                onClick={() => toggleSupplierStatus(supplier.id, !supplier.isActive)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+          <SupplierFormDialog
+            supplier={editingSupplier}
+            open={isSupplierDialogOpen}
+            onOpenChange={setIsSupplierDialogOpen}
+            onSubmit={async (data) => {
+              if (editingSupplier) {
+                await updateSupplier(editingSupplier.id, data)
+              } else {
+                await createSupplier(data)
+              }
+            }}
+          />
         </TabsContent>
 
         {/* Locations */}

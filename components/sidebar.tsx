@@ -34,6 +34,7 @@ import {
   Store,
   Landmark,
   Banknote,
+  Bell,
 } from "lucide-react"
 
 const iconMap: Record<string, any> = {
@@ -42,6 +43,7 @@ const iconMap: Record<string, any> = {
   BarChart3, Settings, Truck, RefreshCw,
   ClipboardList, Receipt, ArrowRightLeft, Wallet,
   ChefHat, UtensilsCrossed, Landmark, Banknote,
+  Bell,
 }
 
 const DEFAULT_MENUS = [
@@ -56,6 +58,7 @@ const DEFAULT_MENUS = [
   { id: "9", href: "/stock-movements", label: "Mouvements de stock", icon: "ArrowLeftRight", roles: ["admin", "manager"], sortOrder: 9 },
   { id: "10", href: "/stock/transfers", label: "Transferts de stock", icon: "ArrowRightLeft", roles: ["admin", "manager"], sortOrder: 10 },
   { id: "11", href: "/caisse", label: "Caisse", icon: "Banknote", roles: ["admin", "manager", "cashier"], sortOrder: 11 },
+  { id: "111", href: "/notifications", label: "Notifications", icon: "Bell", roles: ["admin", "manager", "cashier"], sortOrder: 111 },
   { id: "12", href: "/expenses", label: "Dépenses", icon: "Wallet", roles: ["admin", "manager"], sortOrder: 12 },
   { id: "13", href: "/staff-tables", label: "Personnel & Tables", icon: "UserCog", roles: ["admin", "manager"], sortOrder: 13 },
   { id: "14", href: "/clients", label: "Clients", icon: "Users", roles: ["admin", "manager", "cashier"], sortOrder: 14 },

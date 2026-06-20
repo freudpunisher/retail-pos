@@ -112,13 +112,14 @@ export async function POST() {
 
 export async function PUT(request: Request) {
     try {
-        const { ids, markAll } = await request.json()
+        const { ids, markAll, read } = await request.json()
+        const readStatus = read !== undefined ? read : true
 
         if (markAll) {
-            await db.update(notifications).set({ read: true })
+            await db.update(notifications).set({ read: readStatus })
         } else if (Array.isArray(ids)) {
             for (const id of ids) {
-                await db.update(notifications).set({ read: true }).where(eq(notifications.id, id))
+                await db.update(notifications).set({ read: readStatus }).where(eq(notifications.id, id))
             }
         }
 
@@ -126,5 +127,26 @@ export async function PUT(request: Request) {
     } catch (error) {
         console.error("Failed to update notifications:", error)
         return NextResponse.json({ error: "Failed to update notifications" }, { status: 500 })
+    }
+}
+
+export async function PATCH(request: Request) {
+    try {
+        const { id, read, action } = await request.json()
+
+        if (action === "delete" && id) {
+            await db.delete(notifications).where(eq(notifications.id, id))
+            return NextResponse.json({ success: true })
+        }
+
+        if (id && read !== undefined) {
+            await db.update(notifications).set({ read }).where(eq(notifications.id, id))
+            return NextResponse.json({ success: true })
+        }
+
+        return NextResponse.json({ error: "Invalid request" }, { status: 400 })
+    } catch (error) {
+        console.error("Failed to patch notification:", error)
+        return NextResponse.json({ error: "Failed to patch notification" }, { status: 500 })
     }
 }

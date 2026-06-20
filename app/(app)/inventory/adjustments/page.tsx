@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -74,6 +74,25 @@ export default function StockAdjustmentsPage() {
         notes: ""
     })
 
+    const [locationStock, setLocationStock] = useState<any[]>([])
+
+    useEffect(() => {
+        if (!formData.locationId) {
+            setLocationStock([])
+            return
+        }
+        fetch(`/api/stock?locationId=${formData.locationId}`)
+            .then(res => res.json())
+            .then(data => setLocationStock(data))
+            .catch(err => console.error("Failed to fetch location stock:", err))
+    }, [formData.locationId])
+
+    const productsAtLocation = useMemo(() => {
+        if (!formData.locationId || locationStock.length === 0) return []
+        const productIds = new Set(locationStock.map((s: any) => s.productId))
+        return products.filter(p => productIds.has(p.id))
+    }, [formData.locationId, locationStock, products])
+
     const filteredAdjustments = useMemo(() => {
         return adjustments.filter(adj =>
             adj.product.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -146,55 +165,55 @@ export default function StockAdjustmentsPage() {
                                 <DialogDescription className="text-base italic">Assurez la précision lors de l'enregistrement des changements d'inventaire.</DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-6 py-6">
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-primary/80">Sélectionner le produit</Label>
-                                    <Select
-                                        value={formData.productId}
-                                        onValueChange={(val) => setFormData({ ...formData, productId: val })}
-                                        required
-                                    >
-                                        <SelectTrigger className="bg-background/50 border-border/50 hover:border-primary/50 transition-colors">
-                                            <SelectValue placeholder="Quel produit ajustez-vous ?" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {products.map(p => (
-                                                <SelectItem key={p.id} value={p.id}>{p.name} — <span className="opacity-50 text-xs">{p.sku}</span></SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-primary/80">Emplacement</Label>
-                                    <Select
-                                        value={formData.locationId}
-                                        onValueChange={(val) => setFormData({ ...formData, locationId: val })}
-                                        required
-                                    >
-                                        <SelectTrigger className="bg-background/50 border-border/50 hover:border-primary/50 transition-colors">
-                                            <SelectValue placeholder="Sélectionner l'emplacement" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {locations.map(l => (
-                                                <SelectItem key={l.id} value={l.id}>
-                                                    <span className="flex items-center gap-2">
-                                                        {l.type === "principal" ? <Warehouse className="h-3 w-3" /> : <Store className="h-3 w-3" />}
-                                                        {l.name}
-                                                    </span>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-primary/80">Type d'ajustement</Label>
+                                        <Label className="text-sm font-bold text-primary/80">Emplacement</Label>
                                         <Select
-                                            value={formData.adjustmentType}
-                                            onValueChange={(val) => setFormData({ ...formData, adjustmentType: val })}
+                                            value={formData.locationId}
+                                            onValueChange={(val) => setFormData({ ...formData, locationId: val, productId: "" })}
+                                            required
                                         >
                                             <SelectTrigger className="bg-background/50 border-border/50 hover:border-primary/50 transition-colors">
-                                                <SelectValue />
+                                                <SelectValue placeholder="Sélectionner l'emplacement" />
                                             </SelectTrigger>
+                                            <SelectContent>
+                                                {locations.map(l => (
+                                                    <SelectItem key={l.id} value={l.id}>
+                                                        <span className="flex items-center gap-2">
+                                                            {l.type === "principal" ? <Warehouse className="h-3 w-3" /> : <Store className="h-3 w-3" />}
+                                                            {l.name}
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-bold text-primary/80">Sélectionner le produit</Label>
+                                        <Select
+                                            value={formData.productId}
+                                            onValueChange={(val) => setFormData({ ...formData, productId: val })}
+                                            required
+                                            disabled={!formData.locationId}
+                                        >
+                                            <SelectTrigger className="bg-background/50 border-border/50 hover:border-primary/50 transition-colors">
+                                                <SelectValue placeholder={formData.locationId ? "Quel produit ajustez-vous ?" : "Sélectionnez d'abord un emplacement"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {productsAtLocation.map(p => (
+                                                    <SelectItem key={p.id} value={p.id}>{p.name} — <span className="opacity-50 text-xs">{p.sku}</span></SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-primary/80">Type d'ajustement</Label>
+                                    <Select
+                                        value={formData.adjustmentType}
+                                        onValueChange={(val) => setFormData({ ...formData, adjustmentType: val })}
+                                    >
+                                        <SelectTrigger className="bg-background/50 border-border/50 hover:border-primary/50 transition-colors">
+                                            <SelectValue />
+                                        </SelectTrigger>
                                     <SelectContent>
                                         {Object.entries(adjustmentTypes).map(([key, cfg]) => (
                                             <SelectItem key={key} value={key}>
@@ -207,19 +226,18 @@ export default function StockAdjustmentsPage() {
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-primary/80">Changement de quantité</Label>
-                                        <Input
-                                            type="number"
-                                            placeholder={formData.adjustmentType ? `${adjustmentTypes[formData.adjustmentType]?.impact} quantité` : "Quantité"}
-                                            value={formData.quantityChange}
-                                            onChange={(e) => setFormData({ ...formData, quantityChange: e.target.value })}
-                                            className="bg-background/50 border-border/50 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-bold"
-                                            required
-                                        />
-                                    </div>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-primary/80">Changement de quantité</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder={formData.adjustmentType ? `${adjustmentTypes[formData.adjustmentType]?.impact} quantité` : "Quantité"}
+                                        value={formData.quantityChange}
+                                        onChange={(e) => setFormData({ ...formData, quantityChange: e.target.value })}
+                                        className="bg-background/50 border-border/50 focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-bold"
+                                        required
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm font-bold text-primary/80">Motif</Label>

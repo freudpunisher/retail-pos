@@ -206,7 +206,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                         {type === "drink" && <Beer className="h-4 w-4 mr-1" />}
                                         {type === "food" && <Utensils className="h-4 w-4 mr-1" />}
                                         {type === "ingredient" && <Package className="h-4 w-4 mr-1" />}
-                                        {type === "drink" ? "Drink" : type === "food" ? "Food" : "Ingredient"}
+                                        {type === "drink" ? "Drink" : type === "food" ? "Food" : "Cuisine"}
                                     </Button>
                                 ))}
                             </div>
