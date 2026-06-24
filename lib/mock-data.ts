@@ -503,6 +503,8 @@ export const mockStoreSettings: StoreSettings = {
   taxRate: 8.5,
   currency: "Fbu",
   currencySymbol: "Fbu",
+  rcNumber: "",
+  nifNumber: "",
 }
 
 // Helper functions

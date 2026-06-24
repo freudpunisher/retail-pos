@@ -281,6 +281,8 @@ export const storeSettings = pgTable("store_settings", {
     taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).notNull(),
     currency: text("currency").notNull(),
     currencySymbol: text("currency_symbol").notNull(),
+    rcNumber: text("rc_number"),
+    nifNumber: text("nif_number"),
 })
 
 export const recipes = pgTable("recipes", {

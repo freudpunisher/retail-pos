@@ -16,6 +16,8 @@ export async function GET() {
                 taxRate: "0",
                 currency: "USD",
                 currencySymbol: "$",
+                rcNumber: "",
+                nifNumber: "",
             })
         }
         return NextResponse.json(settings)
@@ -28,7 +30,7 @@ export async function GET() {
 export async function PUT(request: Request) {
     try {
         const body = await request.json()
-        const { name, address, phone, email, taxRate, currency, currencySymbol } = body
+        const { name, address, phone, email, taxRate, currency, currencySymbol, rcNumber, nifNumber } = body
 
         const [existing] = await db.select().from(storeSettings).limit(1)
 
@@ -43,6 +45,8 @@ export async function PUT(request: Request) {
                     taxRate: taxRate.toString(),
                     currency,
                     currencySymbol,
+                    rcNumber: rcNumber || null,
+                    nifNumber: nifNumber || null,
                 })
                 .where(eq(storeSettings.id, existing.id))
                 .returning()
@@ -58,6 +62,8 @@ export async function PUT(request: Request) {
                     taxRate: taxRate.toString(),
                     currency,
                     currencySymbol,
+                    rcNumber: rcNumber || null,
+                    nifNumber: nifNumber || null,
                 })
                 .returning()
             return NextResponse.json(newSettings)

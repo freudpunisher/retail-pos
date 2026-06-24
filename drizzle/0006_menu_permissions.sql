@@ -24,6 +24,6 @@ INSERT INTO "menu_permissions" (href, label, icon, roles, sort_order) VALUES
     ('/clients', 'Clients', 'Users', '{admin,manager,cashier}', 13),
     ('/credit', 'Credit Management', 'CreditCard', '{admin,manager}', 14),
     ('/reports', 'Reports', 'BarChart3', '{admin,manager}', 15),
-    ('/settings', 'Settings', 'Settings', '{admin}', 16),
+npm run migrate    ('/settings', 'Settings', 'Settings', '{admin}', 16),
     ('/notifications', 'Notifications', 'Bell', '{admin,manager,cashier}', 111)
 ON CONFLICT (href) DO NOTHING;

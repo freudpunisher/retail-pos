@@ -669,7 +669,7 @@ export default function SalesHistoryPage() {
                                      </Button>
                                    </>
                                  )}
-                                 {txn.status !== "completed" && txn.status !== "cancelled" && user?.role === "manager" && (
+                                 {txn.status !== "completed" && txn.status !== "cancelled" && (user?.role === "manager" || user?.role === "admin") && (
                                    <>
                                      <Button variant="outline" size="sm" className="h-8" onClick={() => handleEditOpen(txn)}>
                                        <Pencil className="h-3.5 w-3.5 mr-1" /> Modifier

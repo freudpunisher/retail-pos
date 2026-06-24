@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import db from "@/lib/db"
-import { transactions, tables as tablesSchema, clients } from "@/lib/db/schema"
+import { transactions, tables as tablesSchema, clients, creditRecords } from "@/lib/db/schema"
 import { eq, sql } from "drizzle-orm"
 
 const validTransitions: Record<string, string[]> = {
@@ -63,7 +63,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
                 .where(eq(tablesSchema.id, order.tableId))
         }
 
-        // Update client credit balance for credit payments
+        // Update client credit balance and create credit record for credit payments
         if (orderStatus === "paid" && paymentMethod === "credit" && clientId) {
             await db
                 .update(clients)
@@ -71,6 +71,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
                     creditBalance: sql`${clients.creditBalance} + ${order.total}`,
                 })
                 .where(eq(clients.id, clientId))
+
+            const dueDate = new Date()
+            dueDate.setDate(dueDate.getDate() + 30)
+
+            await db.insert(creditRecords).values({
+                clientId,
+                transactionId: id,
+                amount: order.total.toString(),
+                paidAmount: "0",
+                dueDate,
+                status: "pending",
+            })
         }
 
         return NextResponse.json(updated)

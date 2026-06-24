@@ -152,6 +152,8 @@ export interface StoreSettings {
   taxRate: number
   currency: string
   currencySymbol: string
+  rcNumber?: string | null
+  nifNumber?: string | null
 }
 
 export interface CategoryGroup {
