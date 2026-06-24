@@ -32,10 +32,15 @@ import {
     X,
     ChevronLeft,
     ChevronRight,
+    Eye,
+    CheckCircle,
+    ShieldCheck,
+    Pencil,
 } from "lucide-react"
 import { useExpenses } from "@/hooks/use-expenses"
 import { useUsers } from "@/hooks/use-users"
 import { useAuth } from "@/lib/auth-context"
+import Swal from "sweetalert2"
 import { formatCurrency } from "@/lib/mock-data"
 import type { ExpenseCategory } from "@/lib/types"
 
@@ -56,13 +61,16 @@ export default function ExpensesPage() {
     const [search, setSearch] = useState("")
     const [categoryFilter, setCategoryFilter] = useState<string>("all")
     const [showDialog, setShowDialog] = useState(false)
+    const [showEditDialog, setShowEditDialog] = useState(false)
+    const [showDetailDialog, setShowDetailDialog] = useState(false)
+    const [selectedExpense, setSelectedExpense] = useState<any>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
     const [page, setPage] = useState(1)
     const pageSize = 20
 
-    const { expenses, loading, createExpense, deleteExpense } = useExpenses()
+    const { expenses, loading, createExpense, deleteExpense, validateExpense, updateExpense } = useExpenses()
     const { users } = useUsers()
     const { user } = useAuth()
 
@@ -72,6 +80,14 @@ export default function ExpensesPage() {
         category: "other" as ExpenseCategory,
         description: "",
         date: new Date().toISOString().split("T")[0],
+    })
+
+    const [editFormData, setEditFormData] = useState({
+        name: "",
+        amount: "",
+        category: "other" as ExpenseCategory,
+        description: "",
+        date: "",
     })
 
     const expensesInRange = useMemo(() => {
@@ -154,6 +170,37 @@ export default function ExpensesPage() {
             setIsSubmitting(false)
         }
     }
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!selectedExpense) return
+        setIsSubmitting(true)
+        try {
+            await updateExpense(selectedExpense.id, {
+                ...editFormData,
+                amount: parseFloat(editFormData.amount),
+                date: new Date(editFormData.date).toISOString(),
+            })
+            setShowEditDialog(false)
+            setSelectedExpense(null)
+        } catch {
+            // handled by hook
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    useEffect(() => {
+        if (selectedExpense) {
+            setEditFormData({
+                name: selectedExpense.name,
+                amount: String(selectedExpense.amount),
+                category: selectedExpense.category as ExpenseCategory,
+                description: selectedExpense.description || "",
+                date: new Date(selectedExpense.date).toISOString().split("T")[0],
+            })
+        }
+    }, [selectedExpense])
 
     return (
         <div className="space-y-6">
@@ -453,18 +500,86 @@ export default function ExpensesPage() {
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
-                                                onClick={() => {
-                                                    if (confirm("Supprimer cette dépense ?")) {
-                                                        deleteExpense(exp.id)
-                                                    }
-                                                }}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                    onClick={() => {
+                                                        setSelectedExpense(exp)
+                                                        setShowDetailDialog(true)
+                                                    }}
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                                {!exp.validated && (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-amber-600"
+                                                            onClick={() => {
+                                                                setSelectedExpense(exp)
+                                                                setShowEditDialog(true)
+                                                            }}
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-green-600"
+                                                            onClick={async () => {
+                                                                const result = await Swal.fire({
+                                                                    title: "Valider cette dépense ?",
+                                                                    text: `Êtes-vous sûr de vouloir valider "${exp.name}" ? Cette action est irréversible.`,
+                                                                    icon: "warning",
+                                                                    showCancelButton: true,
+                                                                    confirmButtonColor: "#16a34a",
+                                                                    cancelButtonColor: "#6b7280",
+                                                                    confirmButtonText: "Oui, valider",
+                                                                    cancelButtonText: "Annuler",
+                                                                })
+                                                                if (result.isConfirmed) {
+                                                                    await validateExpense(exp.id)
+                                                                    await Swal.fire({ icon: "success", title: "Dépense validée", timer: 1500, showConfirmButton: false })
+                                                                }
+                                                            }}
+                                                        >
+                                                            <CheckCircle className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                            onClick={async () => {
+                                                                const result = await Swal.fire({
+                                                                    title: "Supprimer cette dépense ?",
+                                                                    text: `Êtes-vous sûr de vouloir supprimer "${exp.name}" ? Cette action est irréversible.`,
+                                                                    icon: "warning",
+                                                                    showCancelButton: true,
+                                                                    confirmButtonColor: "#d33",
+                                                                    cancelButtonColor: "#6b7280",
+                                                                    confirmButtonText: "Oui, supprimer",
+                                                                    cancelButtonText: "Annuler",
+                                                                })
+                                                                if (result.isConfirmed) {
+                                                                    await deleteExpense(exp.id)
+                                                                    await Swal.fire({ icon: "success", title: "Dépense supprimée", timer: 1500, showConfirmButton: false })
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {exp.validated && (
+                                                    <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs">
+                                                        <ShieldCheck className="h-3 w-3 mr-1" />
+                                                        Validée
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 )
@@ -501,6 +616,166 @@ export default function ExpensesPage() {
                     </div>
                 )}
             </Card>
+
+            {/* Edit Dialog */}
+            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                <DialogContent className="sm:max-w-[500px] border-border/50 shadow-2xl backdrop-blur-xl bg-card/90">
+                    <form onSubmit={handleEditSubmit}>
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                                <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                                    <Pencil className="h-6 w-6 text-amber-500" />
+                                </div>
+                                Modifier la dépense
+                            </DialogTitle>
+                            <DialogDescription className="text-base italic">
+                                Modifiez les détails de cette dépense.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-6 py-6">
+                            <div className="space-y-2">
+                                <Label className="text-sm font-bold text-primary/80">Nom de la dépense</Label>
+                                <Input
+                                    placeholder="ex. Facture d'électricité"
+                                    value={editFormData.name}
+                                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                                    className="bg-background/50 border-border/50 hover:border-primary/50"
+                                    required
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-primary/80">Montant</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={editFormData.amount}
+                                        onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
+                                        className="bg-background/50 border-border/50 focus:border-primary font-bold text-lg"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-primary/80">Catégorie</Label>
+                                    <Select
+                                        value={editFormData.category}
+                                        onValueChange={(val) => setEditFormData({ ...editFormData, category: val as ExpenseCategory })}
+                                    >
+                                        <SelectTrigger className="bg-background/50 border-border/50">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.entries(categoryConfig).map(([key, cfg]) => (
+                                                <SelectItem key={key} value={key}>{cfg.icon} {cfg.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-bold text-primary/80">Date</Label>
+                                <Input
+                                    type="date"
+                                    value={editFormData.date}
+                                    onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
+                                    className="bg-background/50 border-border/50"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-bold text-primary/80">Description (Optionnelle)</Label>
+                                <Input
+                                    placeholder="Détails supplémentaires sur cette dépense"
+                                    value={editFormData.description}
+                                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                                    className="bg-background/50 border-border/50"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter className="bg-secondary/5 -mx-6 -mb-6 p-6 rounded-b-lg border-t border-border/50">
+                            <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)} className="border-border/50">
+                                Annuler
+                            </Button>
+                            <Button type="submit" disabled={isSubmitting} className="min-w-[170px] bg-gradient-to-r from-amber-500 to-amber-600 hover:shadow-amber-500/30 shadow-lg transition-all">
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Pencil className="mr-2 h-4 w-4" />}
+                                Enregistrer les modifications
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Detail Dialog */}
+            <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+                <DialogContent className="sm:max-w-[500px] border-border/50 shadow-2xl backdrop-blur-xl bg-card/90">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <FileText className="h-6 w-6 text-primary" />
+                            </div>
+                            Détails de la dépense
+                        </DialogTitle>
+                        <DialogDescription className="text-base italic">
+                            Informations complètes sur cette dépense.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedExpense && (
+                        <div className="grid gap-4 py-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-muted-foreground">Statut</span>
+                                {selectedExpense.validated ? (
+                                    <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                                        <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                                        Validée
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
+                                        En attente
+                                    </Badge>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nom</p>
+                                    <p className="text-lg font-bold">{selectedExpense.name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Montant</p>
+                                    <p className="text-lg font-black text-destructive">-{formatCurrency(Number(selectedExpense.amount))}</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Catégorie</p>
+                                    <Badge variant="outline" className={`font-bold text-xs ${(categoryConfig[selectedExpense.category as ExpenseCategory] || categoryConfig.other).color}`}>
+                                        {(categoryConfig[selectedExpense.category as ExpenseCategory] || categoryConfig.other).label}
+                                    </Badge>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</p>
+                                    <p className="text-sm font-medium">{new Date(selectedExpense.date).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Enregistré par</p>
+                                <p className="text-sm font-medium">{selectedExpense.user?.name || "—"}</p>
+                            </div>
+                            {selectedExpense.description && (
+                                <div>
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</p>
+                                    <p className="text-sm text-muted-foreground">{selectedExpense.description}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <DialogFooter className="bg-secondary/5 -mx-6 -mb-6 p-6 rounded-b-lg border-t border-border/50">
+                        <Button variant="outline" onClick={() => setShowDetailDialog(false)} className="border-border/50">
+                            Fermer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

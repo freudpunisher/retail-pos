@@ -53,7 +53,7 @@ const LOCATION_TYPES = ["principal", "transitional", "bar", "kitchen"] as const
 type LocationType = typeof LOCATION_TYPES[number]
 
 export default function SettingsPage() {
-  const { settings, loading: settingsLoading, updateSettings } = useSettings()
+  const { settings, loading: settingsLoading, error: settingsError, refresh: refreshSettings, updateSettings } = useSettings()
   const { categories, loading: categoriesLoading, createCategory, updateCategory, deleteCategory } = useCategories()
   const { units, loading: unitsLoading, createUnit, updateUnit, deleteUnit } = useUnits()
   const { locations, loading: locationsLoading, createLocation, updateLocation, deleteLocation } = useLocations()
@@ -381,7 +381,30 @@ export default function SettingsPage() {
 
   useEffect(() => { fetchMenuItems() }, [])
 
-  if (settingsLoading || !storeInfo) {
+  if (settingsLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Chargement des paramètres...</span>
+      </div>
+    )
+  }
+
+  if (settingsError) {
+    return (
+      <div className="mx-auto max-w-2xl p-12">
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-8 text-center">
+          <p className="text-lg font-semibold text-destructive">Impossible de charger les paramètres</p>
+          <p className="mt-3 text-sm text-muted-foreground">{settingsError}</p>
+          <Button className="mt-6" onClick={refreshSettings}>
+            Réessayer
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!storeInfo) {
     return (
       <div className="flex items-center justify-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

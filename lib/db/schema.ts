@@ -326,8 +326,9 @@ export const expenses = pgTable("expenses", {
     date: timestamp("date").notNull().defaultNow(),
     userId: uuid("user_id").notNull().references(() => users.id),
     paidBy: uuid("paid_by").references(() => users.id),
-    recipient: text("recipient"), // Who was paid (supplier, landlord, etc.)
-    reference: text("reference"), // Invoice number, receipt ID
+    recipient: text("recipient"),
+    reference: text("reference"),
+    validated: boolean("validated").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
 })
 

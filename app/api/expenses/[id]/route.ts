@@ -24,6 +24,14 @@ export async function PUT(
     try {
         const { id } = await params
         const body = await request.json()
+
+        if (body._action === "validate") {
+            const [expense] = await db.update(expenses).set({
+                validated: true,
+            }).where(eq(expenses.id, id)).returning()
+            return NextResponse.json(expense)
+        }
+
         const { name, amount, category, description, date } = body
         const [expense] = await db.update(expenses).set({
             name,

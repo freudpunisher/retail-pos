@@ -235,5 +235,6 @@ export interface Expense {
   date: string
   userId: string
   user?: { name: string }
+  validated: boolean
   createdAt: string
 }

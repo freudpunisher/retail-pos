@@ -53,9 +53,39 @@ export function useExpenses() {
         }
     }
 
+    const validateExpense = async (id: string) => {
+        try {
+            const response = await fetch(`/api/expenses/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ _action: "validate" }),
+            })
+            if (!response.ok) throw new Error("Failed to validate expense")
+            fetchExpenses()
+        } catch (err: any) {
+            setError(err.message)
+            throw err
+        }
+    }
+
+    const updateExpense = async (id: string, data: any) => {
+        try {
+            const response = await fetch(`/api/expenses/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            })
+            if (!response.ok) throw new Error("Failed to update expense")
+            fetchExpenses()
+        } catch (err: any) {
+            setError(err.message)
+            throw err
+        }
+    }
+
     useEffect(() => {
         fetchExpenses()
     }, [fetchExpenses])
 
-    return { expenses, loading, error, refresh: fetchExpenses, createExpense, deleteExpense }
+    return { expenses, loading, error, refresh: fetchExpenses, createExpense, deleteExpense, validateExpense, updateExpense }
 }

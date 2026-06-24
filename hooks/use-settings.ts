@@ -10,8 +10,11 @@ export function useSettings() {
     const fetchSettings = useCallback(async () => {
         setLoading(true)
         try {
-            const response = await fetch("/api/settings")
-            if (!response.ok) throw new Error("Failed to fetch settings")
+            const response = await fetch("/api/settings", { cache: "no-store", credentials: "same-origin" })
+            if (!response.ok) {
+                const errorBody = await response.json().catch(() => null)
+                throw new Error(errorBody?.error || "Failed to fetch settings")
+            }
             const data = await response.json()
             setSettings(data)
         } catch (err: any) {
