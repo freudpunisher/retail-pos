@@ -492,6 +492,24 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="rcNumber">Numéro RC (Registre de Commerce)</Label>
+                  <Input
+                    id="rcNumber"
+                    value={storeInfo.rcNumber || ""}
+                    onChange={(e) => setStoreInfo({ ...storeInfo, rcNumber: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nifNumber">Numéro NIF (Identification Fiscale)</Label>
+                  <Input
+                    id="nifNumber"
+                    value={storeInfo.nifNumber || ""}
+                    onChange={(e) => setStoreInfo({ ...storeInfo, nifNumber: e.target.value })}
+                  />
+                </div>
+              </div>
               <div className="flex justify-end border-t border-border/40 pt-4">
                 <Button onClick={handleSaveStore} disabled={isSaving} size="lg" className="min-w-[200px]">
                   {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
