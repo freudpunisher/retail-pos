@@ -3,28 +3,29 @@ import db from "@/lib/db"
 import { storeSettings } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
+const defaultSettings = {
+    name: "Smart POS",
+    address: "123 Business St",
+    phone: "+1 234 567 890",
+    email: "contact@smartpos.com",
+    taxRate: "0",
+    currency: "USD",
+    currencySymbol: "$",
+    rcNumber: "",
+    nifNumber: "",
+}
+
 export async function GET() {
     try {
         const [settings] = await db.select().from(storeSettings).limit(1)
-        if (!settings) {
-            // Provide defaults if table is empty
-            return NextResponse.json({
-                name: "Smart POS",
-                address: "123 Business St",
-                phone: "+1 234 567 890",
-                email: "contact@smartpos.com",
-                taxRate: "0",
-                currency: "USD",
-                currencySymbol: "$",
-                rcNumber: "",
-                nifNumber: "",
-            })
+        if (settings) {
+            return NextResponse.json(settings)
         }
-        return NextResponse.json(settings)
     } catch (error) {
-        console.error("Failed to fetch settings:", error)
-        return NextResponse.json({ error: "Failed to fetch settings" }, { status: 500 })
+        console.error("Failed to fetch store settings from DB, returning defaults:", error)
     }
+
+    return NextResponse.json(defaultSettings)
 }
 
 export async function PUT(request: Request) {

@@ -88,7 +88,7 @@ const SEED_MENU_PERMISSIONS = [
     href: "/expenses",
     label: "Expenses",
     icon: "Wallet",
-    roles: ["admin", "manager"],
+    roles: ["admin", "manager", "cashier"],
     sortOrder: 12,
   },
   {
