@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react"
 
-export function useStock(locationId?: string) {
+export function useStock(locationId?: string, enabled: boolean = true) {
     const [stockItems, setStockItems] = useState<any[]>([])
     const [adjustments, setAdjustments] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     const fetchStock = useCallback(async () => {
+        if (!enabled) return
         setLoading(true)
         try {
             const url = locationId ? `/api/stock?locationId=${locationId}` : "/api/stock"
@@ -21,9 +22,10 @@ export function useStock(locationId?: string) {
         } finally {
             setLoading(false)
         }
-    }, [locationId])
+    }, [locationId, enabled])
 
     const fetchAdjustments = useCallback(async () => {
+        if (!enabled) return
         setLoading(true)
         try {
             const response = await fetch("/api/stock/adjustments")
@@ -35,7 +37,7 @@ export function useStock(locationId?: string) {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [enabled])
 
     const createAdjustment = async (adjustmentData: any) => {
         try {

@@ -42,6 +42,7 @@ import { useStock } from "@/hooks/use-stock"
 import { useProducts } from "@/hooks/use-products"
 import { useUsers } from "@/hooks/use-users"
 import { useLocations } from "@/hooks/use-locations"
+import { useAuth } from "@/lib/auth-context"
 
 const adjustmentTypes: Record<string, { code: string; label: string; impact: string; color: string; icon: any }> = {
     stock_count:    { code: "COM", label: "Comptage physique",  impact: "+ / -", color: "bg-primary/20 text-primary border-primary/30", icon: Clock },
@@ -62,6 +63,7 @@ export default function StockAdjustmentsPage() {
     const { products } = useProducts()
     const { users } = useUsers()
     const { locations } = useLocations()
+    const { user: currentUser } = useAuth()
 
     const [formData, setFormData] = useState({
         productId: "",
@@ -70,7 +72,6 @@ export default function StockAdjustmentsPage() {
         quantityChange: "",
         reason: "",
         referenceNumber: "",
-        createdBy: "",
         notes: ""
     })
 
@@ -104,10 +105,9 @@ export default function StockAdjustmentsPage() {
         e.preventDefault()
         setIsSubmitting(true)
         try {
-            const userId = formData.createdBy || (users.length > 0 ? users[0].id : "")
             await createAdjustment({
                 ...formData,
-                createdBy: userId,
+                createdBy: currentUser?.id || (users.length > 0 ? users[0].id : ""),
                 quantityChange: parseInt(formData.quantityChange)
             })
             setShowAdjustmentDialog(false)
@@ -118,7 +118,6 @@ export default function StockAdjustmentsPage() {
                 quantityChange: "",
                 reason: "",
                 referenceNumber: "",
-                createdBy: users[0]?.id || "",
                 notes: ""
             })
         } catch (error) {
@@ -249,33 +248,14 @@ export default function StockAdjustmentsPage() {
                                         required
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-primary/80">Réf # (Optionnel)</Label>
-                                        <Input
-                                            placeholder="ex. INV-2024"
-                                            value={formData.referenceNumber}
-                                            onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
-                                            className="bg-background/50 border-border/50"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-bold text-primary/80">Effectué par</Label>
-                                        <Select
-                                            value={formData.createdBy}
-                                            onValueChange={(val) => setFormData({ ...formData, createdBy: val })}
-                                            required
-                                        >
-                                            <SelectTrigger className="bg-background/50 border-border/50 text-xs hover:border-primary/50 transition-colors">
-                                                <SelectValue placeholder="Assigner un utilisateur" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {users.map(u => (
-                                                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-primary/80">Réf # (Optionnel)</Label>
+                                    <Input
+                                        placeholder="ex. INV-2024"
+                                        value={formData.referenceNumber}
+                                        onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
+                                        className="bg-background/50 border-border/50"
+                                    />
                                 </div>
                             </div>
                             <DialogFooter className="bg-secondary/5 -mx-6 -mb-6 p-6 rounded-b-lg border-t border-border/50">
