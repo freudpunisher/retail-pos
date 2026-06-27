@@ -194,7 +194,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label className="text-right">Type</Label>
                             <div className="col-span-3 flex gap-2">
-                                {(['drink', 'food', 'ingredient'] as const).map((type) => (
+                                {(['drink', 'food', 'ingredient', 'others'] as const).map((type) => (
                                     <Button
                                         key={type}
                                         type="button"
@@ -206,7 +206,8 @@ export function ProductFormDialog({ product, open, onOpenChange, onSubmit }: Pro
                                         {type === "drink" && <Beer className="h-4 w-4 mr-1" />}
                                         {type === "food" && <Utensils className="h-4 w-4 mr-1" />}
                                         {type === "ingredient" && <Package className="h-4 w-4 mr-1" />}
-                                        {type === "drink" ? "Drink" : type === "food" ? "Food" : "Cuisine"}
+                                        {type === "others" && <Package className="h-4 w-4 mr-1" />}
+                                        {type === "drink" ? "Drink" : type === "food" ? "Food" : type === "ingredient" ? "Cuisine" : "Autres"}
                                     </Button>
                                 ))}
                             </div>

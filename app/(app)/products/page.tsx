@@ -19,6 +19,7 @@ const typeConfig: Record<string, { label: string; icon: any; color: string }> = 
     drink: { label: "Boisson", icon: Beer, color: "bg-blue-500/20 text-blue-700 dark:text-blue-400" },
     food: { label: "Plat", icon: Utensils, color: "bg-amber-500/20 text-amber-700 dark:text-amber-400" },
     ingredient: { label: "Cuisine", icon: Wheat, color: "bg-green-500/20 text-green-700 dark:text-green-400" },
+    others: { label: "Autres", icon: Package, color: "bg-purple-500/20 text-purple-700 dark:text-purple-400" },
 }
 
 export default function ProductManagementPage() {
@@ -147,6 +148,7 @@ export default function ProductManagementPage() {
         { key: "drink", label: "Boissons", icon: Beer },
         { key: "food", label: "Plats", icon: Utensils },
         { key: "ingredient", label: "Ingrédients", icon: Wheat },
+        { key: "others", label: "Autres", icon: Package },
     ]
 
     const counts = {
@@ -154,6 +156,7 @@ export default function ProductManagementPage() {
         drink: products.filter((p) => p.productType === "drink").length,
         food: products.filter((p) => p.productType === "food").length,
         ingredient: products.filter((p) => p.productType === "ingredient").length,
+        others: products.filter((p) => p.productType === "others").length,
     }
 
     return (

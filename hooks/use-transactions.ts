@@ -67,13 +67,13 @@ export function useTransactions(sector?: string) {
         }
     }, [])
 
-    const cancelTransaction = useCallback(async (id: string) => {
+    const cancelTransaction = useCallback(async (id: string, cancelReason?: string) => {
         setLoading(true)
         try {
             const response = await fetch(`/api/transactions/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "cancel" }),
+                body: JSON.stringify({ action: "cancel", cancelReason }),
             })
             if (!response.ok) {
                 const err = await response.json()

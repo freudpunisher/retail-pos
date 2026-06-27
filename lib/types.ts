@@ -1,7 +1,7 @@
 export type UserRole = "admin" | "manager" | "cashier" | "waiter" | "chef"
 export type CaisseSessionStatus = "open" | "closed"
 export type CaisseMovementType = "in" | "out"
-export type ProductType = "drink" | "food" | "ingredient"
+export type ProductType = "drink" | "food" | "ingredient" | "others"
 export type OrderStatus = "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled"
 
 export interface User {

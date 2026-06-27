@@ -36,6 +36,8 @@ import {
   FlowerIcon,
   Loader2,
   AlertTriangle,
+  Utensils,
+  Beer,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useProducts, useCategories } from "@/hooks/use-products"
@@ -180,14 +182,24 @@ export function ProductGrid() {
                 >
                   Boissons
                 </Button>
-                <Button
-                  variant={posFilter === "food" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setPosFilter("food")}
-                  className="shrink-0 h-7 text-xs"
-                >
-                  Plats
-                </Button>
+          <Button
+            variant={posFilter === "food" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setPosFilter("food")}
+            className="shrink-0 h-7 text-xs"
+          >
+            <Utensils className="h-3.5 w-3.5 mr-1" />
+            Plats
+          </Button>
+          <Button
+            variant={posFilter === "others" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setPosFilter("others")}
+            className="shrink-0 h-7 text-xs"
+          >
+            <Package className="h-3.5 w-3.5 mr-1" />
+            Autres
+          </Button>
             <div className="w-px bg-border mx-1 shrink-0" />
             <Button
               variant={selectedCategoryId === null ? "default" : "outline"}

@@ -3,7 +3,7 @@ import { relations } from "drizzle-orm"
 
 // Enums
 export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "cashier", "waiter", "chef", "stock_manager"])
-export const productTypeEnum = pgEnum("product_type", ["drink", "food", "ingredient"])
+export const productTypeEnum = pgEnum("product_type", ["drink", "food", "ingredient", "others"])
 export const orderStatusEnum = pgEnum("order_status", ["pending", "preparing", "ready", "served", "paid", "cancelled"])
 export const transactionTypeEnum = pgEnum("transaction_type", ["sale", "purchase", "credit_payment"])
 export const transactionStatusEnum = pgEnum("transaction_status", ["completed", "pending", "cancelled"])
@@ -208,6 +208,7 @@ export const transactions = pgTable("transactions", {
     tableId: uuid("table_id").references(() => tables.id),
     reference: text("reference"),
     clientProof: text("client_proof"),
+    cancelReason: text("cancel_reason"),
 })
 
 export const transactionItems = pgTable("transaction_items", {
