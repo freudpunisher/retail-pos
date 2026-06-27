@@ -26,6 +26,7 @@ function printReport(
   colAligns: string[],
   footerTotals: string[],
   filterInfo: string,
+  paymentSummary?: { cash: number; card: number; credit: number },
 ) {
   const alignStyle = (i: number) => {
     switch (colAligns[i]) {
@@ -130,6 +131,17 @@ function printReport(
     <tbody>${bodyHtml}${footerHtml}</tbody>
   </table>
 
+  ${paymentSummary ? `
+  <div style="display:flex;gap:24px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:2px solid #e2e8f0">
+    <div style="text-align:right">
+      <span style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600">Espèces</span>
+      <div style="font-size:16px;font-weight:700;color:#059669">${fmt(paymentSummary.cash)}</div>
+    </div>
+    <div style="text-align:right">
+      <span style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600">Crédit</span>
+      <div style="font-size:16px;font-weight:700;color:#d97706">${fmt(paymentSummary.credit)}</div>
+    </div>
+  </div>` : ""}
   <div class="footer">
     ${store.name} &mdash; Document généré par Smart POS
   </div>
@@ -187,17 +199,31 @@ export default function ReportsPage() {
         end.setHours(23, 59, 59, 999)
         if (d > end) return false
       }
-      if (timeFrom) {
-        const [h, m] = timeFrom.split(":").map(Number)
-        const tMin = h * 60 + m
+      if (timeFrom && timeTo) {
+        const [h1, m1] = timeFrom.split(":").map(Number)
+        const [h2, m2] = timeTo.split(":").map(Number)
+        const tStart = h1 * 60 + m1
+        const tEnd = h2 * 60 + m2
         const tVal = d.getHours() * 60 + d.getMinutes()
-        if (tVal < tMin) return false
-      }
-      if (timeTo) {
-        const [h, m] = timeTo.split(":").map(Number)
-        const tMax = h * 60 + m
-        const tVal = d.getHours() * 60 + d.getMinutes()
-        if (tVal > tMax) return false
+        if (tStart <= tEnd) {
+          if (tVal < tStart || tVal > tEnd) return false
+        } else {
+          // Overnight shift (e.g. 07:00 → 02:00 next day)
+          if (tVal < tStart && tVal > tEnd) return false
+        }
+      } else {
+        if (timeFrom) {
+          const [h, m] = timeFrom.split(":").map(Number)
+          const tMin = h * 60 + m
+          const tVal = d.getHours() * 60 + d.getMinutes()
+          if (tVal < tMin) return false
+        }
+        if (timeTo) {
+          const [h, m] = timeTo.split(":").map(Number)
+          const tMax = h * 60 + m
+          const tVal = d.getHours() * 60 + d.getMinutes()
+          if (tVal > tMax) return false
+        }
       }
       if (selectedUserId !== "all" && t.userId !== selectedUserId) return false
       return true
@@ -224,7 +250,7 @@ export default function ReportsPage() {
 
   const barProducts = useMemo(() => {
     return Object.entries(productSalesQty)
-      .filter(([_, v]) => v.type === "drink")
+      .filter(([_, v]) => v.type === "drink" || v.type === "others")
       .sort((a, b) => b[1].sold - a[1].sold)
   }, [productSalesQty])
 
@@ -233,6 +259,17 @@ export default function ReportsPage() {
       .filter(([_, v]) => v.type === "food")
       .sort((a, b) => b[1].sold - a[1].sold)
   }, [productSalesQty])
+
+  const paymentTotals = useMemo(() => {
+    const totals = { cash: 0, credit: 0, card: 0 }
+    for (const t of filteredTransactions) {
+      const method = t.paymentMethod || "cash"
+      if (method in totals) {
+        totals[method as keyof typeof totals] += Number(t.total) || 0
+      }
+    }
+    return totals
+  }, [filteredTransactions])
 
   const barGrandTotal = useMemo(() =>
     barProducts.reduce((sum, [_, { total }]) => sum + total, 0),
@@ -274,7 +311,7 @@ export default function ReportsPage() {
       fmt(total),
     ])
     const footer = ["", "", "", "TOTAL", fmt(barGrandTotal)]
-    printReport("Rapport des ventes — Bar", storeInfo, columns, rows, aligns, footer, filterDesc)
+    printReport("Rapport des ventes — Bar", storeInfo, columns, rows, aligns, footer, filterDesc, paymentTotals)
   }
 
   const handlePrintFood = () => {
@@ -287,7 +324,7 @@ export default function ReportsPage() {
       fmt(total),
     ])
     const footer = ["", "", "TOTAL", fmt(foodGrandTotal)]
-    printReport("Rapport des ventes — Cuisine", storeInfo, columns, rows, aligns, footer, filterDesc)
+    printReport("Rapport des ventes — Cuisine", storeInfo, columns, rows, aligns, footer, filterDesc, paymentTotals)
   }
 
   return (
@@ -335,6 +372,29 @@ export default function ReportsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {!isLoading && (
+        <div className="grid grid-cols-2 gap-4">
+          <Card className="border-border/50 bg-card shadow-sm">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Espèces</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{fmt(paymentTotals.cash)}</p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 text-lg font-bold">$</div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50 bg-card shadow-sm">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Crédit</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{fmt(paymentTotals.credit)}</p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 text-lg font-bold">📋</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-16">
