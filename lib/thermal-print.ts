@@ -1,7 +1,7 @@
 "use client"
 
 export interface ReceiptData {
-  header: { name: string; address?: string; phone?: string; taxId?: string }
+  header: { name: string; address?: string; phone?: string; taxId?: string; rcNumber?: string; nifNumber?: string }
   orderId: string
   date: Date
   client?: string
@@ -95,6 +95,8 @@ export function printThermal(data: ReceiptData): void {
     ${data.header.address ? `<div class="sub">${data.header.address}</div>` : ""}
     ${data.header.phone ? `<div class="sub">Tel: ${data.header.phone}</div>` : ""}
     ${data.header.taxId ? `<div class="tax">NIF: ${data.header.taxId}</div>` : ""}
+    ${data.header.rcNumber ? `<div class="tax">RC: ${data.header.rcNumber}</div>` : ""}
+    ${data.header.nifNumber ? `<div class="tax">NIF: ${data.header.nifNumber}</div>` : ""}
   </div>
 
   <div class="divider-thick"></div>

@@ -10,14 +10,17 @@ import { Search, Package, AlertTriangle, Loader2, Clock, ArrowDownCircle, Wareho
 import { useStock } from "@/hooks/use-stock"
 import { useLocations } from "@/hooks/use-locations"
 import { useAuth } from "@/lib/auth-context"
+import { useSettings } from "@/hooks/use-settings"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
 import { formatStockFromSellingUnits } from "@/lib/stock-utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Printer } from "lucide-react"
 
 export default function InventoryStatusPage() {
   const { user } = useAuth()
+  const { settings } = useSettings()
   const [search, setSearch] = useState("")
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
   const [productType, setProductType] = useState<string>("all")
@@ -115,6 +118,99 @@ export default function InventoryStatusPage() {
     }
   }
 
+  const handlePrintStock = () => {
+    const printWindow = window.open("", "_blank")
+    if (!printWindow) return
+    const locationLabel = selectedLocationId
+      ? `${locations.find(l => l.id === selectedLocationId)?.name}`
+      : "Tous les emplacements"
+    const rows = filteredByLocation.map((item) => `
+      <tr>
+        <td style="padding:6px 10px;border:1px solid #d1d5db;font-weight:600;color:#111827">${item.product.name}</td>
+        <td style="padding:6px 10px;border:1px solid #d1d5db;color:#374151;font-family:monospace;font-size:12px">${item.product.sku}</td>
+        <td style="padding:6px 10px;border:1px solid #d1d5db;color:#374151;font-size:12px">${item.location?.name || "—"}</td>
+        <td style="padding:6px 10px;border:1px solid #d1d5db;text-align:right;font-weight:700">${Number(item.quantityOnHand).toFixed(3)}</td>
+        <td style="padding:6px 10px;border:1px solid #d1d5db;text-align:right;color:#d97706">${item.quantityReserved}</td>
+        <td style="padding:6px 10px;border:1px solid #d1d5db;text-align:right;color:#6b7280;font-size:12px">${item.reorderLevel}</td>
+        <td style="padding:6px 10px;border:1px solid #d1d5db;text-align:right;color:#6b7280;font-size:12px">${item.reorderQuantity || "—"}</td>
+        <td style="padding:6px 10px;border:1px solid #d1d5db;text-align:center">${
+          Number(item.quantityOnHand) <= item.reorderLevel
+            ? '<span style="color:#ef4444;font-weight:600">⚠ Alerte</span>'
+            : '<span style="color:#10b981;font-weight:600">✓ OK</span>'
+        }</td>
+        <td style="padding:6px 10px;border:1px solid #d1d5db;font-size:12px;color:#6b7280">${item.lastCountDate ? new Date(item.lastCountDate).toLocaleDateString("fr-FR") : "—"}</td>
+      </tr>
+    `).join("")
+    printWindow.document.write(`
+      <html>
+      <head>
+        <title>État des stocks</title>
+        <style>
+          @page { size: landscape; margin: 15mm; }
+          body { font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 20px; color: #1f2937; }
+          .header { text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #1f2937; }
+          .header h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+          .header p { margin: 4px 0; font-size: 13px; color: #4b5563; }
+          .meta { display: flex; justify-content: space-between; font-size: 12px; color: #6b7280; margin-bottom: 16px; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          th { background: #1f2937; color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+          th.right { text-align: right; }
+          th.center { text-align: center; }
+          tr:nth-child(even) { background: #f9fafb; }
+          .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #9ca3af; text-align: center; }
+          .summary { display: flex; gap: 24px; margin-bottom: 16px; font-size: 13px; }
+          .summary-item { background: #f3f4f6; padding: 8px 16px; border-radius: 6px; }
+          .summary-item strong { display: block; font-size: 18px; color: #111827; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>${settings?.name || "SmartPOS"}</h1>
+          ${settings?.address ? `<p>${settings.address}</p>` : ""}
+          ${settings?.phone ? `<p>Tel: ${settings.phone}</p>` : ""}
+          <p style="margin-top:8px;font-size:14px;font-weight:600;color:#374151">État des stocks — ${locationLabel}</p>
+        </div>
+        <div class="meta">
+          <span>Généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+          <span>${filteredByLocation.length} produit(s)</span>
+        </div>
+        <div class="summary">
+          <div class="summary-item">Total unités <strong>${filteredByLocation.reduce((a, i) => a + Number(i.quantityOnHand), 0).toFixed(3)}</strong></div>
+          <div class="summary-item">Réservé <strong>${filteredByLocation.reduce((a, i) => a + i.quantityReserved, 0)}</strong></div>
+          <div class="summary-item">Alertes <strong style="color:#ef4444">${filteredByLocation.filter(i => Number(i.quantityOnHand) <= i.reorderLevel).length}</strong></div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th>Code</th>
+              <th>Emplacement</th>
+              <th class="right">En stock</th>
+              <th class="right">Réservé</th>
+              <th class="right">Seuil</th>
+              <th class="right">Qté réapp.</th>
+              <th class="center">Statut</th>
+              <th>Dernier comptage</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+        <div class="footer">
+          SmartPOS — Document généré automatiquement
+          ${settings?.rcNumber ? `— RC: ${settings.rcNumber}` : ""}
+          ${settings?.nifNumber ? `— NIF: ${settings.nifNumber}` : ""}
+        </div>
+        <script>
+          window.onload = function() { window.print(); window.close(); }
+        <\/script>
+      </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -122,6 +218,10 @@ export default function InventoryStatusPage() {
           <h2 className="text-3xl font-bold tracking-tight text-foreground">État des stocks</h2>
           <p className="text-muted-foreground">Surveiller les niveaux de stock en temps réel</p>
         </div>
+        <Button variant="outline" size="sm" onClick={handlePrintStock}>
+          <Printer className="h-4 w-4 mr-2" />
+          Imprimer
+        </Button>
       </div>
 
       {/* Location filter */}

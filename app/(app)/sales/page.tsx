@@ -133,6 +133,8 @@ export default function SalesPage() {
           name: settings?.name || "SmartPOS",
           address: settings?.address || "",
           phone: settings?.phone || "",
+          rcNumber: settings?.rcNumber || "",
+          nifNumber: settings?.nifNumber || "",
         },
         orderId: order.id,
         date: new Date(),

@@ -319,6 +319,8 @@ export default function SalesHistoryPage() {
         : txn.paymentMethod === "credit_card" ? "Carte"
         : txn.paymentMethod
       : "—"
+    const rcLine = settings?.rcNumber ? `RC: ${settings.rcNumber}` : ""
+    const nifLine = settings?.nifNumber ? `NIF: ${settings.nifNumber}` : ""
     printReport({
       title: "FACTURE",
       subtitle: settings?.name || "SmartPOS",
@@ -333,7 +335,11 @@ export default function SalesHistoryPage() {
         { label: "Paiement", value: paymentLabel },
         { label: "Statut", value: statusLabel, highlight: !isCancelled && txn.status !== "completed" },
         { label: "Total", value: formatCurrency(totalHt), highlight: true },
-      ],
+      ].concat(
+        rcLine ? [{ label: "RC", value: settings.rcNumber }] : [],
+        nifLine ? [{ label: "NIF", value: settings.nifNumber }] : [],
+        isCancelled && txn.cancelReason ? [{ label: "Motif annulation", value: txn.cancelReason }] : [],
+      ),
       columns: [
         { header: "Désignation", key: "designation" },
         { header: "Qté", key: "quantite", align: "center" },
@@ -358,6 +364,8 @@ export default function SalesHistoryPage() {
         name: settings?.name || "SmartPOS",
         address: settings?.address || "",
         phone: settings?.phone || "",
+        rcNumber: settings?.rcNumber || "",
+        nifNumber: settings?.nifNumber || "",
       },
       orderId: data.id,
       date: new Date(data.date || Date.now()),
