@@ -16,6 +16,7 @@ export async function GET(request: Request) {
         clientName: clients.name,
         transactionId: creditRecords.transactionId,
         invoiceRef: transactions.invoiceRef,
+        reference: transactions.reference,
         amount: creditRecords.amount,
         paidAmount: creditRecords.paidAmount,
         dueDate: creditRecords.dueDate,

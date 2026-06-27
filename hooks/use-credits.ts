@@ -16,6 +16,7 @@ export interface CreditRecordDTO {
   clientName?: string | null
   transactionId: string
   invoiceRef?: string | null
+  reference?: string | null
   amount: string
   paidAmount: string
   dueDate: string
