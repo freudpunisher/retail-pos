@@ -134,7 +134,7 @@ export function printThermal(data: ReceiptData): void {
   <!-- Payment Method -->
   <div class="divider"></div>
   <div class="payment-line">
-    Payment: <strong>${(data.paymentMethod || "PENDING").toUpperCase()}</strong>
+    Payment: <strong>${data.paymentMethod === "cash" ? "ESPÈCES" : data.paymentMethod === "credit" ? "CRÉDIT" : (data.paymentMethod || "EN ATTENTE").toUpperCase()}</strong>
   </div>
 
   <div class="divider-thick"></div>`}

@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
                 items: true,
                 client: true,
                 user: true,
+                waiter: true,
                 table: true,
             },
             orderBy: (transactions, { desc }) => [desc(transactions.date)],
