@@ -32,7 +32,7 @@ const routePermissions: Record<string, string[]> = {
   "/finance/reports": ["admin", "manager"],
   "/finance/expenses": ["admin", "manager"],
   "/finance/payments": ["admin", "manager"],
-  "/reports": ["admin", "manager"],
+  "/reports": ["admin", "manager", "cashier"],
   "/settings": ["admin"],
   "/notifications": ["admin", "manager", "cashier", "stock_manager"],
   "/suppliers": ["admin", "manager", "stock_manager"],
