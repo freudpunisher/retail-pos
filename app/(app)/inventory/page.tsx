@@ -40,8 +40,10 @@ export default function InventoryStatusPage() {
       items = items.filter(item => item.product.productType === "ingredient")
     } else if (productType === "food") {
       items = items.filter(item => item.product.productType === "food")
+    } else if (productType === "others") {
+      items = items.filter(item => item.product.productType === "others")
     } else {
-      items = items.filter(item => item.product.productType !== "food" && item.product.trackStock !== false)
+      items = items.filter(item => item.product.productType !== "food" && item.product.productType !== "others" && item.product.trackStock !== false)
     }
     if (selectedLocationId) {
       items = items.filter(item => item.locationId === selectedLocationId)
@@ -283,6 +285,14 @@ export default function InventoryStatusPage() {
         >
           <Utensils className="h-4 w-4 mr-1" />
           Recettes
+        </Button>
+        <Button
+          variant={productType === "others" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setProductType("others")}
+        >
+          <Package className="h-4 w-4 mr-1" />
+          Autres
         </Button>
       </div>
 

@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm"
 const WAREHOUSE_MAP: Record<string, string> = {
   drink: "Drink Warehouse",
   ingredient: "Ingredient Warehouse",
+  food: "Food Warehouse",
+  others: "Others Warehouse",
 }
 
 export async function resolveWarehouse(
