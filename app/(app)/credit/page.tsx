@@ -19,13 +19,14 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { formatCurrency } from "@/lib/mock-data"
 import type { CreditRecord } from "@/lib/types"
-import { CreditCard, DollarSign, AlertTriangle, CheckCircle, Clock, Banknote, History } from "lucide-react"
+import { Search, CreditCard, DollarSign, AlertTriangle, CheckCircle, Clock, Banknote, History } from "lucide-react"
 import { useCredits } from "@/hooks/use-credits"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
 
 export default function CreditManagementPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [search, setSearch] = useState("")
   const [selectedRecord, setSelectedRecord] = useState<CreditRecord | null>(null)
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [showHistoryDialog, setShowHistoryDialog] = useState(false)
@@ -40,9 +41,16 @@ export default function CreditManagementPage() {
     return records.filter((record: any) => {
       const isOverdue = new Date(record.dueDate) < new Date() && record.status !== "paid"
       const effectiveStatus = isOverdue ? "overdue" : record.status
-      return statusFilter === "all" || effectiveStatus === statusFilter
+      if (statusFilter !== "all" && effectiveStatus !== statusFilter) return false
+      if (search) {
+        const q = search.toLowerCase()
+        const ref = (record.reference || "").toLowerCase()
+        const name = (record.clientName || "").toLowerCase()
+        if (!ref.includes(q) && !name.includes(q)) return false
+      }
+      return true
     })
-  }, [records, statusFilter])
+  }, [records, statusFilter, search])
 
   const totalOutstanding = records.reduce((sum: number, r: any) => sum + (Number(r.amount) - Number(r.paidAmount)), 0)
   const overdueCount = records.filter((r: any) => new Date(r.dueDate) < new Date() && r.status !== "paid").length
@@ -142,14 +150,23 @@ export default function CreditManagementPage() {
       {/* Filters */}
       <Card className="border-border bg-card">
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Filtrer par statut :</span>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher par client ou référence..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
+            <span className="text-sm text-muted-foreground">Statut :</span>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
+                <SelectItem value="all">Tous</SelectItem>
                 <SelectItem value="pending">En attente</SelectItem>
                 <SelectItem value="partial">Partiel</SelectItem>
                 <SelectItem value="overdue">En retard</SelectItem>
@@ -173,9 +190,8 @@ export default function CreditManagementPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-border">
-                  <TableHead className="text-muted-foreground">ID</TableHead>
+                  <TableHead className="text-muted-foreground">Référence</TableHead>
                   <TableHead className="text-muted-foreground">Client</TableHead>
-                  <TableHead className="text-muted-foreground">Transaction</TableHead>
                   <TableHead className="text-muted-foreground text-right">Montant</TableHead>
                   <TableHead className="text-muted-foreground text-right">Payé</TableHead>
                   <TableHead className="text-muted-foreground text-right">Restant</TableHead>
@@ -187,13 +203,13 @@ export default function CreditManagementPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                       Chargement des enregistrements de crédit...
                     </TableCell>
                   </TableRow>
                 ) : filteredRecords.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                       Aucun enregistrement de crédit trouvé
                     </TableCell>
                   </TableRow>
@@ -208,11 +224,10 @@ export default function CreditManagementPage() {
 
                     return (
                       <TableRow key={record.id} className="border-border">
-                        <TableCell className="font-mono text-sm">{record.id}</TableCell>
-                        <TableCell className="font-medium">{record.clientName || "Inconnu"}</TableCell>
-                        <TableCell className="font-mono text-sm text-muted-foreground">
-                          {record.transactionId}
+                        <TableCell className="font-mono text-sm font-medium">
+                          {record.reference || record.transactionId.slice(0, 8).toUpperCase()}
                         </TableCell>
+                        <TableCell className="font-medium">{record.clientName || "Inconnu"}</TableCell>
                         <TableCell className="text-right font-medium">{formatCurrency(amountValue)}</TableCell>
                         <TableCell className="text-right min-w-[140px]">
                           <div>
