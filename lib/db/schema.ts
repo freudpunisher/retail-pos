@@ -208,6 +208,7 @@ export const transactions = pgTable("transactions", {
     tableId: uuid("table_id").references(() => tables.id),
     reference: text("reference"),
     clientProof: text("client_proof"),
+    cancelReason: text("cancel_reason"),
 })
 
 export const transactionItems = pgTable("transaction_items", {

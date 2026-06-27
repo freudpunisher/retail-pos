@@ -47,6 +47,7 @@ export default function SalesHistoryPage() {
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; order: any | null }>({ open: false, order: null })
   const [editDialog, setEditDialog] = useState<{ open: boolean; transaction: any | null }>({ open: false, transaction: null })
   const [cancelDialog, setCancelDialog] = useState<{ open: boolean; transaction: any | null }>({ open: false, transaction: null })
+  const [cancelReason, setCancelReason] = useState("")
   const [editItems, setEditItems] = useState<any[]>([])
   const [cancelling, setCancelling] = useState(false)
   const [proofDialog, setProofDialog] = useState<{ open: boolean; transaction: any | null }>({ open: false, transaction: null })
@@ -289,9 +290,10 @@ export default function SalesHistoryPage() {
     if (!cancelDialog.transaction) return
     setCancelling(true)
     try {
-      await cancelTransaction(cancelDialog.transaction.id)
+      await cancelTransaction(cancelDialog.transaction.id, cancelReason || undefined)
       toast.success("Facture annulée avec succès")
       setCancelDialog({ open: false, transaction: null })
+      setCancelReason("")
     } catch (err: any) {
       toast.error(err.message || "Échec de l'annulation")
     } finally {
@@ -674,7 +676,7 @@ export default function SalesHistoryPage() {
                                      <Button variant="outline" size="sm" className="h-8" onClick={() => handleEditOpen(txn)}>
                                        <Pencil className="h-3.5 w-3.5 mr-1" /> Modifier
                                      </Button>
-                                      <Button variant="outline" size="sm" className="h-8 text-red-600 border-red-200 hover:bg-red-50" onClick={() => setCancelDialog({ open: true, transaction: txn })}>
+                                      <Button variant="outline" size="sm" className="h-8 text-red-600 border-red-200 hover:bg-red-50" onClick={() => { setCancelDialog({ open: true, transaction: txn }); setCancelReason("") }}>
                                         <X className="h-3.5 w-3.5 mr-1" /> Annuler
                                       </Button>
                                    </>
@@ -799,14 +801,19 @@ export default function SalesHistoryPage() {
                            : "border-amber-500/30 bg-amber-500/10 text-amber-700 mt-0.5"
                      }
                    >
-                     {selectedTransaction.status === "completed" ? "Payé" : selectedTransaction.status}
-                   </Badge>
-                </div>
-              </div>
+                      {selectedTransaction.status === "completed" ? "Payé" : selectedTransaction.status}
+                    </Badge>
+                    {selectedTransaction.status === "cancelled" && selectedTransaction.cancelReason && (
+                      <p className="text-xs text-red-600 mt-2 italic">
+                        Motif : {selectedTransaction.cancelReason}
+                      </p>
+                    )}
+                 </div>
+               </div>
 
-              <Separator />
+               <Separator />
 
-              <div>
+               <div>
 <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
                    <Package className="h-4 w-4 text-muted-foreground" />
                    Articles
@@ -1265,6 +1272,16 @@ export default function SalesHistoryPage() {
                 <p><span className="text-muted-foreground">Date :</span> {new Date(cancelDialog.transaction.date).toLocaleDateString()}</p>
                 <p><span className="text-muted-foreground">Total :</span> <span className="font-semibold">{formatCurrency(Number.parseFloat(cancelDialog.transaction.total))}</span></p>
                 <p><span className="text-muted-foreground">Articles :</span> {cancelDialog.transaction.items?.length || 0}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Motif de l'annulation</Label>
+                <textarea
+                  className="w-full min-h-[80px] rounded-lg border border-border bg-background p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  placeholder="Expliquez la raison de l'annulation..."
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                />
               </div>
 
               <div className="flex justify-end gap-2">

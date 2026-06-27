@@ -249,6 +249,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
                 await tx.update(transactions).set({
                     status: "cancelled",
+                    cancelReason: body.cancelReason || null,
                 }).where(eq(transactions.id, id))
             })
 
