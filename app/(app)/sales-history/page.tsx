@@ -313,12 +313,12 @@ export default function SalesHistoryPage() {
     const contactLine = [settings?.address, settings?.phone].filter(Boolean).join(" · ")
     const isCancelled = txn.status === "cancelled"
     const statusLabel = isCancelled ? "Annulé" : txn.status === "completed" ? "Payé" : "Non payé"
-    const paymentLabel = txn.paymentMethod
-      ? txn.paymentMethod === "cash" ? "Espèces"
+    const paymentLabel = txn.status !== "completed"
+      ? (txn.status === "cancelled" ? "ANNULÉ" : "EN ATTENTE")
+      : txn.paymentMethod === "cash" ? "Espèces"
         : txn.paymentMethod === "credit" ? "Crédit"
         : txn.paymentMethod === "credit_card" ? "Carte"
-        : txn.paymentMethod
-      : "—"
+        : txn.paymentMethod || "—"
     const rcLine = settings?.rcNumber ? `RC: ${settings.rcNumber}` : ""
     const nifLine = settings?.nifNumber ? `NIF: ${settings.nifNumber}` : ""
     printReport({
@@ -332,6 +332,7 @@ export default function SalesHistoryPage() {
         { label: "Client", value: txn.client?.name || "Client libre" },
         { label: "Contact", value: contactLine || "—" },
         { label: "Caissier", value: txn.user?.name || "—" },
+        { label: "Serveur", value: txn.waiter?.name || "—" },
         { label: "Paiement", value: paymentLabel },
         { label: "Statut", value: statusLabel, highlight: !isCancelled && txn.status !== "completed" },
         { label: "Total", value: formatCurrency(totalHt), highlight: true },
@@ -371,9 +372,10 @@ export default function SalesHistoryPage() {
       date: new Date(data.date || Date.now()),
       client: data.client?.name,
       cashier: data.user?.name,
+      waiter: data.waiter?.name,
       items,
       total: Number(data.total),
-      paymentMethod: data.status === "cancelled" ? "ANNULÉ" : (data.paymentMethod || "PENDING"),
+      paymentMethod: data.status === "completed" ? data.paymentMethod : (data.status === "cancelled" ? "ANNULÉ" : "EN ATTENTE"),
       currencySymbol: ({ USD: "$", EUR: "€", GBP: "£", Fbu: "Fbu " } as Record<string, string>)[settings?.currency] || settings?.currencySymbol || "Fbu",
       billReference: data.reference || "BL-" + data.id.slice(0, 8).toUpperCase(),
     })
@@ -783,18 +785,21 @@ export default function SalesHistoryPage() {
                 <div>
 <p className="text-xs text-muted-foreground font-medium">Paiement</p>
                    <div className="flex items-center gap-1.5 mt-0.5">
-                     {selectedTransaction.paymentMethod ? (
-                       <>
-                         {selectedTransaction.paymentMethod === "cash" ? (
-                           <Banknote className="h-3.5 w-3.5 text-green-600" />
-                         ) : (
-                           <CreditCard className="h-3.5 w-3.5 text-blue-600" />
-                         )}
-                         <span className="capitalize">{selectedTransaction.paymentMethod}</span>
-                       </>
-                     ) : (
-                       <span className="text-muted-foreground">Non payé</span>
-                     )}
+                      {selectedTransaction.status !== "completed" ? (
+                        <span className="text-amber-600 font-medium">EN ATTENTE</span>
+                      ) : selectedTransaction.paymentMethod === "cash" ? (
+                        <>
+                          <Banknote className="h-3.5 w-3.5 text-green-600" />
+                          <span className="capitalize">Espèces</span>
+                        </>
+                      ) : selectedTransaction.paymentMethod === "credit" ? (
+                        <>
+                          <CreditCard className="h-3.5 w-3.5 text-blue-600" />
+                          <span className="capitalize">Crédit</span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">Non payé</span>
+                      )}
                    </div>
                 </div>
                 <div>
